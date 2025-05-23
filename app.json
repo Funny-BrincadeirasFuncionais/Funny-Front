@@ -37,6 +37,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "ca5a55bc-dd64-4438-9907-5a383aaca213"
+      }
+    },
+    "owner": "yasslopes-org"
   }
 }
