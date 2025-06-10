@@ -77,6 +77,13 @@ export default function Layout() {
         }}
       />
       <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Perfil Aluno',
+          tabBarIcon: ({ color, size }) => <Ionicons name="person" color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
         name="TeacherProfileScreen"
         options={{
           title: 'Professor',
