@@ -33,8 +33,8 @@ export default function Layout() {
           backgroundColor: Colors.light.background,
           borderTopColor: Colors.light.surface,
           borderTopWidth: 1,
-          height: 60,
-          paddingBottom: Platform.OS === 'ios' ? 24 : 16,
+          height: 100,
+          paddingBottom: Platform.OS === 'android' ? 24 : 16,
           paddingTop: 8,
         },
         tabBarActiveTintColor: Colors.light.primary,
@@ -46,6 +46,24 @@ export default function Layout() {
         },
       }}
     >
+      <Tabs.Screen
+        name="login"
+        options={{
+          title: 'Login',
+          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
+            <Ionicons name="person-circle" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="cadastro"
+        options={{
+          title: 'Cadastro',
+          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
+            <Ionicons name="person-add" size={size} color={color} />
+          ),
+        }}
+      />
       <Tabs.Screen
         name="home"
         options={{
@@ -88,24 +106,6 @@ export default function Layout() {
           title: 'Professor',
           tabBarIcon: ({ color, size }: { color: string; size: number }) => (
             <Ionicons name="school" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="login"
-        options={{
-          title: 'Login',
-          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
-            <Ionicons name="person-circle" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="cadastro"
-        options={{
-          title: 'Cadastro',
-          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
-            <Ionicons name="person-add" size={size} color={color} />
           ),
         }}
       />

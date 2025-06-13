@@ -73,9 +73,7 @@ export default function HomeScreen() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Minhas Atividades - Retângulo Principal */}
         <TouchableOpacity 
-          style={styles.mainActivityCard}
-          onPress={() => router.push('/minhasAtividades')}
-        >
+          style={styles.mainActivityCard}        >
           <View style={styles.cardContent}>
             <View style={styles.cardTextSection}>
               <Text style={styles.mainActivityTitle}>MINHAS ATIVIDADES</Text>
@@ -118,10 +116,9 @@ export default function HomeScreen() {
           {/* Coluna Direita - Cotidiano */}
           <TouchableOpacity
             style={[styles.activityCard, styles.cotidianoCard]}
-            onPress={() => router.push('/CriancaProfileScreen')}
           >
             <View style={styles.cardInnerContent}>
-              <Text style={styles.cardTitle}>Crianças</Text>
+              <Text style={styles.cardTitle}>ATIVIDADES COTIDIANAS</Text>
               <Ionicons name="people" size={32} color="white" style={styles.cardIcon} />
             </View>
           </TouchableOpacity>
