@@ -1,5 +1,8 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+
 
 const objetos = [
   { emoji: '🍎', nome: 'maçãs' },
@@ -15,6 +18,7 @@ const objetos = [
 ];
 
 export default function ConteToque() {
+  const [criancaId, setCriancaId] = useState<string | null>(null);
   const [rodada, setRodada] = useState(1);
   const [acertos, setAcertos] = useState(0);
   const [erros, setErros] = useState(0);
@@ -23,22 +27,29 @@ export default function ConteToque() {
   const [emojiAtual, setEmojiAtual] = useState({ emoji: '🍎', nome: 'maçãs' });
   const [mensagem, setMensagem] = useState('');
   const [emojisExibidos, setEmojisExibidos] = useState('');
+  const [modalVisible, setModalVisible] = useState(false);
+  const [observacao, setObservacao] = useState('');
+  const [notaFinal, setNotaFinal] = useState(0);
+  const router = useRouter();
 
   useEffect(() => {
-    gerarRodada();
+    const carregarDados = async () => {
+      const id = await AsyncStorage.getItem('criancaSelecionada');
+      setCriancaId(id);
+      gerarRodada();
+    };
+    carregarDados();
   }, []);
 
   function gerarRodada() {
     const novo = objetos[Math.floor(Math.random() * objetos.length)];
-    const valor = Math.floor(Math.random() * 6) + 5; // de 5 a 10
+    const valor = Math.floor(Math.random() * 6) + 5;
     setEmojiAtual(novo);
     setQuantidade(valor);
     setMensagem(`Quantos ${novo.nome} tem na imagem?`);
     setEmojisExibidos(novo.emoji.repeat(valor));
-    const opcoes = [valor - 2, valor - 1, valor, valor + 1, valor + 2];
-
-    const embaralhadas = opcoes.sort(() => Math.random() - 0.5);
-    setOpcoes(embaralhadas);
+    const opcoes = [valor - 2, valor - 1, valor, valor + 1, valor + 2].sort(() => Math.random() - 0.5);
+    setOpcoes(opcoes);
   }
 
   function selecionar(num: number) {
@@ -49,36 +60,41 @@ export default function ConteToque() {
         gerarRodada();
       } else {
         const pontuacao = Math.max(0, 10 - erros);
-        enviarResultado(pontuacao);
+        setNotaFinal(pontuacao);
+        setModalVisible(true);
       }
     } else {
       setErros(e => e + 1);
     }
   }
 
-  function enviarResultado(pontuacao: number) {
+  async function enviarResultado() {
+    if (!criancaId) {
+      Alert.alert('Erro', 'Nenhuma criança selecionada.');
+      return;
+    }
+
     fetch('https://funny-back-fq78skku2-lianas-projects-1c0ab9bd.vercel.app/progresso/registrar', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        criancaId: 1,
-        atividadeId: 1,
-        pontuacao,
-        observacoes: 'Participou com '+pontuacao+' pontos',
+        criancaId: Number(criancaId),
+        atividadeId: 9,
+        pontuacao: notaFinal,
+        observacoes: observacao,
         concluida: true,
       }),
     })
       .then(res => {
         if (res.ok) {
-          Alert.alert('Atividade concluída', `Nota: ${pontuacao}`, [
-            { text: 'OK', style: 'default' },
-          ]);
+          Alert.alert('Enviado!', 'Resultado registrado com sucesso.');
+          router.push('/home');
         } else {
-          Alert.alert('Nota: ' + pontuacao, 'Não foi possível enviar o resultado (servidor).');
+          Alert.alert('Erro ao enviar', 'Servidor recusou os dados.');
         }
       })
       .catch(() => {
-        Alert.alert('Nota: ' + pontuacao, 'Erro de conexão ao enviar resultado.');
+        Alert.alert('Erro de conexão', 'Falha ao enviar para o servidor.');
       });
   }
 
@@ -94,6 +110,27 @@ export default function ConteToque() {
           </TouchableOpacity>
         ))}
       </View>
+
+      <Modal visible={modalVisible} animationType="slide" transparent>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalBox}>
+            <Text style={styles.modalTitle}>Atividade Finalizada!</Text>
+            <Text style={styles.modalText}>Nota final: {notaFinal}</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Escreva uma observação..."
+              value={observacao}
+              onChangeText={setObservacao}
+            />
+            <TouchableOpacity style={styles.submitButton} onPress={enviarResultado}>
+              <Text style={styles.submitButtonText}>Enviar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.voltarButton} onPress={() => router.push('/home')}>
+              <Text style={styles.voltarButtonText}>Voltar para Home</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -101,7 +138,7 @@ export default function ConteToque() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFA500', // fundo laranja
+    backgroundColor: '#FFA500',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
@@ -140,5 +177,49 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#333',
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 30,
+  },
+  modalBox: {
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    padding: 20,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  modalText: {
+    fontSize: 18,
+    marginBottom: 10,
+  },
+  input: {
+    backgroundColor: '#eee',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 15,
+  },
+  submitButton: {
+    backgroundColor: '#E07612',
+    padding: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  submitButtonText: {
+    color: '#fff',
+    fontSize: 16,
+  },
+  voltarButton: {
+    alignItems: 'center',
+  },
+  voltarButtonText: {
+    color: '#E07612',
+    fontSize: 16,
   },
 });

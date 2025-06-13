@@ -1,17 +1,66 @@
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { FontAwesome } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Checkbox from 'expo-checkbox';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Image, Pressable, StyleSheet, TextInput } from 'react-native';
+import { Alert, Image, Pressable, StyleSheet, TextInput } from 'react-native';
+
+
 
 export default function LoginScreen() {
+  const [email, setEmail] = useState('');
+  const [senha, setSenha] = useState('');
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
 
   const router = useRouter();
+
+  const handleLogin = async () => {
+  const payload = {
+    email,
+    senha,
+  };
+
+  try {
+    const response = await fetch('https://funny-back-fq78skku2-lianas-projects-1c0ab9bd.vercel.app/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      if (rememberMe && data.token) {
+        await AsyncStorage.setItem('token', data.token);
+      }
+
+      // Busca todos os responsáveis para identificar o ID do usuário logado
+      const resp = await fetch('https://funny-back-fq78skku2-lianas-projects-1c0ab9bd.vercel.app/responsaveis');
+      const lista = await resp.json();
+
+      const responsavel = lista.find((item: any) => item.email === email);
+
+      if (responsavel?.id) {
+        await AsyncStorage.setItem('userId', responsavel.id.toString());
+      } else {
+        Alert.alert('Aviso', 'Usuário logado, mas não encontrado na lista de responsáveis.');
+      }
+
+      Alert.alert('Sucesso', 'Login realizado com sucesso!');
+      router.push('/home');
+    } else {
+      Alert.alert('Erro', data.message || 'Falha no login.');
+    }
+  } catch (error) {
+    console.error('Erro ao fazer login:', error);
+    Alert.alert('Erro', 'Erro ao conectar com o servidor.');
+  }
+};
+
 
   return (
     <ThemedView style={styles.container}>
@@ -23,9 +72,7 @@ export default function LoginScreen() {
         <ThemedText type="title" style={styles.title}>Login</ThemedText>
 
         <ThemedView style={styles.centeredRow}>
-          <ThemedText type="subtitle" style={styles.subtitle}>
-            Não tem uma conta?{' '}
-          </ThemedText>
+          <ThemedText type="subtitle" style={styles.subtitle}>Não tem uma conta? </ThemedText>
           <Pressable onPress={() => router.push('/cadastro')}>
             <ThemedText type="subtitle" style={styles.hiperlink}>Cadastre-se</ThemedText>
           </Pressable>
@@ -33,6 +80,8 @@ export default function LoginScreen() {
 
         <TextInput
           placeholder="E-mail"
+          value={email}
+          onChangeText={setEmail}
           style={[styles.input, emailFocused && styles.inputFocused]}
           onFocus={() => setEmailFocused(true)}
           onBlur={() => setEmailFocused(false)}
@@ -42,10 +91,12 @@ export default function LoginScreen() {
 
         <TextInput
           placeholder="Senha"
+          value={senha}
+          onChangeText={setSenha}
+          secureTextEntry
           style={[styles.input, passwordFocused && styles.inputFocused]}
           onFocus={() => setPasswordFocused(true)}
           onBlur={() => setPasswordFocused(false)}
-          secureTextEntry
         />
 
         <ThemedView style={styles.checkboxContainer}>
@@ -61,7 +112,7 @@ export default function LoginScreen() {
           </Pressable>
         </ThemedView>
 
-        <Pressable style={styles.loginButton}>
+        <Pressable style={styles.loginButton} onPress={handleLogin}>
           <ThemedText style={styles.loginButtonText}>Entrar</ThemedText>
         </Pressable>
 
