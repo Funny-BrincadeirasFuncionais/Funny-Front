@@ -4,7 +4,6 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
     Image,
-    SafeAreaView,
     ScrollView,
     StatusBar,
     StyleSheet,
@@ -13,6 +12,7 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
 
 export default function HomeScreen() {
@@ -42,7 +42,7 @@ export default function HomeScreen() {
   }, []);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.light.background} />
 
       {/* Header */}
@@ -69,10 +69,14 @@ export default function HomeScreen() {
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Minhas Atividades - Retângulo Principal */}
-        <TouchableOpacity style={styles.mainActivityCard}>
+        <TouchableOpacity 
+          style={styles.mainActivityCard}
+          onPress={() => router.push('/minhasAtividades')}
+        >
           <View style={styles.cardContent}>
             <View style={styles.cardTextSection}>
               <Text style={styles.mainActivityTitle}>MINHAS ATIVIDADES</Text>
+              <Text style={styles.mainActivitySubtitle}>Acompanhe seu progresso</Text>
             </View>
             <View style={styles.cardImageSection}>
               <Image 
@@ -90,26 +94,34 @@ export default function HomeScreen() {
           <View style={styles.leftColumn}>
             {/* Português */}
             <TouchableOpacity style={[styles.activityCard, styles.portuguesCard]}>
-              <Text style={styles.cardTitle}>PORTUGUÊS</Text>
+              <View style={styles.cardInnerContent}>
+                <Text style={styles.cardTitle}>PALAVRAS</Text>
+                <Ionicons name="book" size={32} color="white" style={styles.cardIcon} />
+              </View>
             </TouchableOpacity>
 
             {/* Lógica */}
-            <TouchableOpacity style={[styles.activityCard, styles.logicCard]}
-            onPress={() => router.push('/minhasAtividades')}
+            <TouchableOpacity 
+              style={[styles.activityCard, styles.logicCard]}
+              onPress={() => router.push('/jogoContagem')}
             >
-              <Text style={styles.cardTitle}>Atividades</Text>
+              <View style={styles.cardInnerContent}>
+                <Text style={styles.cardTitle}>NÚMEROS</Text>
+                <Ionicons name="calculator" size={32} color="white" style={styles.cardIcon} />
+              </View>
             </TouchableOpacity>
           </View>
 
           {/* Coluna Direita - Cotidiano */}
- <TouchableOpacity
-  style={[styles.activityCard, styles.cotidianoCard]}
-  onPress={() => router.push('/crianca')}
->
-  <Text style={styles.cardTitle}>Crianças</Text>
-</TouchableOpacity>
-
-
+          <TouchableOpacity
+            style={[styles.activityCard, styles.cotidianoCard]}
+            onPress={() => router.push('/crianca')}
+          >
+            <View style={styles.cardInnerContent}>
+              <Text style={styles.cardTitle}>Crianças</Text>
+              <Ionicons name="people" size={32} color="white" style={styles.cardIcon} />
+            </View>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -120,14 +132,17 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: '#f5f5f5',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 30, // Aumentado para mais espaço no topo
+    paddingVertical: 20,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
   },
   welcomeContainer: {
     flex: 1,
@@ -139,14 +154,16 @@ const styles = StyleSheet.create({
     fontFamily: 'Lexend_700Bold',
   },
   profileButton: {
-    padding: 5,
+    padding: 8,
+    backgroundColor: 'rgba(255,165,0,0.1)',
+    borderRadius: 20,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.light.surface,
+    backgroundColor: 'white',
     marginHorizontal: 20,
-    marginBottom: 20,
+    marginVertical: 15,
     borderRadius: 25,
     paddingHorizontal: 15,
     elevation: 2,
@@ -171,16 +188,16 @@ const styles = StyleSheet.create({
   },
     mainActivityCard: {
     backgroundColor: Colors.light.primary,
-    borderRadius: 15,
+    borderRadius: 20,
     padding: 20,
     marginBottom: 20,
-    aspectRatio: 2.8,
+    aspectRatio: 2.5,
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 6,
-    width: '100%', // Ocupa toda a largura disponível do container pai
+    width: '100%',
   },
   mainActivityCardFullWidth: {
     backgroundColor: Colors.light.primary,
@@ -202,10 +219,16 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   mainActivityTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: 'white',
     fontFamily: 'Lexend_700Bold',
+    marginBottom: 4,
+  },
+  mainActivitySubtitle: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.9)',
+    fontFamily: 'Lexend_400Regular',
   },
   activityIcons: {
     flexDirection: 'row',
@@ -232,19 +255,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flex: 1,
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
   cardTextSection: {
     flex: 1,
-    alignItems: 'flex-start', // Alinha à esquerda
-    marginTop: 10,
+    alignItems: 'flex-start',
+    marginRight: 15,
   },
   cardImageSection: {
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  cardImage: {
     width: 160,
     height: 120,
+  },
+  cardImage: {
+    width: '100%',
+    height: '100%',
   },
   activitiesGrid: {
     flexDirection: 'row',
@@ -256,14 +282,18 @@ const styles = StyleSheet.create({
     gap: 15,
   },
   activityCard: {
-    borderRadius: 15,
+    borderRadius: 20,
     padding: 20,
-    justifyContent: 'space-between',
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 6,
+  },
+  cardInnerContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   portuguesCard: {
     backgroundColor: Colors.light.primaryDark,
@@ -283,8 +313,9 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: 'white',
-    marginBottom: 10,
+    marginBottom: 15,
     fontFamily: 'Lexend_700Bold',
+    textAlign: 'center',
   },
   cardIcons: {
     flexDirection: 'row',
@@ -300,5 +331,8 @@ const styles = StyleSheet.create({
   foxPlaceholder: {
     fontSize: 48,
     textAlign: 'center',
+  },
+  cardIcon: {
+    marginTop: 10,
   },
 }); 
