@@ -2,12 +2,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import {
-    Alert,
-    Modal,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Alert,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 import React, { useState } from 'react';
@@ -26,7 +26,7 @@ export default function MinhasAtividades() {
           const id = await AsyncStorage.getItem('criancaSelecionada');
           if (!id) {
             Alert.alert('Erro', 'Nenhuma criança selecionada.');
-            router.replace('/crianca');
+            router.replace('/CriancaProfileScreen');
             return;
           }
 

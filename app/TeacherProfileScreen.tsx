@@ -1,15 +1,167 @@
-import React from 'react';
-import { View, Text, Image, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { Alert, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 const TeacherProfileScreen = () => {
+  const router = useRouter();
+  const [criancas, setCriancas] = useState<any[]>([]);
+  const [modalCadastro, setModalCadastro] = useState(false);
+  const [nome, setNome] = useState('');
+  const [idade, setIdade] = useState('');
+  const [professorNome, setProfessorNome] = useState('PROFESSOR');
+  const [professorUsuario, setProfessorUsuario] = useState('usuario');
+  const [turmaId, setTurmaId] = useState('');
+  const [totalAlunos, setTotalAlunos] = useState(0);
+  const [totalAtividades, setTotalAtividades] = useState(0);
+  const [mediaProgresso, setMediaProgresso] = useState(0);
+
+  const carregarAtividadesDosAlunos = async (alunos: any[]) => {
+    let total = 0;
+    for (const aluno of alunos) {
+      try {
+        const res = await fetch(`https://funny-back-fq78skku2-lianas-projects-1c0ab9bd.vercel.app/progresso/crianca/${aluno.id}`);
+        const atividades = await res.json();
+        total += Array.isArray(atividades) ? atividades.length : 0;
+      } catch (error) {
+        console.error('Erro ao carregar atividades do aluno:', error);
+      }
+    }
+    setTotalAtividades(total);
+  };
+
+  const calcularMediaProgresso = async (alunos: any[]) => {
+    if (alunos.length === 0) {
+      setMediaProgresso(0);
+      return;
+    }
+
+    try {
+      // Buscar todas as atividades disponíveis
+      const atividadesRes = await fetch('https://funny-back-fq78skku2-lianas-projects-1c0ab9bd.vercel.app/atividades');
+      const atividades = await atividadesRes.json();
+      const totalAtividades = atividades.length;
+
+      if (totalAtividades === 0) {
+        setMediaProgresso(0);
+        return;
+      }
+
+      let totalProgresso = 0;
+
+      for (const aluno of alunos) {
+        try {
+          const progressoRes = await fetch(`https://funny-back-fq78skku2-lianas-projects-1c0ab9bd.vercel.app/progresso/crianca/${aluno.id}`);
+          const progresso = await progressoRes.json();
+          const concluidas = Array.isArray(progresso) ? progresso.length : 0;
+          
+          // Calcular porcentagem de progresso para cada aluno
+          const progressoAluno = (concluidas / totalAtividades) * 100;
+          totalProgresso += progressoAluno;
+        } catch (error) {
+          console.error('Erro ao calcular progresso do aluno:', error);
+        }
+      }
+
+      // Calcular média geral
+      const media = totalProgresso / alunos.length;
+      setMediaProgresso(Math.round(media));
+    } catch (error) {
+      console.error('Erro ao calcular média de progresso:', error);
+      setMediaProgresso(0);
+    }
+  };
+
+  const carregarCriancas = async () => {
+    try {
+      const userId = await AsyncStorage.getItem('userId');
+      if (!userId) return;
+
+      const res = await fetch('https://funny-back-fq78skku2-lianas-projects-1c0ab9bd.vercel.app/criancas');
+      const lista = await res.json();
+
+      const doUsuario = lista.filter((c: any) => c.responsavelId?.toString() === userId);
+      setCriancas(doUsuario);
+      setTotalAlunos(doUsuario.length);
+      
+      // Carregar atividades e calcular progresso
+      await carregarAtividadesDosAlunos(doUsuario);
+      await calcularMediaProgresso(doUsuario);
+    } catch (e) {
+      console.error('Erro ao carregar crianças', e);
+    }
+  };
+
+  useEffect(() => {
+    carregarCriancas();
+  }, []);
+
+  useEffect(() => {
+    const carregarProfessor = async () => {
+      try {
+        const userId = await AsyncStorage.getItem('userId');
+        if (!userId) return;
+        const res = await fetch(`https://funny-back-fq78skku2-lianas-projects-1c0ab9bd.vercel.app/responsaveis/${userId}`);
+        const data = await res.json();
+        if (res.ok && data.nome) {
+          setProfessorNome(data.nome.toUpperCase());
+          setProfessorUsuario(data.usuario ? `@${data.usuario}` : `@${data.nome.toLowerCase()}`);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar professor:', error);
+      }
+    };
+    carregarProfessor();
+  }, []);
+
+  const cadastrarCrianca = async () => {
+    const userId = await AsyncStorage.getItem('userId');
+    if (!userId || !nome || !idade) {
+      Alert.alert('Erro', 'Preencha todos os campos');
+      return;
+    }
+    const payload = {
+      nome,
+      idade: parseInt(idade),
+      responsavelId: parseInt(userId),
+      diagnosticoId: 1
+    };
+    try {
+      const res = await fetch('https://funny-back-fq78skku2-lianas-projects-1c0ab9bd.vercel.app/criancas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        Alert.alert('Sucesso', 'Criança cadastrada!');
+        setModalCadastro(false);
+        setNome('');
+        setIdade('');
+        carregarCriancas();
+      } else {
+        Alert.alert('Erro', 'Não foi possível cadastrar.');
+      }
+    } catch (e) {
+      console.error('Erro ao cadastrar criança', e);
+    }
+  };
+
+
   return (
     <ScrollView style={styles.container}>
       <LinearGradient
         colors={['#ffd700', '#ffa500', '#ff8c00']}
         style={styles.header}
       >
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => router.push('/home')}
+        >
+          <Ionicons name="arrow-back" size={24} color="white" />
+        </TouchableOpacity>
+
         <View style={styles.profileHeader}>
           <View style={styles.profileImageContainer}>
             <Image
@@ -20,8 +172,8 @@ const TeacherProfileScreen = () => {
               <Ionicons name="camera" size={20} color="white" />
             </TouchableOpacity>
           </View>
-          <Text style={styles.name}>Professor(a)</Text>
-          <Text style={styles.username}>@usuarioprofessor</Text>
+          <Text style={styles.name}>{professorNome}</Text>
+          <Text style={styles.username}>{professorUsuario}</Text>
         </View>
 
         <View style={styles.actionButtons}>
@@ -39,17 +191,17 @@ const TeacherProfileScreen = () => {
         <View style={styles.dashboardGrid}>
           <View style={styles.dashboardItem}>
             <Ionicons name="people" size={24} color="#ff8c00" />
-            <Text style={styles.dashboardNumber}>12</Text>
+            <Text style={styles.dashboardNumber}>{totalAlunos}</Text>
             <Text style={styles.dashboardLabel}>Alunos Ativos</Text>
           </View>
           <View style={styles.dashboardItem}>
             <Ionicons name="book" size={24} color="#ff8c00" />
-            <Text style={styles.dashboardNumber}>45</Text>
+            <Text style={styles.dashboardNumber}>{totalAtividades}</Text>
             <Text style={styles.dashboardLabel}>Atividades</Text>
           </View>
           <View style={styles.dashboardItem}>
             <Ionicons name="trending-up" size={24} color="#ff8c00" />
-            <Text style={styles.dashboardNumber}>78%</Text>
+            <Text style={styles.dashboardNumber}>{mediaProgresso}%</Text>
             <Text style={styles.dashboardLabel}>Média de Progresso</Text>
           </View>
         </View>
@@ -58,44 +210,42 @@ const TeacherProfileScreen = () => {
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Meus Alunos</Text>
-          <TouchableOpacity style={styles.addButton}>
+          <TouchableOpacity 
+            style={styles.addButton}
+            onPress={() => setModalCadastro(true)}
+          >
             <Ionicons name="add-circle" size={24} color="#ff8c00" />
           </TouchableOpacity>
         </View>
         <View style={styles.studentsList}>
-          <View style={styles.studentCard}>
-            <Image
-              source={{ uri: 'https://via.placeholder.com/50' }}
-              style={styles.studentAvatar}
-            />
-            <View style={styles.studentInfo}>
-              <Text style={styles.studentName}>Aluno 1</Text>
-              <Text style={styles.studentLevel}>Nível: Intermediário</Text>
-              <View style={styles.progressBar}>
-                <View style={[styles.progressFill, { width: '75%' }]} />
+          {criancas.map((crianca, index) => (
+            <View key={index} style={styles.studentCard}>
+              <Image
+                source={{ uri: 'https://via.placeholder.com/50' }}
+                style={styles.studentAvatar}
+              />
+              <View style={styles.studentInfo}>
+                <Text style={styles.studentName}>{crianca.nome}</Text>
+                <Text style={styles.studentLevel}>Idade: {crianca.idade} anos</Text>
+                <Text style={styles.studentDiagnosis}>
+                  Diagnóstico: {crianca.diagnostico?.nome || 'Não especificado'}
+                </Text>
+                <View style={styles.progressBar}>
+                  <View style={[styles.progressFill, { width: '75%' }]} />
+                </View>
               </View>
+              <TouchableOpacity
+                style={styles.studentButton}
+                onPress={async () => {
+                  await AsyncStorage.setItem('criancaSelecionada', crianca.id.toString());
+                  await AsyncStorage.setItem('criancaSelecionadaNome', crianca.nome);
+                  router.push('/CriancaProfileScreen');
+                }}
+              >
+                <Ionicons name="chevron-forward" size={24} color="#666" />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity style={styles.studentButton}>
-              <Ionicons name="chevron-forward" size={24} color="#666" />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.studentCard}>
-            <Image
-              source={{ uri: 'https://via.placeholder.com/50' }}
-              style={styles.studentAvatar}
-            />
-            <View style={styles.studentInfo}>
-              <Text style={styles.studentName}>Aluno 2</Text>
-              <Text style={styles.studentLevel}>Nível: Iniciante</Text>
-              <View style={styles.progressBar}>
-                <View style={[styles.progressFill, { width: '45%' }]} />
-              </View>
-            </View>
-            <TouchableOpacity style={styles.studentButton}>
-              <Ionicons name="chevron-forward" size={24} color="#666" />
-            </TouchableOpacity>
-          </View>
+          ))}
         </View>
       </View>
 
@@ -142,6 +292,61 @@ const TeacherProfileScreen = () => {
           </View>
         </View>
       </View>
+
+      {/* Modal de Cadastro de Criança */}
+      <Modal visible={modalCadastro} transparent animationType="slide">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Cadastrar Aluno</Text>
+            <TextInput
+              placeholder="Nome"
+              value={nome}
+              onChangeText={setNome}
+              style={styles.input}
+            />
+            <TextInput
+              placeholder="Idade"
+              value={idade}
+              onChangeText={setIdade}
+              keyboardType="numeric"
+              style={styles.input}
+            />
+            <TouchableOpacity 
+              style={[
+                styles.modalButton,
+                (!nome.trim() || !idade.trim()) && styles.modalButtonDisabled
+              ]} 
+              onPress={cadastrarCrianca}
+              disabled={!nome.trim() || !idade.trim()}
+            >
+              <Text style={styles.modalButtonText}>Salvar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setModalCadastro(false)}>
+              <Text style={{ marginTop: 10, color: 'red' }}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+      {/* Fim do conteúdo principal */}
+      <TouchableOpacity
+        style={styles.logoutButton}
+        onPress={async () => {
+          try {
+            await AsyncStorage.removeItem('token');
+            await AsyncStorage.removeItem('userId');
+            await AsyncStorage.removeItem('criancaSelecionada');
+            await AsyncStorage.removeItem('criancaSelecionadaNome');
+            await AsyncStorage.clear(); // Garantia extra
+            Alert.alert('Logout', 'Logout realizado com sucesso!');
+            router.push('/login');
+          } catch (e) {
+            Alert.alert('Erro', 'Erro ao realizar logout. Tente novamente.');
+          }
+        }}
+      >
+        <Ionicons name="log-out" size={22} color="#fff" />
+        <Text style={styles.logoutButtonText}>Logout</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 };
@@ -366,6 +571,73 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333',
     marginLeft: 15,
+  },
+  backButton: {
+    position: 'absolute',
+    top: 40,
+    left: 20,
+    zIndex: 1,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 10,
+    width: '80%',
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  input: {
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    padding: 10,
+    borderRadius: 5,
+    marginBottom: 15,
+  },
+  modalButton: {
+    backgroundColor: '#ff8c00',
+    padding: 10,
+    borderRadius: 5,
+    width: '100%',
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  modalButtonDisabled: {
+    backgroundColor: '#ccc',
+  },
+  studentDiagnosis: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 5,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E07612',
+    padding: 14,
+    borderRadius: 8,
+    margin: 24,
+    marginTop: 0,
+  },
+  logoutButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginLeft: 8,
   },
 });
 
