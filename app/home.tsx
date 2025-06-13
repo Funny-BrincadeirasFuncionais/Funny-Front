@@ -3,14 +3,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-    Image,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  Image,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
@@ -50,9 +50,12 @@ export default function HomeScreen() {
         <View style={styles.welcomeContainer}>
           <Text style={styles.welcomeText}>BEM-VINDO, {userName}!</Text>
         </View>
-        <TouchableOpacity style={styles.profileButton}>
-          <Ionicons name="person-circle" size={40} color={Colors.light.primary} />
-        </TouchableOpacity>
+        <TouchableOpacity
+            style={styles.profileButton}
+            onPress={() => router.push('/TeacherProfileScreen')}
+          >
+            <Ionicons name="person-circle" size={40} color={Colors.light.primary} />
+          </TouchableOpacity>
       </View>
 
       {/* Search Bar */}
@@ -115,7 +118,7 @@ export default function HomeScreen() {
           {/* Coluna Direita - Cotidiano */}
           <TouchableOpacity
             style={[styles.activityCard, styles.cotidianoCard]}
-            onPress={() => router.push('/crianca')}
+            onPress={() => router.push('/CriancaProfileScreen')}
           >
             <View style={styles.cardInnerContent}>
               <Text style={styles.cardTitle}>Crianças</Text>

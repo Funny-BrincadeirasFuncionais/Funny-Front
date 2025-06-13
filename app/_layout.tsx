@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tabs, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Platform, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
 import '../constants/Fonts'; // importa o patch global da fonte
 
