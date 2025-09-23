@@ -33,9 +33,9 @@ export default function Layout() {
           backgroundColor: Colors.light.background,
           borderTopColor: Colors.light.surface,
           borderTopWidth: 1,
-          height: 100,
-          paddingBottom: Platform.OS === 'android' ? 24 : 16,
-          paddingTop: 8,
+          height: 50,
+          paddingBottom: Platform.OS === 'android' ? 8 : 6,
+          paddingTop: 4,
         },
         tabBarActiveTintColor: Colors.light.primary,
         tabBarInactiveTintColor: Colors.light.textSecondary,
@@ -47,75 +47,73 @@ export default function Layout() {
       }}
     >
       <Tabs.Screen
-        name="login"
-        options={{
-          title: 'Login',
-          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
-            <Ionicons name="person-circle" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="cadastro"
-        options={{
-          title: 'Cadastro',
-          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
-            <Ionicons name="person-add" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="home"
         options={{
-          title: 'Home',
+          title: '',
           tabBarIcon: ({ color, size }: { color: string; size: number }) => (
             <Ionicons name="home" size={size} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="CriancaProfileScreen"
+        name="configuracoes"
         options={{
-          title: 'Criança',
+          title: '',
           tabBarIcon: ({ color, size }: { color: string; size: number }) => (
-            <Ionicons name="happy" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="jogoContagem"
-        options={{
-          title: 'Contagem',
-          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
-            <Ionicons name="calculator" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="minhasAtividades"
-        options={{
-          title: 'Atividades',
-          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
-            <Ionicons name="list" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="TeacherProfileScreen"
-        options={{
-          title: 'Professor',
-          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
-            <Ionicons name="school" size={size} color={color} />
+            <Ionicons name="settings" size={size} color={color} />
           ),
         }}
       />
       <Tabs.Screen
         name="sobre"
         options={{
-          title: 'Sobre',
+          title: '',
           tabBarIcon: ({ color, size }: { color: string; size: number }) => (
             <Ionicons name="information-circle" size={size} color={color} />
           ),
+        }}
+      />
+      {/* Esconder todas as outras telas da navbar */}
+      <Tabs.Screen
+        name="cadastro"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="login"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="CriancaProfileScreen"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="jogoContagem"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="jogoPalavra"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="minhasAtividades"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="TeacherProfileScreen"
+        options={{
+          href: null,
         }}
       />
     </Tabs>

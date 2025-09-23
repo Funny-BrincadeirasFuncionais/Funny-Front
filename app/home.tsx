@@ -4,7 +4,6 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   Image,
-  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -48,14 +47,19 @@ export default function HomeScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.welcomeContainer}>
-          <Text style={styles.welcomeText}>BEM-VINDO, {userName}!</Text>
+          <Text style={styles.welcomeText}>
+            <Text style={styles.welcomeTextBlack}>Bem-vindo ao </Text>
+            <Text style={styles.welcomeTextOrange}>Funny</Text>
+          </Text>
         </View>
-        <TouchableOpacity
-            style={styles.profileButton}
-            onPress={() => router.push('/TeacherProfileScreen')}
+        <View style={styles.headerButtons}>
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={() => router.push('/configuracoes')}
           >
-            <Ionicons name="person-circle" size={40} color={Colors.light.primary} />
+            <Ionicons name="settings" size={20} color={Colors.light.primary} />
           </TouchableOpacity>
+        </View>
       </View>
 
       {/* Search Bar */}
@@ -63,67 +67,62 @@ export default function HomeScreen() {
         <Ionicons name="search" size={20} color={Colors.light.textSecondary} style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
-          placeholder="PESQUISAR"
+          placeholder="Procurar..."
           placeholderTextColor={Colors.light.textSecondary}
           value={searchText}
           onChangeText={setSearchText}
         />
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Minhas Atividades - Retângulo Principal */}
-        <TouchableOpacity 
-          style={styles.mainActivityCard}        >
-          <View style={styles.cardContent}>
-            <View style={styles.cardTextSection}>
-              <Text style={styles.mainActivityTitle}>MINHAS ATIVIDADES</Text>
-              <Text style={styles.mainActivitySubtitle}>Acompanhe seu progresso</Text>
-            </View>
-            <View style={styles.cardImageSection}>
+      <View style={styles.content}>
+        {/* Grid Principal 2x2 */}
+        <View style={styles.mainGrid}>
+          {/* Primeira linha */}
+          <View style={styles.gridRow}>
+            <TouchableOpacity style={[styles.mainCard, styles.mathematicsCard]}>
               <Image 
-                source={require('../assets/images/Card-MinhasAtividades.png')} 
+                source={require('../assets/images/math.png')}
                 style={styles.cardImage}
-                resizeMode="contain"
+                resizeMode="cover"
               />
-            </View>
-          </View>
-        </TouchableOpacity>
-
-        {/* Grid de Atividades */}
-        <View style={styles.activitiesGrid}>
-          {/* Coluna Esquerda */}
-          <View style={styles.leftColumn}>
-            {/* Português */}
-            <TouchableOpacity style={[styles.activityCard, styles.portuguesCard]}>
-              <View style={styles.cardInnerContent}>
-                <Text style={styles.cardTitle}>PALAVRAS</Text>
-                <Ionicons name="book" size={32} color="white" style={styles.cardIcon} />
-              </View>
+              <Text style={styles.cardTitle}>Matemática</Text>
             </TouchableOpacity>
-
-            {/* Lógica */}
-            <TouchableOpacity 
-              style={[styles.activityCard, styles.logicCard]}
-              onPress={() => router.push('/jogoContagem')}
-            >
-              <View style={styles.cardInnerContent}>
-                <Text style={styles.cardTitle}>NÚMEROS</Text>
-                <Ionicons name="calculator" size={32} color="white" style={styles.cardIcon} />
-              </View>
+            <TouchableOpacity style={[styles.mainCard, styles.portugueseCard]}>
+              <Image 
+                source={require('../assets/images/port.png')} 
+                style={styles.cardImage}
+                resizeMode="cover"
+              />
+              <Text style={styles.cardTitle}>Português</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Coluna Direita - Cotidiano */}
-          <TouchableOpacity
-            style={[styles.activityCard, styles.cotidianoCard]}
-          >
-            <View style={styles.cardInnerContent}>
-              <Text style={styles.cardTitle}>ATIVIDADES COTIDIANAS</Text>
-              <Ionicons name="people" size={32} color="white" style={styles.cardIcon} />
-            </View>
-          </TouchableOpacity>
+          {/* Segunda linha */}
+          <View style={styles.gridRow}>
+            <TouchableOpacity style={[styles.mainCard, styles.logicCard]}>
+              <Image 
+                source={require('../assets/images/logic.png')} 
+                style={styles.cardImage}
+                resizeMode="cover"
+              />
+              <Text style={styles.cardTitle}>Lógica</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.mainCard, styles.dailyLifeCard]}>
+              <Image 
+                source={require('../assets/images/daily.png')} 
+                style={styles.cardImage}
+                resizeMode="cover"
+              />
+              <Text style={styles.cardTitle}>Cotidiano</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </ScrollView>
+
+        {/* Botão Ver todos os jogos */}
+        <TouchableOpacity style={styles.seeAllGamesButton}>
+          <Text style={styles.seeAllGamesText}>Ver todos os jogos</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
@@ -132,45 +131,55 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: 'white',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 20,
+    paddingHorizontal: 24,
+    paddingTop: 25,
+    paddingBottom: 20,
     backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
   },
   welcomeContainer: {
     flex: 1,
   },
   welcomeText: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
-    color: Colors.light.primary,
     fontFamily: 'Lexend_700Bold',
   },
-  profileButton: {
-    padding: 8,
+  welcomeTextBlack: {
+    color: '#000',
+  },
+  welcomeTextOrange: {
+    color: Colors.light.primary,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  headerButton: {
+    width: 35,
+    height: 35,
+    borderRadius: 16,
     backgroundColor: 'rgba(255,165,0,0.1)',
-    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
-    marginHorizontal: 20,
-    marginVertical: 15,
-    borderRadius: 25,
+    backgroundColor: '#f0f0f0',
+    marginHorizontal: 24,
+    marginVertical: 12,
+    borderRadius: 16,
     paddingHorizontal: 15,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    paddingVertical: 4,
+    borderWidth: 0.5,
+    borderColor: '#E07612',
   },
   searchIcon: {
     marginRight: 10,
@@ -182,157 +191,83 @@ const styles = StyleSheet.create({
     color: Colors.light.textPrimary,
     fontFamily: 'Lexend_400Regular',
   },
+  filterButton: {
+    padding: 8,
+  },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
   },
-    mainActivityCard: {
-    backgroundColor: Colors.light.primary,
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 20,
-    aspectRatio: 2.5,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    width: '100%',
+  mainGrid: {
+    marginTop: 15,
+    marginBottom: 30,
   },
-  mainActivityCardFullWidth: {
-    backgroundColor: Colors.light.primary,
-    borderRadius: 15,
-    padding: 20,
-    marginHorizontal: 20, // Mesma margem que o content (paddingHorizontal: 20)
-    marginBottom: 20,
-    aspectRatio: 2.8,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-  },
-  mainActivityHeader: {
+  gridRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
+    gap: 12,
   },
-  mainActivityTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: 'white',
-    fontFamily: 'Lexend_700Bold',
-    marginBottom: 4,
-  },
-  mainActivitySubtitle: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.9)',
-    fontFamily: 'Lexend_400Regular',
-  },
-  activityIcons: {
-    flexDirection: 'row',
-  },
-  activityIcon: {
-    marginLeft: 10,
-  },
-  logoSpace: {
-    alignSelf: 'flex-start',
-  },
-  logoImage: {
-    width: 50,
-    height: 30,
-  },
-  cardHeader: {
-    marginBottom: 10,
-  },
-  cardBottomLeft: {
-    position: 'absolute',
-    bottom: 20,
-    left: 20,
-  },
-  cardContent: {
-    flexDirection: 'row',
+  mainCard: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  cardTextSection: {
-    flex: 1,
-    alignItems: 'flex-start',
-    marginRight: 15,
-  },
-  cardImageSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 160,
-    height: 120,
+    height: 210,
+    borderRadius: 16,
+    overflow: 'hidden',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    position: 'relative',
   },
   cardImage: {
     width: '100%',
     height: '100%',
   },
-  activitiesGrid: {
-    flexDirection: 'row',
-    gap: 15,
-    marginBottom: 30,
+  cardTitle: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+    fontFamily: 'Lexend_700Bold',
+    textAlign: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 8,
   },
-  leftColumn: {
-    flex: 1,
-    gap: 15,
+  // Cores específicas para cada card baseadas na imagem
+  mathematicsCard: {
+    backgroundColor: '#8B9A8B', // Verde acinzentado
   },
-  activityCard: {
-    borderRadius: 20,
-    padding: 20,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-  },
-  cardInnerContent: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  portuguesCard: {
-    backgroundColor: Colors.light.primaryDark,
-    aspectRatio: 1, // Torna o card quadrado
+  portugueseCard: {
+    backgroundColor: '#87CEEB', // Azul claro
   },
   logicCard: {
-    backgroundColor: Colors.light.primaryDark,
-    aspectRatio: 1, // Torna o card quadrado
+    backgroundColor: '#4682B4', // Azul aço
   },
-  cotidianoCard: {
-    backgroundColor: Colors.light.primaryLight,
-    flex: 1,
-    marginLeft: 0,
-    alignSelf: 'stretch', // Acompanha a altura total da coluna esquerda
+  dailyLifeCard: {
+    backgroundColor: '#9ACD32', // Verde amarelado
   },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+  seeAllGamesButton: {
+    backgroundColor: Colors.light.primary,
+    width: '100%',  
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    alignSelf: 'center',
+    position: 'absolute',
+    bottom: 48,
+    left: 24,
+    right: 24,
+  },
+  seeAllGamesText: {
     color: 'white',
-    marginBottom: 15,
+    fontSize: 16,
+    fontWeight: 'bold',
     fontFamily: 'Lexend_700Bold',
     textAlign: 'center',
   },
-  cardIcons: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-  },
-  foxIconSpace: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    gap: 10,
-  },
-  foxPlaceholder: {
-    fontSize: 48,
-    textAlign: 'center',
-  },
-  cardIcon: {
-    marginTop: 10,
-  },
-}); 
+});
