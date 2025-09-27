@@ -5,7 +5,8 @@ import { useState } from 'react';
 import { ActivityIndicator, Platform, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
-import '../constants/Fonts'; // importa o patch global da fonte
+import '../constants/Fonts';
+
 
 export default function Layout() {
   const [fontsLoaded] = useFonts({
@@ -47,33 +48,18 @@ export default function Layout() {
       }}
     >
       <Tabs.Screen
-        name="home"
-        options={{
-          title: '',
-          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
-            <Ionicons name="home" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="configuracoes"
         options={{
-          title: '',
-          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
-            <Ionicons name="settings" size={size} color={color} />
-          ),
+          href: null,
         }}
       />
       <Tabs.Screen
         name="sobre"
         options={{
-          title: '',
-          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
-            <Ionicons name="information-circle" size={size} color={color} />
-          ),
+          href: null,
         }}
       />
-      {/* Esconder todas as outras telas da navbar */}
+      {/* Organização do navbar */}
       <Tabs.Screen
         name="cadastro"
         options={{
@@ -89,7 +75,19 @@ export default function Layout() {
       <Tabs.Screen
         name="CriancaProfileScreen"
         options={{
-          href: null,
+          title: '',
+          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
+            <Ionicons name="school" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="home"
+        options={{
+          title: '',
+          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
+            <Ionicons name="home" size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
@@ -113,7 +111,10 @@ export default function Layout() {
       <Tabs.Screen
         name="TeacherProfileScreen"
         options={{
-          href: null,
+          title: '',
+          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
+            <Ionicons name="person" size={size} color={color} />
+          ),
         }}
       />
     </Tabs>

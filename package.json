@@ -13,6 +13,7 @@
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.1",
     "@expo-google-fonts/lexend": "^0.4.0",
+    "@expo/metro-runtime": "~6.1.2",
     "@expo/vector-icons": "^15.0.2",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-native-community/checkbox": "^0.5.20",
@@ -45,13 +46,13 @@
     "react-native-svg": "15.12.1",
     "react-native-web": "^0.21.0",
     "react-native-webview": "13.15.0",
-    "@expo/metro-runtime": "~6.1.2",
     "react-native-worklets": "0.5.1"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@types/expo": "^32.0.13",
     "@types/react": "^19.1.8",
+    "@types/react-native-web": "^0.19.2",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
     "expo": "^54.0.6",

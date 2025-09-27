@@ -12,6 +12,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
 
+const LOGOFF_COLOR = '#ff4444';
+
 export default function ConfiguracoesScreen() {
   const [searchText, setSearchText] = useState('');
   const router = useRouter();
@@ -21,33 +23,19 @@ export default function ConfiguracoesScreen() {
       id: 'conta',
       title: 'Conta',
       icon: 'person',
-      onPress: () => {
-        // Implementar navegação para tela de conta
-      }
-    },
-    {
-      id: 'notificacoes',
-      title: 'Notificações',
-      icon: 'notifications',
-      onPress: () => {
-        // Implementar navegação para tela de notificações
-      }
+      onPress: () => {}
     },
     {
       id: 'acessibilidade',
       title: 'Acessibilidade',
       icon: 'accessibility',
-      onPress: () => {
-        // Implementar navegação para tela de acessibilidade
-      }
+      onPress: () => {}
     },
     {
       id: 'alunos',
       title: 'Alunos',
       icon: 'school',
-      onPress: () => {
-        // Implementar navegação para tela de alunos
-      }
+      onPress: () => {}
     },
     {
       id: 'sobre',
@@ -56,11 +44,18 @@ export default function ConfiguracoesScreen() {
       onPress: () => {
         router.push('/sobre');
       }
+    },
+    {
+      id: 'logoff',
+      title: 'Fazer Log-off',
+      icon: 'log-out',
+      onPress: () => {
+        router.push('/login');
+      }
     }
   ];
 
   const handleLogoff = () => {
-    // Implementar lógica de logoff
     console.log('Fazer log-off');
   };
 
@@ -68,7 +63,6 @@ export default function ConfiguracoesScreen() {
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.light.background} />
 
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton}
@@ -80,7 +74,6 @@ export default function ConfiguracoesScreen() {
         <View style={styles.headerSpacer} />
       </View>
 
-      {/* Search Bar */}
       <View style={styles.searchContainer}>
         <Ionicons name="search" size={20} color={Colors.light.textSecondary} style={styles.searchIcon} />
         <TextInput
@@ -92,31 +85,31 @@ export default function ConfiguracoesScreen() {
         />
       </View>
 
-      {/* Configurações List */}
       <View style={styles.configuracoesList}>
-        {configuracoes.map((item, index) => (
-          <View key={item.id}>
-            <TouchableOpacity 
-              style={styles.configuracaoItem}
-              onPress={item.onPress}
-            >
-              <View style={styles.configuracaoLeft}>
-                <Ionicons name={item.icon as any} size={24} color="#000" />
-                <Text style={styles.configuracaoTitle}>{item.title}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#000" />
-            </TouchableOpacity>
-            {index < configuracoes.length - 1 && <View style={styles.separator} />}
-          </View>
-        ))}
+        {configuracoes.map((item, index) => {
+          const isLogoff = item.id === 'logoff';
+          const itemColor = isLogoff ? LOGOFF_COLOR : '#000';
+
+          return (
+            <View key={item.id}>
+              <TouchableOpacity 
+                style={styles.configuracaoItem}
+                onPress={item.onPress}
+              >
+                <View style={styles.configuracaoLeft}>
+                  <Ionicons name={item.icon as any} size={24} color={itemColor} />
+                  <Text style={[styles.configuracaoTitle, { color: itemColor }]}>
+                    {item.title}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={isLogoff ? itemColor : '#000'} />
+              </TouchableOpacity>
+              {index < configuracoes.length - 1 && <View style={styles.separator} />}
+            </View>
+          );
+        })}
       </View>
 
-      {/* Logoff Button */}
-      <View style={styles.logoffContainer}>
-        <TouchableOpacity style={styles.logoffButton} onPress={handleLogoff}>
-          <Text style={styles.logoffText}>Fazer log-off</Text>
-        </TouchableOpacity>
-      </View>
     </SafeAreaView>
   );
 }
@@ -145,7 +138,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Lexend_700Bold',
   },
   headerSpacer: {
-    width: 40, // Para centralizar o título
+    width: 40,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -173,7 +166,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginHorizontal: 24,
     marginTop: 20,
-    paddingBottom: 100, // Espaço para o botão fixo
+    paddingBottom: 100,
   },
   configuracaoItem: {
     flexDirection: 'row',
