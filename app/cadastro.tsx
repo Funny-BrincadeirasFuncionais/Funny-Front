@@ -109,16 +109,6 @@ export default function CadastroScreen() {
         <Pressable style={styles.registerButton} onPress={handleRegister}>
           <ThemedText style={styles.registerButtonText}>Registre-se</ThemedText>
         </Pressable>
-
-        <ThemedView style={styles.lineContainer}>
-          <ThemedView style={styles.line} />
-          <ThemedText style={styles.orText}>Ou</ThemedText>
-        </ThemedView>
-
-        <Pressable style={styles.googleButton}>
-          <FontAwesome name="google" size={24} color="#E07612" />
-          <ThemedText style={styles.googleButtonText}>Continue com Google</ThemedText>
-        </Pressable>
       </ThemedView>
     </ThemedView>
   );
