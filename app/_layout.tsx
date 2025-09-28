@@ -1,7 +1,9 @@
 import { Lexend_400Regular, Lexend_700Bold, useFonts } from '@expo-google-fonts/lexend';
-import { Stack } from 'expo-router';
-import { ActivityIndicator, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Stack, Tabs } from 'expo-router';
+import { ActivityIndicator, Platform, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Colors } from '../constants/Colors';
 import '../constants/Fonts';
 
 export default function RootLayout() {
