@@ -2,12 +2,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  StatusBar,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    StatusBar,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
@@ -29,7 +29,9 @@ export default function ConfiguracoesScreen() {
       id: 'acessibilidade',
       title: 'Acessibilidade',
       icon: 'accessibility',
-      onPress: () => {}
+      onPress: () => {
+        router.push('/acessibilidade');
+      }
     },
     {
       id: 'alunos',

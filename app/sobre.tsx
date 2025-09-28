@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -10,6 +9,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
 
 export default function SobreScreen() {
@@ -20,113 +20,131 @@ export default function SobreScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.light.background} />
       
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
-          <Ionicons name="arrow-back" size={24} color={Colors.light.primary} />
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={handleBackPress}
+        >
+          <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>SOBRE O FUNNY</Text>
-        <View style={styles.placeholder} />
+        <Text style={styles.headerTitle}>Sobre o Funny</Text>
+        <View style={styles.headerSpacer} />
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         
-        {/* Card Principal - Sobre o Funny */}
-        <View style={styles.mainCard}>
-          <Text style={styles.mainTitle}>SOBRE O FUNNY</Text>
+        {/* Introdução */}
+        <View style={styles.introContainer}>
+          <View style={styles.logoContainer}>
+            <Ionicons name="school" size={64} color={Colors.light.primary} />
+          </View>
+          <Text style={styles.introTitle}>Sobre o Funny</Text>
+          <Text style={styles.introDescription}>
+            Um aplicativo educativo inclusivo criado especialmente para apoiar o aprendizado 
+            de crianças com Transtorno do Espectro Autista (TEA).
+          </Text>
+        </View>
+
+        {/* Cards de Informações */}
+        <View style={styles.infoCardsContainer}>
+          <View style={styles.infoCard}>
+            <View style={styles.cardIcon}>
+              <Ionicons name="people" size={32} color={Colors.light.primary} />
+            </View>
+            <Text style={styles.cardTitle}>Para Quem Foi Feito</Text>
+            <Text style={styles.cardDescription}>
+              Crianças neurodivergentes em fase de alfabetização, professores, terapeutas e familiares 
+              que desejam acompanhar o desenvolvimento da criança.
+            </Text>
+          </View>
+
+          <View style={styles.infoCard}>
+            <View style={styles.cardIcon}>
+              <Ionicons name="game-controller" size={32} color={Colors.light.primary} />
+            </View>
+            <Text style={styles.cardTitle}>Como Funciona</Text>
+            <Text style={styles.cardDescription}>
+              Atividades interativas em categorias como Português, Lógica, Números e Cotidiano, 
+              com instruções claras e feedback positivo.
+            </Text>
+          </View>
+
+          <View style={styles.infoCard}>
+            <View style={styles.cardIcon}>
+              <Ionicons name="library" size={32} color={Colors.light.primary} />
+            </View>
+            <Text style={styles.cardTitle}>Metodologia</Text>
+            <Text style={styles.cardDescription}>
+              Baseado em práticas TEACCH e ABA, utiliza reforço positivo, histórias sociais 
+              e pictogramas para facilitar o aprendizado.
+            </Text>
+          </View>
+
+          <View style={styles.infoCard}>
+            <View style={styles.cardIcon}>
+              <Ionicons name="settings" size={32} color={Colors.light.primary} />
+            </View>
+            <Text style={styles.cardTitle}>Personalização</Text>
+            <Text style={styles.cardDescription}>
+              Ambiente seguro e personalizável com configurações de sons, cores e níveis 
+              de estímulo sensorial.
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.techSection}>
+          <Text style={styles.sectionTitle}>Tecnologias e Recursos</Text>
           
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>O QUE É O FUNNY?</Text>
-            <Text style={styles.sectionText}>
-              Funny é um aplicativo educativo criado especialmente para apoiar o aprendizado de crianças com Transtorno do Espectro Autista (TEA). Utilizando jogos estruturados, personagens cativantes e uma interface adaptativa, o app transforma o processo de alfabetização em uma jornada divertida, segura e inclusiva.
-            </Text>
-          </View>
+          <View style={styles.techGrid}>
+            <View style={styles.techCard}>
+              <View style={styles.techIcon}>
+                <Ionicons name="code-slash" size={24} color={Colors.light.primary} />
+              </View>
+              <Text style={styles.techTitle}>Tecnologias</Text>
+              <Text style={styles.techText}>React Native • Expo • TypeScript • Expo Router</Text>
+            </View>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>PARA QUEM FOI FEITO?</Text>
-            <Text style={styles.sectionText}>
-              O Funny foi desenvolvido pensando nas necessidades de crianças neurodivergentes, especialmente aquelas que estão em fase de alfabetização. Também é uma ferramenta de apoio para professores, terapeutas e familiares que desejam acompanhar de perto o desenvolvimento da criança.
-            </Text>
-          </View>
+            <View style={styles.techCard}>
+              <View style={styles.techIcon}>
+                <Ionicons name="color-palette" size={24} color={Colors.light.primary} />
+              </View>
+              <Text style={styles.techTitle}>Design</Text>
+              <Text style={styles.techText}>Fonte Lexend • Interface Inclusiva • UX Adaptativo</Text>
+            </View>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>COMO FUNCIONA?</Text>
-            <Text style={styles.sectionText}>
-              O app oferece atividades interativas divididas em categorias como Português, Lógica, Números e Cotidiano. Todas as atividades são pensadas para estimular habilidades como atenção, memória, raciocínio lógico e linguagem, com instruções claras, feedback positivo e controle de estímulos sensoriais.
-            </Text>
-          </View>
+            <View style={styles.techCard}>
+              <View style={styles.techIcon}>
+                <Ionicons name="star" size={24} color={Colors.light.primary} />
+              </View>
+              <Text style={styles.techTitle}>Recursos</Text>
+              <Text style={styles.techText}>Gamificação • Relatórios • Personalização • Acessibilidade</Text>
+            </View>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>METODOLOGIA PEDAGÓGICA</Text>
-            <Text style={styles.sectionText}>
-              Baseado em práticas reconhecidas como TEACCH e ABA, o Funny utiliza reforço positivo, histórias sociais e pictogramas para facilitar a compreensão e tornar o aprendizado mais acessível. O conteúdo é gradual, respeitando o tempo e o ritmo de cada criança.
-            </Text>
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>AMBIENTE SEGURO E PERSONALIZÁVEL</Text>
-            <Text style={styles.sectionText}>
-              O aplicativo permite configurar sons, cores e níveis de estímulo para melhor atender às sensibilidades sensoriais de cada criança, criando um ambiente acolhedor e seguro para o aprendizado.
-            </Text>
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>APOIO AO EDUCADOR E À FAMÍLIA</Text>
-            <Text style={styles.sectionText}>
-              Com relatórios de desempenho e progresso individuais, o Funny facilita o acompanhamento pedagógico e terapêutico, promovendo uma comunicação mais efetiva entre professores, responsáveis e profissionais da saúde.
-            </Text>
+            <View style={styles.techCard}>
+              <View style={styles.techIcon}>
+                <Ionicons name="book" size={24} color={Colors.light.primary} />
+              </View>
+              <Text style={styles.techTitle}>Metodologias</Text>
+              <Text style={styles.techText}>TEACCH • ABA • Pictogramas • Histórias Sociais</Text>
+            </View>
           </View>
         </View>
 
-        {/* Cards de Tecnologias */}
-        <View style={styles.techGrid}>
-          <View style={styles.techCard}>
-            <Text style={styles.techTitle}>TECNOLOGIAS</Text>
-            <Text style={styles.techText}>• React Native</Text>
-            <Text style={styles.techText}>• Expo</Text>
-            <Text style={styles.techText}>• TypeScript</Text>
-            <Text style={styles.techText}>• Expo Router</Text>
+        {/* Footer */}
+        <View style={styles.footerContainer}>
+          <View style={styles.footerCard}>
+            <Text style={styles.footerTitle}>Funny v1.0</Text>
+            <Text style={styles.footerText}>
+              Desenvolvido com 💙 para promover inclusão e aprendizado
+            </Text>
+            <Text style={styles.footerText}>
+              © 2025 - Aplicativo Educativo Inclusivo
+            </Text>
           </View>
-
-          <View style={styles.techCard}>
-            <Text style={styles.techTitle}>DESIGN</Text>
-            <Text style={styles.techText}>• Fonte Lexend</Text>
-            <Text style={styles.techText}>• Paleta Laranja</Text>
-            <Text style={styles.techText}>• Interface Inclusiva</Text>
-            <Text style={styles.techText}>• UX Adaptativo</Text>
-          </View>
-        </View>
-
-        <View style={styles.techGrid}>
-          <View style={styles.techCard}>
-            <Text style={styles.techTitle}>RECURSOS</Text>
-            <Text style={styles.techText}>• Gamificação</Text>
-            <Text style={styles.techText}>• Relatórios</Text>
-            <Text style={styles.techText}>• Personalização</Text>
-            <Text style={styles.techText}>• Acessibilidade</Text>
-          </View>
-
-          <View style={styles.techCard}>
-            <Text style={styles.techTitle}>METODOLOGIAS</Text>
-            <Text style={styles.techText}>• TEACCH</Text>
-            <Text style={styles.techText}>• ABA</Text>
-            <Text style={styles.techText}>• Pictogramas</Text>
-            <Text style={styles.techText}>• Histórias Sociais</Text>
-          </View>
-        </View>
-
-        {/* Versão e Créditos */}
-        <View style={styles.footerCard}>
-          <Text style={styles.footerTitle}>FUNNY v1.0</Text>
-          <Text style={styles.footerText}>
-            Desenvolvido com 💙 para promover inclusão e aprendizado
-          </Text>
-          <Text style={styles.footerText}>
-            © 2024 - Aplicativo Educativo Inclusivo
-          </Text>
         </View>
 
       </ScrollView>
@@ -137,121 +155,182 @@ export default function SobreScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: 'white',
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 30,
+    paddingHorizontal: 24,
+    paddingVertical: 15,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
   },
   backButton: {
-    padding: 5,
+    padding: 8,
   },
   headerTitle: {
+    flex: 1,
     fontSize: 20,
     fontWeight: 'bold',
-    color: Colors.light.primary,
+    color: '#000',
+    textAlign: 'center',
     fontFamily: 'Lexend_700Bold',
   },
-  placeholder: {
-    width: 34, // Mesmo tamanho do botão de voltar para centralizar o título
+  headerSpacer: {
+    width: 40,
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
   },
-  mainCard: {
-    backgroundColor: Colors.light.primaryLight,
-    borderRadius: 15,
-    padding: 20,
+  introContainer: {
+    alignItems: 'center',
+    paddingVertical: 32,
+    paddingHorizontal: 16,
+  },
+  logoContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: Colors.light.primary + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 20,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
   },
-  mainTitle: {
+  introTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: Colors.light.brownDark,
+    color: '#000',
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 12,
     fontFamily: 'Lexend_700Bold',
   },
-  section: {
-    marginBottom: 20,
+  introDescription: {
+    fontSize: 16,
+    color: Colors.light.textSecondary,
+    textAlign: 'center',
+    lineHeight: 24,
+    fontFamily: 'Lexend_400Regular',
+  },
+  infoCardsContainer: {
+    marginBottom: 32,
+  },
+  infoCard: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  cardIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.light.primary + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 8,
+    fontFamily: 'Lexend_600SemiBold',
+  },
+  cardDescription: {
+    fontSize: 14,
+    color: Colors.light.textSecondary,
+    lineHeight: 20,
+    fontFamily: 'Lexend_400Regular',
+  },
+  techSection: {
+    marginBottom: 32,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: Colors.light.brownDark,
-    marginBottom: 8,
+    color: '#000',
+    marginBottom: 20,
+    textAlign: 'center',
     fontFamily: 'Lexend_700Bold',
-  },
-  sectionText: {
-    fontSize: 14,
-    color: Colors.light.brownDark,
-    lineHeight: 20,
-    textAlign: 'justify',
-    fontFamily: 'Lexend_400Regular',
   },
   techGrid: {
     flexDirection: 'row',
-    gap: 15,
-    marginBottom: 15,
+    flexWrap: 'wrap',
+    gap: 12,
   },
   techCard: {
     flex: 1,
-    backgroundColor: Colors.light.secondary,
-    borderRadius: 15,
-    padding: 20,
-    elevation: 4,
+    minWidth: '47%',
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  techIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.light.primary + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
   },
   techTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: Colors.light.brownDark,
-    marginBottom: 12,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 8,
     textAlign: 'center',
-    fontFamily: 'Lexend_700Bold',
+    fontFamily: 'Lexend_600SemiBold',
   },
   techText: {
-    fontSize: 14,
-    color: Colors.light.brownDark,
-    marginBottom: 6,
+    fontSize: 12,
+    color: Colors.light.textSecondary,
+    textAlign: 'center',
+    lineHeight: 16,
     fontFamily: 'Lexend_400Regular',
   },
+  footerContainer: {
+    paddingBottom: 32,
+  },
   footerCard: {
-    backgroundColor: Colors.light.secondary,
-    borderRadius: 15,
-    padding: 20,
-    marginBottom: 30,
+    backgroundColor: Colors.light.primary + '10',
+    borderRadius: 16,
+    padding: 24,
     alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
+    borderWidth: 1,
+    borderColor: Colors.light.primary + '20',
   },
   footerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: Colors.light.brownDark,
-    marginBottom: 10,
+    color: Colors.light.primary,
+    marginBottom: 12,
     fontFamily: 'Lexend_700Bold',
   },
   footerText: {
     fontSize: 14,
-    color: Colors.light.brownDark,
+    color: Colors.light.textSecondary,
     textAlign: 'center',
-    marginBottom: 5,
+    marginBottom: 6,
     fontFamily: 'Lexend_400Regular',
   },
 }); 

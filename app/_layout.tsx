@@ -59,6 +59,36 @@ export default function Layout() {
           href: null,
         }}
       />
+      <Tabs.Screen
+        name="acessibilidade"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="matematica"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="portugues"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="logica"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="cotidiano"
+        options={{
+          href: null,
+        }}
+      />
       {/* Organização do navbar */}
       <Tabs.Screen
         name="cadastro"
