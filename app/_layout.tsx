@@ -21,6 +21,9 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <Stack screenOptions={{ headerShown: false }}>
+        {/* Onboarding vem primeiro */}
+        <Stack.Screen name="onboarding" />
+
         {/* Telas sem navbar */}
         <Stack.Screen name="login" />
         <Stack.Screen name="cadastro" />

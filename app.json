@@ -12,6 +12,7 @@
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon_funny.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true
@@ -20,6 +21,14 @@
       "bundler": "metro",
       "output": "static"
     },
+    "icon": "./assets/images/icon_funny.png",
+
+    "splash": {
+      "image": "./assets/images/funny_original.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#ffffff"
+    },
+    
     "plugins": [
       "expo-router",
       "expo-font",
