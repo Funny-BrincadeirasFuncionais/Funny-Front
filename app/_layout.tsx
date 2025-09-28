@@ -1,21 +1,14 @@
 import { Lexend_400Regular, Lexend_700Bold, useFonts } from '@expo-google-fonts/lexend';
-import { Ionicons } from '@expo/vector-icons';
-import { Tabs, useRouter } from 'expo-router';
-import { useState } from 'react';
-import { ActivityIndicator, Platform, View } from 'react-native';
+import { Stack } from 'expo-router';
+import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { Colors } from '../constants/Colors';
 import '../constants/Fonts';
 
-
-export default function Layout() {
+export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     Lexend_400Regular,
     Lexend_700Bold,
   });
-
-  const router = useRouter();
-  const [deletada, setDeletada] = useState(false);
 
   if (!fontsLoaded) {
     return (
@@ -27,6 +20,17 @@ export default function Layout() {
 
   return (
     <SafeAreaProvider>
+      <Stack screenOptions={{ headerShown: false }}>
+        {/* Onboarding vem primeiro */}
+        <Stack.Screen name="onboarding" />
+
+        {/* Telas sem navbar */}
+        <Stack.Screen name="login" />
+        <Stack.Screen name="cadastro" />
+
+        {/* Grupo de tabs (aparece só depois do login) */}
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      </Stack>
     <Tabs
       screenOptions={{
         headerShown: false,
@@ -151,4 +155,3 @@ export default function Layout() {
     </SafeAreaProvider>
   );
 }
-

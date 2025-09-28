@@ -12,7 +12,7 @@ import {
   View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors } from '../constants/Colors';
+import { Colors } from '../../constants/Colors';
 
 export default function HomeScreen() {
   const [userName, setUserName] = useState('NOME');
@@ -81,7 +81,7 @@ export default function HomeScreen() {
           <View style={styles.gridRow}>
             <TouchableOpacity style={[styles.mainCard, styles.mathematicsCard]}>
               <Image 
-                source={require('../assets/images/math.png')}
+                source={require('../../assets/images/math.png')}
                 style={styles.cardImage}
                 resizeMode="cover"
               />
@@ -89,7 +89,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
             <TouchableOpacity style={[styles.mainCard, styles.portugueseCard]}>
               <Image 
-                source={require('../assets/images/port.png')} 
+                source={require('../../assets/images/port.png')} 
                 style={styles.cardImage}
                 resizeMode="cover"
               />
@@ -101,7 +101,7 @@ export default function HomeScreen() {
           <View style={styles.gridRow}>
             <TouchableOpacity style={[styles.mainCard, styles.logicCard]}>
               <Image 
-                source={require('../assets/images/logic.png')} 
+                source={require('../../assets/images/logic.png')} 
                 style={styles.cardImage}
                 resizeMode="cover"
               />
@@ -109,7 +109,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
             <TouchableOpacity style={[styles.mainCard, styles.dailyLifeCard]}>
               <Image 
-                source={require('../assets/images/daily.png')} 
+                source={require('../../assets/images/daily.png')} 
                 style={styles.cardImage}
                 resizeMode="cover"
               />
@@ -117,11 +117,6 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
         </View>
-
-        {/* Botão Ver todos os jogos */}
-        <TouchableOpacity style={styles.seeAllGamesButton}>
-          <Text style={styles.seeAllGamesText}>Ver todos os jogos</Text>
-        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );

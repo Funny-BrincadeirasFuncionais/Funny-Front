@@ -49,7 +49,7 @@ export default function ConfiguracoesScreen() {
     },
     {
       id: 'logoff',
-      title: 'Fazer Log-off',
+      title: 'Sair',
       icon: 'log-out',
       onPress: () => {
         router.push('/login');

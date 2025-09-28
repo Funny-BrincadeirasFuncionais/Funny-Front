@@ -1,6 +1,5 @@
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { FontAwesome } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Checkbox from 'expo-checkbox';
 import { useRouter } from 'expo-router';
@@ -19,47 +18,47 @@ export default function LoginScreen() {
   const router = useRouter();
 
   const handleLogin = async () => {
-  const payload = {
-    email,
-    senha,
-  };
+    const payload = {
+      email,
+      senha,
+    };
 
-  try {
-    const response = await fetch('https://funny-back-fq78skku2-lianas-projects-1c0ab9bd.vercel.app/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
+    try {
+      const response = await fetch('https://funny-back-fq78skku2-lianas-projects-1c0ab9bd.vercel.app/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
 
-    const data = await response.json();
+      const data = await response.json();
 
-    if (response.ok) {
-      if (rememberMe && data.token) {
-        await AsyncStorage.setItem('token', data.token);
-      }
+      if (response.ok) {
+        if (rememberMe && data.token) {
+          await AsyncStorage.setItem('token', data.token);
+        }
 
-      // Busca todos os responsáveis para identificar o ID do usuário logado
-      const resp = await fetch('https://funny-back-fq78skku2-lianas-projects-1c0ab9bd.vercel.app/responsaveis');
-      const lista = await resp.json();
+        // Busca todos os responsáveis para identificar o ID do usuário logado
+        const resp = await fetch('https://funny-back-fq78skku2-lianas-projects-1c0ab9bd.vercel.app/responsaveis');
+        const lista = await resp.json();
 
-      const responsavel = lista.find((item: any) => item.email === email);
+        const responsavel = lista.find((item: any) => item.email === email);
 
-      if (responsavel?.id) {
-        await AsyncStorage.setItem('userId', responsavel.id.toString());
+        if (responsavel?.id) {
+          await AsyncStorage.setItem('userId', responsavel.id.toString());
+        } else {
+          Alert.alert('Aviso', 'Usuário logado, mas não encontrado na lista de responsáveis.');
+        }
+
+        Alert.alert('Sucesso', 'Login realizado com sucesso!');
+        router.push('/home');
       } else {
-        Alert.alert('Aviso', 'Usuário logado, mas não encontrado na lista de responsáveis.');
+        Alert.alert('Erro', data.message || 'Falha no login.');
       }
-
-      Alert.alert('Sucesso', 'Login realizado com sucesso!');
-      router.push('/home');
-    } else {
-      Alert.alert('Erro', data.message || 'Falha no login.');
+    } catch (error) {
+      console.error('Erro ao fazer login:', error);
+      Alert.alert('Erro', 'Erro ao conectar com o servidor.');
     }
-  } catch (error) {
-    console.error('Erro ao fazer login:', error);
-    Alert.alert('Erro', 'Erro ao conectar com o servidor.');
-  }
-};
+  };
 
 
   return (
@@ -112,19 +111,22 @@ export default function LoginScreen() {
           </Pressable>
         </ThemedView>
 
-        <Pressable style={styles.loginButton} onPress={handleLogin}>
+        {/* Botão de login real (comentado por enquanto) */}
+        {/*<Pressable style={styles.loginButton} onPress={handleLogin}> 
+        <ThemedText style={styles.loginButtonText}>Entrar</ThemedText>
+        </Pressable>*/}
+
+        {/* Botão provisório: vai direto para home.tsx */}
+        <Pressable
+          style={styles.loginButton}
+          onPress={() => {
+            // Provisório: navega direto para a home dentro das tabs
+            router.replace('/(tabs)/home');
+          }}
+        >
           <ThemedText style={styles.loginButtonText}>Entrar</ThemedText>
         </Pressable>
 
-        <ThemedView style={styles.lineContainer}>
-          <ThemedView style={styles.line} />
-          <ThemedText style={styles.orText}>Ou</ThemedText>
-        </ThemedView>
-
-        <Pressable style={styles.googleButton}>
-          <FontAwesome name="google" size={24} color="#E07612" />
-          <ThemedText style={styles.googleButtonText}>Continue com Google</ThemedText>
-        </Pressable>
       </ThemedView>
     </ThemedView>
   );
@@ -141,7 +143,7 @@ const styles = StyleSheet.create({
   image: {
     width: 100,
     height: 34,
-    marginBottom:32
+    marginBottom: 32
   },
   logo: {
     fontSize: 24,
