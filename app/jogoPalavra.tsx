@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Dimensions, StyleSheet, Text, View } from 'react-native';
 import DraggableFlatList, { RenderItemParams } from 'react-native-draggable-flatlist';
 
-// Palavras separadas por tamanho
 const palavrasPorTamanho: Record<number, string[]> = {
   3: [
     'SOL', 'LUA', 'CÃO', 'MAR', 'RÉU', 'DIA', 'MÃE', 'PÃO', 'RIO',

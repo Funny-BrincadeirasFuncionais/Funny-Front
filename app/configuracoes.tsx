@@ -2,12 +2,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
@@ -23,7 +23,9 @@ export default function ConfiguracoesScreen() {
       id: 'conta',
       title: 'Conta',
       icon: 'person',
-      onPress: () => {}
+      onPress: () => {
+        router.push('/TeacherProfileScreen');
+      }
     },
     {
       id: 'acessibilidade',
@@ -37,7 +39,9 @@ export default function ConfiguracoesScreen() {
       id: 'alunos',
       title: 'Alunos',
       icon: 'school',
-      onPress: () => {}
+      onPress: () => {
+        router.push('/CriancaProfileScreen');
+      }
     },
     {
       id: 'sobre',

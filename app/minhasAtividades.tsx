@@ -1,6 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFocusEffect } from '@react-navigation/native';
-import { useRouter } from 'expo-router';
+import { useRouter, useNavigation } from 'expo-router';
 import {
   Alert,
   Modal,
@@ -9,8 +8,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function MinhasAtividades() {
   const [criancaNome, setCriancaNome] = useState('');
@@ -18,42 +16,40 @@ export default function MinhasAtividades() {
   const [notaContar, setNotaContar] = useState<string>('...');
   const [notaPalavras, setNotaPalavras] = useState<string>('...');
   const router = useRouter();
+  const navigation = useNavigation();
 
-  useFocusEffect(
-    React.useCallback(() => {
-      const carregarDados = async () => {
-        try {
-          const id = await AsyncStorage.getItem('criancaSelecionada');
-          if (!id) {
-            Alert.alert('Erro', 'Nenhuma criança selecionada.');
-            router.replace('/CriancaProfileScreen');
-            return;
-          }
+  const carregarDados = async () => {
+    try {
+      const id = await AsyncStorage.getItem('criancaSelecionada');
+      if (!id) {
+        Alert.alert('Erro', 'Nenhuma criança selecionada.');
+        router.replace('/CriancaProfileScreen');
+        return;
+      }
 
-          // Buscar nome da criança
-          const res = await fetch(`https://funny-back-fq78skku2-lianas-projects-1c0ab9bd.vercel.app/criancas/${id}`);
-          const data = await res.json();
-          setCriancaNome(data.nome);
+      const res = await fetch(`https://funny-back-fq78skku2-lianas-projects-1c0ab9bd.vercel.app/criancas/${id}`);
+      const data = await res.json();
+      setCriancaNome(data.nome);
 
-          // Buscar progresso da criança
-          const resProgresso = await fetch(`https://funny-back-fq78skku2-lianas-projects-1c0ab9bd.vercel.app/progresso/crianca/${id}`);
-          const progresso = await resProgresso.json();
+      const resProgresso = await fetch(`https://funny-back-fq78skku2-lianas-projects-1c0ab9bd.vercel.app/progresso/crianca/${id}`);
+      const progresso = await resProgresso.json();
 
-          const contar = progresso.find((p: any) => p.atividadeId === 9);
-          const palavras = progresso.find((p: any) => p.atividadeId === 8);
+      const contar = progresso.find((p: any) => p.atividadeId === 9);
+      const palavras = progresso.find((p: any) => p.atividadeId === 8);
 
-          setNotaContar(contar?.pontuacao?.toString() ?? 'Ainda não fez');
-          setNotaPalavras(palavras?.pontuacao?.toString() ?? 'Ainda não fez');
-        } catch (e) {
-          console.error('Erro ao carregar dados da criança', e);
-          setNotaContar('Erro');
-          setNotaPalavras('Erro');
-        }
-      };
+      setNotaContar(contar?.pontuacao?.toString() ?? 'Ainda não fez');
+      setNotaPalavras(palavras?.pontuacao?.toString() ?? 'Ainda não fez');
+    } catch (e) {
+      console.error('Erro ao carregar dados da criança', e);
+      setNotaContar('Erro');
+      setNotaPalavras('Erro');
+    }
+  };
 
-      carregarDados();
-    }, [])
-  );
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', carregarDados);
+    return unsubscribe;
+  }, [navigation]);
 
   const acessarJogo = (tipo: 'contar' | 'palavras') => {
     setPopup(null);

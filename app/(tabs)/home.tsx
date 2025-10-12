@@ -63,7 +63,7 @@ export default function HomeScreen() {
       </View>
 
       {/* Search Bar */}
-      <View style={styles.searchContainer}>
+      {/* <View style={styles.searchContainer}>
         <Ionicons name="search" size={20} color={Colors.light.textSecondary} style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
@@ -72,7 +72,7 @@ export default function HomeScreen() {
           value={searchText}
           onChangeText={setSearchText}
         />
-      </View>
+      </View> */}
 
       <View style={styles.content}>
         {/* Grid Principal 2x2 */}
