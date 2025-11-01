@@ -82,6 +82,11 @@ export default function TabsLayout() {
         <Tabs.Screen name="portugues" options={{ href: null }} />
         <Tabs.Screen name="logica" options={{ href: null }} />
         <Tabs.Screen name="cotidiano" options={{ href: null }} />
+        <Tabs.Screen name="jogosMatematica" options={{ href: null }} />
+        <Tabs.Screen name="jogosPortugues" options={{ href: null }} />
+        <Tabs.Screen name="jogosLogica" options={{ href: null }} />
+        <Tabs.Screen name="jogosCotidiano" options={{ href: null }} />
+        <Tabs.Screen name="jogoFormaGeometrica" options={{ href: null }} />
         <Tabs.Screen name="jogoContagem" options={{ href: null }} />
         <Tabs.Screen name="jogoPalavra" options={{ href: null }} />
         <Tabs.Screen name="minhasAtividades" options={{ href: null }} />

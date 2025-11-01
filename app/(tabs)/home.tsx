@@ -7,7 +7,6 @@ import {
   StatusBar,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View
 } from 'react-native';
@@ -79,7 +78,7 @@ export default function HomeScreen() {
         <View style={styles.mainGrid}>
           {/* Primeira linha */}
           <View style={styles.gridRow}>
-            <TouchableOpacity style={[styles.mainCard, styles.mathematicsCard]}>
+            <TouchableOpacity style={[styles.mainCard, styles.mathematicsCard]} onPress={() => router.push('/jogosMatematica')}>
               <Image 
                 source={require('../../assets/images/math.png')}
                 style={styles.cardImage}
@@ -87,7 +86,7 @@ export default function HomeScreen() {
               />
               <Text style={styles.cardTitle}>Matemática</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.mainCard, styles.portugueseCard]}>
+            <TouchableOpacity style={[styles.mainCard, styles.portugueseCard]} onPress={() => router.push('/jogosPortugues')}>
               <Image 
                 source={require('../../assets/images/port.png')} 
                 style={styles.cardImage}
@@ -99,7 +98,7 @@ export default function HomeScreen() {
 
           {/* Segunda linha */}
           <View style={styles.gridRow}>
-            <TouchableOpacity style={[styles.mainCard, styles.logicCard]}>
+            <TouchableOpacity style={[styles.mainCard, styles.logicCard]} onPress={() => router.push('/jogosLogica')}>
               <Image 
                 source={require('../../assets/images/logic.png')} 
                 style={styles.cardImage}
@@ -107,7 +106,7 @@ export default function HomeScreen() {
               />
               <Text style={styles.cardTitle}>Lógica</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.mainCard, styles.dailyLifeCard]}>
+            <TouchableOpacity style={[styles.mainCard, styles.dailyLifeCard]} onPress={() => router.push('/jogosCotidiano')}>
               <Image 
                 source={require('../../assets/images/daily.png')} 
                 style={styles.cardImage}
