@@ -1,10 +1,12 @@
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { FontAwesome } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Checkbox from 'expo-checkbox';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Image, Pressable, StyleSheet, TextInput } from 'react-native';
+import apiFetch from '@/services/api';
 
 
 
@@ -18,47 +20,58 @@ export default function LoginScreen() {
   const router = useRouter();
 
   const handleLogin = async () => {
-    const payload = {
-      email,
-      senha,
-    };
+  const payload = {
+    email,
+    senha,
+  };
 
-    try {
-      const response = await fetch('https://funny-back-fq78skku2-lianas-projects-1c0ab9bd.vercel.app/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+  try {
+    const response = await apiFetch('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
 
-      const data = await response.json();
+    const data = await response.json();
 
-      if (response.ok) {
-        if (rememberMe && data.token) {
-          await AsyncStorage.setItem('token', data.token);
-        }
+    if (response.ok) {
+      // Salva o token sempre
+      if (data.access_token) {
+        await AsyncStorage.setItem('token', data.access_token);
+      }
 
-        // Busca todos os responsáveis para identificar o ID do usuário logado
-        const resp = await fetch('https://funny-back-fq78skku2-lianas-projects-1c0ab9bd.vercel.app/responsaveis');
-        const lista = await resp.json();
+      // Busca todos os responsáveis para identificar o ID do usuário logado
+      const resp = await apiFetch('/responsaveis');
+      let lista;
+      try {
+        lista = await resp.json();
+        console.log('Resposta /responsaveis:', lista);
+      } catch (e) {
+        console.error('Erro ao processar resposta de /responsaveis:', e);
+        lista = [];
+      }
 
+      if (Array.isArray(lista)) {
         const responsavel = lista.find((item: any) => item.email === email);
-
         if (responsavel?.id) {
           await AsyncStorage.setItem('userId', responsavel.id.toString());
         } else {
           Alert.alert('Aviso', 'Usuário logado, mas não encontrado na lista de responsáveis.');
         }
-
-        Alert.alert('Sucesso', 'Login realizado com sucesso!');
-        router.push('/home');
       } else {
-        Alert.alert('Erro', data.message || 'Falha no login.');
+        Alert.alert('Erro', 'Resposta inesperada do servidor ao buscar responsáveis.');
+        console.error('Resposta inesperada de /responsaveis:', lista);
       }
-    } catch (error) {
-      console.error('Erro ao fazer login:', error);
-      Alert.alert('Erro', 'Erro ao conectar com o servidor.');
+
+      Alert.alert('Sucesso', 'Login realizado com sucesso!');
+      router.push('/home');
+    } else {
+      Alert.alert('Erro', data.message || 'Falha no login.');
     }
-  };
+  } catch (error) {
+    console.error('Erro ao fazer login:', error);
+    Alert.alert('Erro', 'Erro ao conectar com o servidor.');
+  }
+};
 
 
   return (

@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
+import { getJson } from '../../services/api';
 import {
   Image,
   StatusBar,
@@ -25,10 +26,9 @@ export default function HomeScreen() {
         const userId = await AsyncStorage.getItem('userId');
         if (!userId) return;
 
-        const res = await fetch(`https://funny-back-fq78skku2-lianas-projects-1c0ab9bd.vercel.app/responsaveis/${userId}`);
-        const data = await res.json();
+        const data = await getJson(`/responsaveis/${userId}`);
 
-        if (res.ok && data.nome) {
+        if (data && data.nome) {
           setUserName(data.nome.toUpperCase());
         }
       } catch (error) {

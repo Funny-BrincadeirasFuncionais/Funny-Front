@@ -3,7 +3,9 @@ import { ThemedView } from '@/components/ThemedView';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, TextInput } from 'react-native';
+import { Alert, Pressable, StyleSheet, TextInput, ActivityIndicator } from 'react-native';
+import apiFetch from '@/services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function CadastroScreen() {
   const [nome, setNome] = useState('');
@@ -15,10 +17,12 @@ export default function CadastroScreen() {
   const [emailFocused, setEmailFocused] = useState(false);
   const [telFocused, setTelFocused] = useState(false);
   const [senhaFocused, setSenhaFocused] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const router = useRouter();
 
   const handleRegister = async () => {
+    setIsLoading(true);
     const payload = {
       nome,
       email,
@@ -27,26 +31,90 @@ export default function CadastroScreen() {
     };
 
     try {
-      const res1 = await fetch('https://funny-back-fq78skku2-lianas-projects-1c0ab9bd.vercel.app/auth/register', {
+      // 1. Registrar usuário
+      const res1 = await apiFetch('/auth/register', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
-      const res2 = await fetch('https://funny-back-fq78skku2-lianas-projects-1c0ab9bd.vercel.app/responsaveis', {
+      if (!res1.ok) {
+        console.error('Erro no registro:', await res1.text());
+        Alert.alert('Erro', 'Falha no cadastro. Verifique os dados e tente novamente.');
+        setIsLoading(false);
+        return;
+      }
+
+      // 2. Fazer login para obter token
+      console.log('Tentando fazer login com:', { email });
+      const loginRes = await apiFetch('/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, senha }),
+      });
+
+      const responseText = await loginRes.text();
+      console.log('Login response text:', responseText);
+
+      if (!loginRes.ok) {
+        console.error('Erro no login. Status:', loginRes.status, 'Resposta:', responseText);
+        Alert.alert('Erro', 'Cadastro realizado, mas falha ao fazer login automático.');
+        setIsLoading(false);
+        router.push('/login');
+        return;
+      }
+
+      // Tenta converter a resposta em JSON
+      let responseData;
+      try {
+        responseData = JSON.parse(responseText);
+        console.log('Login response:', responseData);
+      } catch (jsonError) {
+        console.error('Erro ao processar resposta do login:', jsonError);
+        Alert.alert('Erro', 'Resposta inválida do servidor.');
+        setIsLoading(false);
+        router.push('/login');
+        return;
+      }
+
+      if (!responseData?.access_token) {
+        console.error('Token não encontrado na resposta:', responseData);
+        Alert.alert('Erro', 'Erro ao obter token de autenticação.');
+        setIsLoading(false);
+        router.push('/login');
+        return;
+      }
+
+      try {
+        await AsyncStorage.setItem('token', responseData.access_token);
+        console.log('Token salvo com sucesso');
+      } catch (storageError) {
+        console.error('Erro ao salvar token:', storageError);
+        Alert.alert('Erro', 'Erro ao salvar dados de autenticação.');
+        setIsLoading(false);
+        router.push('/login');
+        return;
+      }
+
+      // 3. Criar responsável (com token de autenticação)
+      const res2 = await apiFetch('/responsaveis', {
+        method: 'POST',
         body: JSON.stringify(payload),
       });
 
-      if (res1.ok && res2.ok) {
+      if (res2.ok) {
+        setIsLoading(false);
         Alert.alert('Sucesso', 'Cadastro realizado com sucesso!');
         router.push('/login');
       } else {
-        Alert.alert('Erro', 'Falha no cadastro. Verifique os dados e tente novamente.');
-        console.error('Erro:', await res1.text(), await res2.text());
+        setIsLoading(false);
+        Alert.alert('Erro', 'Falha ao criar perfil de responsável. Por favor, tente fazer login.');
+        console.error('Erro:', await res2.text());
+        router.push('/login');
       }
     } catch (error) {
+      setIsLoading(false);
       console.error('Erro ao cadastrar:', error);
       Alert.alert('Erro', 'Não foi possível conectar ao servidor.');
     }

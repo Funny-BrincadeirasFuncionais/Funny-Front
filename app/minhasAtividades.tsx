@@ -9,6 +9,7 @@ import {
   View
 } from 'react-native';
 import React, { useState, useEffect } from 'react';
+import { getJson } from '../services/api';
 
 export default function MinhasAtividades() {
   const [criancaNome, setCriancaNome] = useState('');
@@ -27,12 +28,10 @@ export default function MinhasAtividades() {
         return;
       }
 
-      const res = await fetch(`https://funny-back-fq78skku2-lianas-projects-1c0ab9bd.vercel.app/criancas/${id}`);
-      const data = await res.json();
-      setCriancaNome(data.nome);
+  const data = await getJson(`/criancas/${id}`);
+  setCriancaNome(data.nome);
 
-      const resProgresso = await fetch(`https://funny-back-fq78skku2-lianas-projects-1c0ab9bd.vercel.app/progresso/crianca/${id}`);
-      const progresso = await resProgresso.json();
+  const progresso = await getJson(`/progresso/crianca/${id}`);
 
       const contar = progresso.find((p: any) => p.atividadeId === 9);
       const palavras = progresso.find((p: any) => p.atividadeId === 8);

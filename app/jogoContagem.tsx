@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { postJson } from '../services/api';
 
 
 const objetos = [
@@ -74,28 +75,24 @@ export default function ConteToque() {
       return;
     }
 
-    fetch('https://funny-back-fq78skku2-lianas-projects-1c0ab9bd.vercel.app/progresso/registrar', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    try {
+      const res = await postJson('/progresso/registrar', {
         criancaId: Number(criancaId),
         atividadeId: 9,
         pontuacao: notaFinal,
         observacoes: observacao,
         concluida: true,
-      }),
-    })
-      .then(res => {
-        if (res.ok) {
-          Alert.alert('Enviado!', 'Resultado registrado com sucesso.');
-          router.push('/home');
-        } else {
-          Alert.alert('Erro ao enviar', 'Servidor recusou os dados.');
-        }
-      })
-      .catch(() => {
-        Alert.alert('Erro de conexão', 'Falha ao enviar para o servidor.');
       });
+
+      if (res.ok) {
+        Alert.alert('Enviado!', 'Resultado registrado com sucesso.');
+        router.push('/home');
+      } else {
+        Alert.alert('Erro ao enviar', 'Servidor recusou os dados.');
+      }
+    } catch (e) {
+      Alert.alert('Erro de conexão', 'Falha ao enviar para o servidor.');
+    }
   }
 
   return (
