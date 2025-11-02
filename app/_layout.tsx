@@ -38,6 +38,7 @@ export default function RootLayout() {
         <Stack.Screen name="jogoContagem" />
         <Stack.Screen name="jogoPalavra" />
         <Stack.Screen name="jogoMontaPalavra" />
+        <Stack.Screen name="jogoRotinaDia" />
       </Stack>
     </SafeAreaProvider>
   );

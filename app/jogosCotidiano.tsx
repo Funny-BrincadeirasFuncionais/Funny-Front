@@ -18,9 +18,10 @@ export default function JogosCotidianoScreen() {
   const jogos = [
     {
       id: '1',
-      nome: 'Tarefas do Dia',
-      descricao: 'Placeholder de cotidiano',
+      nome: 'A Rotina do Dia',
+      descricao: 'Organize uma sequência de ações do dia (acordar, escovar os dentes, café da manhã...)',
       icone: 'time-outline',
+      rota: '/jogoRotinaDia',
     },
   ];
 
@@ -44,7 +45,9 @@ export default function JogosCotidianoScreen() {
             key={jogo.id}
             style={styles.gameCard}
             onPress={() => {
-              console.log(`Navegar para jogo: ${jogo.nome}`);
+              if (jogo.rota) {
+                router.push(jogo.rota as any);
+              }
             }}
           >
             <View style={styles.gameIconContainer}>
