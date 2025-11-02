@@ -23,6 +23,13 @@ export default function JogosPortuguesScreen() {
       icone: 'text-outline',
       rota: '/jogoMontaPalavra',
     },
+    {
+      id: '2',
+      nome: 'Forme a Família de Palavras',
+      descricao: 'Arraste palavras com a mesma terminação para formar uma família',
+      icone: 'people-outline',
+      rota: '/jogoFamiliaPalavras',
+    },
   ];
 
   return (

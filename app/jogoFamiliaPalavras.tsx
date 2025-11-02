@@ -1,0 +1,746 @@
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+    Alert,
+    Animated,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { postJson } from '../services/api';
+import { Colors } from '../constants/Colors';
+
+interface FamiliaPalavras {
+    termino: string;
+    palavrasCorretas: string[];
+    palavrasDistratoras: string[];
+    cor: string;
+}
+
+const familiasPalavras: FamiliaPalavras[] = [
+    {
+        termino: '-asa',
+        palavrasCorretas: ['CASA', 'ASA', 'BRASA', 'GASA'],
+        palavrasDistratoras: ['MESA', 'CÃO', 'LUA'],
+        cor: '#4CAF50'
+    },
+    {
+        termino: '-ato',
+        palavrasCorretas: ['GATO', 'RATO', 'PATO', 'PRATO'],
+        palavrasDistratoras: ['MÃO', 'PÃO', 'SOL'],
+        cor: '#2196F3'
+    },
+    {
+        termino: '-ada',
+        palavrasCorretas: ['ENTRADA', 'SAÍDA', 'CHEGADA', 'PASSADA'],
+        palavrasDistratoras: ['CASA', 'MESA', 'CAMA'],
+        cor: '#FF9800'
+    },
+    {
+        termino: '-ão',
+        palavrasCorretas: ['MÃO', 'PÃO', 'CÃO', 'CHÃO'],
+        palavrasDistratoras: ['SOL', 'LUA', 'MAR'],
+        cor: '#9C27B0'
+    },
+    {
+        termino: '-inho',
+        palavrasCorretas: ['MENINO', 'CAMINHO', 'CARINHO', 'PEQUENINHO'],
+        palavrasDistratoras: ['CASA', 'GATO', 'PATO'],
+        cor: '#E91E63'
+    }
+];
+
+interface PalavraItem {
+    id: string;
+    palavra: string;
+    pertenceFamilia: boolean;
+}
+
+export default function JogoFamiliaPalavras() {
+    const router = useRouter();
+    const [faseAtual, setFaseAtual] = useState(0);
+    const [palavrasDisponiveis, setPalavrasDisponiveis] = useState<PalavraItem[]>([]);
+    const [palavrasNaFamilia, setPalavrasNaFamilia] = useState<PalavraItem[]>([]);
+    const [palavrasSelecionadas, setPalavrasSelecionadas] = useState<Set<string>>(new Set());
+    const [familiaCompleta, setFamiliaCompleta] = useState(false);
+    const [mostrarFeedback, setMostrarFeedback] = useState(false);
+    const [mensagemFeedback, setMensagemFeedback] = useState('');
+    const [animacao] = useState(new Animated.Value(0));
+    const [acertos, setAcertos] = useState(0);
+    const [tentativas, setTentativas] = useState(0);
+    const [jogoFinalizado, setJogoFinalizado] = useState(false);
+    const [notaFinal, setNotaFinal] = useState(0);
+    const [criancaId, setCriancaId] = useState<string | null>(null);
+
+    const familiaAtual = familiasPalavras[faseAtual];
+
+    useEffect(() => {
+        const carregarDados = async () => {
+            const id = await AsyncStorage.getItem('criancaSelecionada');
+            setCriancaId(id);
+        };
+        carregarDados();
+    }, []);
+
+    useEffect(() => {
+        if (familiaAtual) {
+            // Criar array com todas as palavras (corretas + distratoras)
+            const todasPalavras: PalavraItem[] = [
+                ...familiaAtual.palavrasCorretas.map((p, i) => ({
+                    id: `correta-${i}`,
+                    palavra: p,
+                    pertenceFamilia: true
+                })),
+                ...familiaAtual.palavrasDistratoras.map((p, i) => ({
+                    id: `distratora-${i}`,
+                    palavra: p,
+                    pertenceFamilia: false
+                }))
+            ];
+            
+            // Embaralhar palavras
+            const embaralhadas = [...todasPalavras].sort(() => Math.random() - 0.5);
+            
+            setPalavrasDisponiveis(embaralhadas);
+            setPalavrasNaFamilia([]);
+            setPalavrasSelecionadas(new Set());
+            setFamiliaCompleta(false);
+            setMostrarFeedback(false);
+            setMensagemFeedback('');
+            animacao.setValue(0);
+        }
+    }, [faseAtual, familiaAtual, animacao]);
+
+    const verificarFamilia = useCallback(() => {
+        const totalCorretas = familiaAtual.palavrasCorretas.length;
+        const palavrasCorretasNaFamilia = palavrasNaFamilia.filter(p => p.pertenceFamilia).length;
+        const palavrasErradasNaFamilia = palavrasNaFamilia.filter(p => !p.pertenceFamilia).length;
+
+        // Família completa se tiver todas as palavras corretas e nenhuma errada
+        if (palavrasCorretasNaFamilia === totalCorretas && palavrasErradasNaFamilia === 0) {
+            setFamiliaCompleta(true);
+            setAcertos(prev => prev + 1);
+            mostrarMensagemFeedback(true);
+        } else if (palavrasNaFamilia.length > 0) {
+            setTentativas(prev => prev + 1);
+            mostrarMensagemFeedback(false);
+        }
+    }, [palavrasNaFamilia, familiaAtual]);
+
+    useEffect(() => {
+        if (palavrasNaFamilia.length > 0) {
+            verificarFamilia();
+        }
+    }, [palavrasNaFamilia, verificarFamilia]);
+
+    const mostrarMensagemFeedback = useCallback((correto: boolean) => {
+        if (correto) {
+            setMensagemFeedback('Parabéns! Você formou a família! 🌟');
+        } else {
+            const palavrasErradas = palavrasNaFamilia.filter(p => !p.pertenceFamilia).length;
+            if (palavrasErradas > 0) {
+                setMensagemFeedback('Algumas palavras não pertencem à família. Tente novamente! 😊');
+            } else {
+                setMensagemFeedback('Ainda faltam palavras! Continue! 💪');
+            }
+        }
+        setMostrarFeedback(true);
+        
+        Animated.sequence([
+            Animated.timing(animacao, {
+                toValue: 1,
+                duration: 300,
+                useNativeDriver: true,
+            }),
+            Animated.delay(1500),
+            Animated.timing(animacao, {
+                toValue: 0,
+                duration: 300,
+                useNativeDriver: true,
+            }),
+        ]).start(() => {
+            if (correto) {
+                setTimeout(() => {
+                    setMostrarFeedback(false);
+                    avancarFase();
+                }, 500);
+            }
+        });
+    }, [animacao, palavrasNaFamilia]);
+
+    const selecionarPalavra = (palavra: PalavraItem) => {
+        if (familiaCompleta) return;
+
+        if (palavrasSelecionadas.has(palavra.id)) {
+            // Remover palavra da família
+            setPalavrasNaFamilia(prev => prev.filter(p => p.id !== palavra.id));
+            setPalavrasSelecionadas(prev => {
+                const novo = new Set(prev);
+                novo.delete(palavra.id);
+                return novo;
+            });
+        } else {
+            // Adicionar palavra à família
+            setPalavrasNaFamilia(prev => [...prev, palavra]);
+            setPalavrasSelecionadas(prev => new Set([...prev, palavra.id]));
+        }
+    };
+
+    const avancarFase = () => {
+        if (faseAtual < familiasPalavras.length - 1) {
+            setFaseAtual(prev => prev + 1);
+        } else {
+            finalizarJogo();
+        }
+    };
+
+    const calcularNotaFinal = () => {
+        const totalFases = familiasPalavras.length;
+        const percentualAcertos = (acertos / totalFases) * 100;
+        
+        // Penalizar muitas tentativas
+        const penalidadeTentativas = Math.min(tentativas * 0.5, 3);
+        
+        // Calcular nota (0-10)
+        let nota = (percentualAcertos / 10) - (penalidadeTentativas / 10);
+        nota = Math.max(0, Math.min(10, nota));
+        
+        return Math.round(nota * 10) / 10;
+    };
+
+    const finalizarJogo = () => {
+        const nota = calcularNotaFinal();
+        setNotaFinal(nota);
+        setJogoFinalizado(true);
+    };
+
+    const enviarResultado = async () => {
+        if (!criancaId) {
+            Alert.alert('Erro', 'Nenhuma criança selecionada.');
+            return;
+        }
+
+        try {
+            const response = await postJson('/progresso/registrar-minijogo', {
+                pontuacao: notaFinal,
+                categoria: 'Português',
+                crianca_id: Number(criancaId),
+                observacoes: `Formou ${acertos} de ${familiasPalavras.length} famílias corretamente.`
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                Alert.alert(
+                    'Sucesso! 🎉',
+                    'Resultado registrado com sucesso!',
+                    [
+                        {
+                            text: 'Voltar',
+                            onPress: () => router.back(),
+                        },
+                    ]
+                );
+            } else {
+                const error = await response.json();
+                Alert.alert('Erro ao enviar', error.detail || 'Servidor recusou os dados.');
+            }
+        } catch (e) {
+            console.error('Erro ao enviar resultado:', e);
+            Alert.alert('Erro de conexão', 'Falha ao enviar para o servidor.');
+        }
+    };
+
+    const scaleAnim = animacao.interpolate({
+        inputRange: [0, 1],
+        outputRange: [1, 1.1],
+    });
+
+    if (jogoFinalizado) {
+        return (
+            <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+                <StatusBar barStyle="light-content" backgroundColor="#F78F3F" />
+                
+                <View style={styles.backgroundShapes}>
+                    <Svg width="100%" height="100%" viewBox="0 0 400 800" preserveAspectRatio="none" style={styles.blobSvg}>
+                        <Path
+                            d="M280,30 Q340,10 370,60 T360,140 Q330,170 280,150 T240,90 Q230,50 280,30 Z"
+                            fill="#E07612"
+                            opacity={0.7}
+                        />
+                        <Path
+                            d="M-20,680 Q30,660 50,700 T40,760 Q10,790 -20,770 T-50,720 Q-60,680 -20,680 Z"
+                            fill="#E07612"
+                            opacity={0.65}
+                        />
+                    </Svg>
+                </View>
+
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
+                        <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
+                    </TouchableOpacity>
+                    <Text style={styles.headerTitle}>Jogo Finalizado!</Text>
+                    <View style={styles.headerButton} />
+                </View>
+
+                <View style={styles.content}>
+                    <View style={styles.resultadoContainer}>
+                        <Text style={styles.resultadoEmoji}>🎉</Text>
+                        <Text style={styles.resultadoTitulo}>Parabéns!</Text>
+                        <Text style={styles.resultadoTexto}>
+                            Você formou {acertos} de {familiasPalavras.length} famílias!
+                        </Text>
+                        <View style={styles.notaContainer}>
+                            <Text style={styles.notaLabel}>Sua nota:</Text>
+                            <Text style={styles.notaValor}>{notaFinal.toFixed(1)} / 10</Text>
+                        </View>
+                        
+                        <TouchableOpacity
+                            style={styles.enviarButton}
+                            onPress={enviarResultado}
+                            activeOpacity={0.8}
+                        >
+                            <Text style={styles.enviarButtonText}>Enviar Resultado</Text>
+                        </TouchableOpacity>
+                        
+                        <TouchableOpacity
+                            style={styles.voltarButton}
+                            onPress={() => router.back()}
+                        >
+                            <Text style={styles.voltarButtonText}>Voltar</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </SafeAreaView>
+        );
+    }
+
+    return (
+        <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+            <StatusBar barStyle="light-content" backgroundColor="#F78F3F" />
+            
+            {/* Background Blob Shapes */}
+            <View style={styles.backgroundShapes}>
+                <Svg width="100%" height="100%" viewBox="0 0 400 800" preserveAspectRatio="none" style={styles.blobSvg}>
+                    <Path
+                        d="M280,30 Q340,10 370,60 T360,140 Q330,170 280,150 T240,90 Q230,50 280,30 Z"
+                        fill="#E07612"
+                        opacity={0.7}
+                    />
+                    <Path
+                        d="M-20,680 Q30,660 50,700 T40,760 Q10,790 -20,770 T-50,720 Q-60,680 -20,680 Z"
+                        fill="#E07612"
+                        opacity={0.65}
+                    />
+                </Svg>
+            </View>
+            
+            {/* Header */}
+            <View style={styles.header}>
+                <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
+                    <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>Forme a Família</Text>
+                <TouchableOpacity style={styles.headerButton}>
+                    <View style={styles.helpButton}>
+                        <Text style={styles.helpButtonText}>?</Text>
+                    </View>
+                </TouchableOpacity>
+            </View>
+
+            <View style={styles.content}>
+                {/* Instrução */}
+                <View style={styles.instrucaoContainer}>
+                    <Text style={styles.instrucaoTexto}>
+                        Arraste palavras que terminam com
+                    </Text>
+                    <View style={[styles.terminoBadge, { backgroundColor: familiaAtual.cor }]}>
+                        <Text style={styles.terminoTexto}>{familiaAtual.termino}</Text>
+                    </View>
+                    <Text style={styles.instrucaoTexto}>para formar a família!</Text>
+                </View>
+
+                {/* Área da Família */}
+                <View style={styles.familiaContainer}>
+                    <Text style={styles.familiaLabel}>Família de Palavras:</Text>
+                    <View style={styles.familiaArea}>
+                        {palavrasNaFamilia.length === 0 ? (
+                            <Text style={styles.familiaVazia}>
+                                Arraste palavras aqui
+                            </Text>
+                        ) : (
+                            <View style={styles.palavrasNaFamilia}>
+                                {palavrasNaFamilia.map((palavra) => (
+                                    <TouchableOpacity
+                                        key={palavra.id}
+                                        style={[
+                                            styles.palavraFamiliaCard,
+                                            { 
+                                                backgroundColor: palavra.pertenceFamilia 
+                                                    ? familiaAtual.cor 
+                                                    : '#FF5722'
+                                            }
+                                        ]}
+                                        onPress={() => selecionarPalavra(palavra)}
+                                        activeOpacity={0.7}
+                                    >
+                                        <Text style={styles.palavraFamiliaTexto}>{palavra.palavra}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        )}
+                    </View>
+                </View>
+
+                {/* Feedback */}
+                {mostrarFeedback && (
+                    <Animated.View
+                        style={[
+                            styles.feedbackContainer,
+                            {
+                                transform: [{ scale: scaleAnim }],
+                                opacity: animacao,
+                            },
+                        ]}
+                    >
+                        <Text
+                            style={[
+                                styles.feedbackText,
+                                familiaCompleta ? styles.feedbackCorreto : styles.feedbackIncorreto,
+                            ]}
+                        >
+                            {mensagemFeedback}
+                        </Text>
+                    </Animated.View>
+                )}
+
+                {/* Palavras Disponíveis */}
+                <View style={styles.palavrasDisponiveisContainer}>
+                    <Text style={styles.palavrasLabel}>Palavras Disponíveis:</Text>
+                    <View style={styles.palavrasGrid}>
+                        {palavrasDisponiveis.map((palavra) => {
+                            const selecionada = palavrasSelecionadas.has(palavra.id);
+                            return (
+                                <TouchableOpacity
+                                    key={palavra.id}
+                                    style={[
+                                        styles.palavraCard,
+                                        selecionada && styles.palavraCardSelecionada,
+                                    ]}
+                                    onPress={() => selecionarPalavra(palavra)}
+                                    disabled={familiaCompleta}
+                                    activeOpacity={0.7}
+                                >
+                                    <Text style={[
+                                        styles.palavraTexto,
+                                        selecionada && styles.palavraTextoSelecionada
+                                    ]}>
+                                        {palavra.palavra}
+                                    </Text>
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+                </View>
+
+                {/* Progresso */}
+                <View style={styles.progressoContainer}>
+                    <Text style={styles.progressoTexto}>
+                        Fase {faseAtual + 1} de {familiasPalavras.length}
+                    </Text>
+                </View>
+            </View>
+        </SafeAreaView>
+    );
+}
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: '#F78F3F',
+    },
+    backgroundShapes: {
+        position: 'absolute',
+        width: '100%',
+        height: '100%',
+        overflow: 'hidden',
+    },
+    blobSvg: {
+        position: 'absolute',
+        width: '100%',
+        height: '100%',
+    },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        backgroundColor: 'transparent',
+        zIndex: 10,
+    },
+    headerButton: {
+        width: 40,
+        height: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    headerTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#FFFFFF',
+        fontFamily: 'Lexend_700Bold',
+    },
+    helpButton: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: '#FFFFFF',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    helpButtonText: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#F78F3F',
+    },
+    content: {
+        flex: 1,
+        paddingHorizontal: 24,
+        paddingTop: 20,
+        zIndex: 5,
+    },
+    instrucaoContainer: {
+        alignItems: 'center',
+        marginBottom: 24,
+    },
+    instrucaoTexto: {
+        fontSize: 18,
+        color: '#FFFFFF',
+        fontFamily: 'Lexend_600SemiBold',
+        textAlign: 'center',
+        marginBottom: 8,
+    },
+    terminoBadge: {
+        paddingHorizontal: 20,
+        paddingVertical: 8,
+        borderRadius: 20,
+        marginVertical: 8,
+    },
+    terminoTexto: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#FFFFFF',
+        fontFamily: 'Lexend_700Bold',
+    },
+    familiaContainer: {
+        marginBottom: 24,
+    },
+    familiaLabel: {
+        fontSize: 16,
+        color: '#FFFFFF',
+        fontFamily: 'Lexend_600SemiBold',
+        marginBottom: 12,
+    },
+    familiaArea: {
+        minHeight: 120,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        padding: 16,
+        borderWidth: 2,
+        borderStyle: 'dashed',
+        borderColor: '#E0E0E0',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    familiaVazia: {
+        fontSize: 16,
+        color: '#999999',
+        fontFamily: 'Lexend_400Regular',
+        fontStyle: 'italic',
+    },
+    palavrasNaFamilia: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        gap: 8,
+    },
+    palavraFamiliaCard: {
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderRadius: 12,
+        margin: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    palavraFamiliaTexto: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#FFFFFF',
+        fontFamily: 'Lexend_700Bold',
+    },
+    feedbackContainer: {
+        marginBottom: 20,
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        borderRadius: 16,
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderColor: '#E0E0E0',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 4,
+    },
+    feedbackText: {
+        fontSize: 18,
+        fontWeight: '600',
+        textAlign: 'center',
+        fontFamily: 'Lexend_600SemiBold',
+    },
+    feedbackCorreto: {
+        color: '#4CAF50',
+    },
+    feedbackIncorreto: {
+        color: '#FF9800',
+    },
+    palavrasDisponiveisContainer: {
+        flex: 1,
+        marginBottom: 16,
+    },
+    palavrasLabel: {
+        fontSize: 16,
+        color: '#FFFFFF',
+        fontFamily: 'Lexend_600SemiBold',
+        marginBottom: 12,
+    },
+    palavrasGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        gap: 10,
+    },
+    palavraCard: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 14,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        margin: 4,
+        borderWidth: 2,
+        borderColor: '#E0E0E0',
+        borderBottomWidth: 4,
+        borderBottomColor: '#D0D0D0',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.15,
+        shadowRadius: 4,
+        elevation: 5,
+    },
+    palavraCardSelecionada: {
+        opacity: 0.5,
+        borderColor: '#F78F3F',
+    },
+    palavraTexto: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#333333',
+        fontFamily: 'Lexend_700Bold',
+    },
+    palavraTextoSelecionada: {
+        color: '#999999',
+    },
+    progressoContainer: {
+        alignItems: 'center',
+        paddingVertical: 12,
+    },
+    progressoTexto: {
+        fontSize: 16,
+        color: '#FFFFFF',
+        fontFamily: 'Lexend_600SemiBold',
+    },
+    resultadoContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 40,
+    },
+    resultadoEmoji: {
+        fontSize: 80,
+        marginBottom: 20,
+    },
+    resultadoTitulo: {
+        fontSize: 32,
+        fontWeight: 'bold',
+        color: '#FFFFFF',
+        fontFamily: 'Lexend_700Bold',
+        marginBottom: 12,
+    },
+    resultadoTexto: {
+        fontSize: 20,
+        color: '#FFFFFF',
+        fontFamily: 'Lexend_400Regular',
+        textAlign: 'center',
+        marginBottom: 24,
+    },
+    notaContainer: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 20,
+        paddingHorizontal: 32,
+        paddingVertical: 16,
+        marginBottom: 24,
+    },
+    notaLabel: {
+        fontSize: 16,
+        color: '#666666',
+        fontFamily: 'Lexend_400Regular',
+        textAlign: 'center',
+        marginBottom: 4,
+    },
+    notaValor: {
+        fontSize: 36,
+        fontWeight: 'bold',
+        color: '#F78F3F',
+        fontFamily: 'Lexend_700Bold',
+        textAlign: 'center',
+    },
+    enviarButton: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 18,
+        paddingVertical: 18,
+        paddingHorizontal: 32,
+        marginBottom: 12,
+        width: '100%',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.15,
+        shadowRadius: 6,
+        elevation: 6,
+    },
+    enviarButtonText: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#F78F3F',
+        textAlign: 'center',
+        fontFamily: 'Lexend_700Bold',
+    },
+    voltarButton: {
+        paddingVertical: 12,
+        paddingHorizontal: 24,
+    },
+    voltarButtonText: {
+        fontSize: 16,
+        color: '#FFFFFF',
+        fontFamily: 'Lexend_400Regular',
+        textDecorationLine: 'underline',
+    },
+});
+
