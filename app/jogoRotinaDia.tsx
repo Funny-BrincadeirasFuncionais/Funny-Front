@@ -18,6 +18,7 @@ import Svg, { Path } from 'react-native-svg';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ensureAtividadeExists, registrarProgresso } from '../services/api';
 import { Colors } from '../constants/Colors';
+import { useAccessibility } from '../context/AccessibilityContext';
 
 interface Acao {
     id: string;
@@ -84,6 +85,7 @@ interface AcaoNaSequencia {
 
 export default function JogoRotinaDia() {
     const router = useRouter();
+    const { transformText } = useAccessibility();
     const [periodoAtual, setPeriodoAtual] = useState(0);
     const [sequencia, setSequencia] = useState<Acao[]>([]);
     const [acoesDisponiveis, setAcoesDisponiveis] = useState<Acao[]>([]);
@@ -423,25 +425,27 @@ export default function JogoRotinaDia() {
                     </View>
                 </View>
                 {/* Modal de envio */}
-                <Modal visible={modalVisible} transparent animationType="fade" onRequestClose={() => setModalVisible(false)}>
-                    <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', paddingHorizontal: 24 }}>
-                        <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 20 }}>
-                            <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 8 }}>Salvar Progresso</Text>
-                            <Text style={{ marginBottom: 12 }}>Deseja adicionar alguma observação?</Text>
+                <Modal visible={modalVisible} animationType="slide" transparent>
+                    <View style={styles.modalContainer}>
+                        <View style={styles.modalBox}>
+                            <Text style={styles.modalTitle}>{transformText('🎉 Parabéns!')}</Text>
+                            <Text style={styles.modalText}>
+                              {transformText('Você completou a rotina!')}
+                            </Text>
                             <TextInput
-                              style={{ backgroundColor: '#f5f5f5', borderRadius: 8, padding: 10, marginBottom: 16 }}
-                              placeholder="Observação (opcional)"
+                              style={styles.input}
+                              placeholder={transformText('Observação (opcional)')}
                               value={observacao}
                               onChangeText={setObservacao}
                             />
-                            <TouchableOpacity onPress={() => setObservacao('')} style={{ marginBottom: 8 }}>
-                                <Text style={{ color: '#E07612' }}>Limpar observação</Text>
+                            <TouchableOpacity style={styles.submitButton} onPress={enviarResultado}>
+                                <Text style={styles.submitButtonText}>{transformText('Enviar')}</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity style={{ backgroundColor: '#E07612', borderRadius: 8, padding: 12, alignItems: 'center', marginBottom: 10 }} onPress={enviarResultado}>
-                                <Text style={{ color: '#fff', fontWeight: 'bold' }}>Enviar</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={{ alignItems: 'center' }} onPress={() => setModalVisible(false)}>
-                                <Text style={{ color: '#E07612' }}>Cancelar</Text>
+                            <TouchableOpacity
+                              style={styles.voltarButton}
+                              onPress={() => router.push('/(tabs)/home')}
+                            >
+                                <Text style={styles.voltarButtonText}>{transformText('Voltar para Home')}</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -942,14 +946,70 @@ const styles = StyleSheet.create({
         fontFamily: 'Lexend_700Bold',
     },
     voltarButton: {
-        paddingVertical: 12,
-        paddingHorizontal: 24,
+            width: '100%',
+            backgroundColor: '#E0E0E0',
+            borderRadius: 12,
+            paddingVertical: 14,
     },
     voltarButtonText: {
+            color: '#333',
+            fontWeight: '600',
         fontSize: 16,
-        color: '#FFFFFF',
-        fontFamily: 'Lexend_400Regular',
-        textDecorationLine: 'underline',
+            fontFamily: 'Lexend_600SemiBold',
+            textAlign: 'center',
+        },
+        modalContainer: {
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: 'rgba(0,0,0,0.5)',
+        },
+        modalBox: {
+            backgroundColor: '#FFF',
+            borderRadius: 20,
+            padding: 24,
+            width: '85%',
+            maxWidth: 400,
+            alignItems: 'center',
+        },
+        modalTitle: {
+            fontSize: 24,
+            fontWeight: 'bold',
+            fontFamily: 'Lexend_700Bold',
+            color: Colors.light.primary,
+            marginBottom: 16,
+        },
+        modalText: {
+            fontSize: 16,
+            fontFamily: 'Lexend_400Regular',
+            color: '#333',
+            textAlign: 'center',
+            marginBottom: 8,
+        },
+        input: {
+            width: '100%',
+            borderWidth: 1,
+            borderColor: '#E0E0E0',
+            borderRadius: 12,
+            padding: 12,
+            marginTop: 16,
+            marginBottom: 16,
+            fontSize: 16,
+            fontFamily: 'Lexend_400Regular',
+        },
+        submitButton: {
+            width: '100%',
+            backgroundColor: Colors.light.primary,
+            borderRadius: 12,
+            paddingVertical: 14,
+            marginBottom: 12,
+        },
+        submitButtonText: {
+            color: '#FFF',
+            fontWeight: 'bold',
+            fontSize: 16,
+            fontFamily: 'Lexend_700Bold',
+            textAlign: 'center',
     },
 });
 

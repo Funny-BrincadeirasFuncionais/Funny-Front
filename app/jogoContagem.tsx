@@ -179,11 +179,13 @@ export default function JogoContagem() {
       </View>
 
       {/* Modal salvar progresso */}
-      <Modal visible={modalVisible} transparent animationType="fade" onRequestClose={() => setModalVisible(false)}>
+      <Modal visible={modalVisible} animationType="slide" transparent>
         <View style={styles.modalContainer}>
           <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>{transformText('Salvar Progresso')}</Text>
-            <Text style={styles.modalText}>{transformText(`Nota final: ${notaFinal.toFixed(1)} / 10`)}</Text>
+            <Text style={styles.modalTitle}>{transformText('🎉 Parabéns!')}</Text>
+            <Text style={styles.modalText}>
+              {transformText('Nota final')}: {notaFinal.toFixed(1)} / 10
+            </Text>
             <TextInput
               style={styles.input}
               placeholder={transformText('Observação (opcional)')}
@@ -193,8 +195,11 @@ export default function JogoContagem() {
             <TouchableOpacity style={styles.submitButton} onPress={enviarResultado}>
               <Text style={styles.submitButtonText}>{transformText('Enviar')}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
-              <Text style={styles.cancelText}>{transformText('Cancelar')}</Text>
+            <TouchableOpacity
+              style={styles.voltarButton}
+              onPress={() => router.push('/(tabs)/home')}
+            >
+              <Text style={styles.voltarButtonText}>{transformText('Voltar para Home')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -313,46 +318,68 @@ const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.5)',
-    paddingHorizontal: 30,
   },
   modalBox: {
-    backgroundColor: '#fff',
-    borderRadius: 15,
-    padding: 20,
+    backgroundColor: '#FFF',
+    borderRadius: 20,
+    padding: 24,
+    width: '85%',
+    maxWidth: 400,
+    alignItems: 'center',
   },
   modalTitle: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 10,
+    fontFamily: 'Lexend_700Bold',
+    color: Colors.light.primary,
+    marginBottom: 16,
   },
   modalText: {
-    fontSize: 18,
-    marginBottom: 10,
+    fontSize: 16,
+    fontFamily: 'Lexend_400Regular',
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 8,
   },
   input: {
-    backgroundColor: '#eee',
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 15,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 16,
+    marginBottom: 16,
+    fontSize: 16,
+    fontFamily: 'Lexend_400Regular',
   },
   submitButton: {
-    backgroundColor: '#E07612',
-    padding: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 10,
+    width: '100%',
+    backgroundColor: Colors.light.primary,
+    borderRadius: 12,
+    paddingVertical: 14,
+    marginBottom: 12,
   },
   submitButtonText: {
-    color: '#fff',
+    color: '#FFF',
+    fontWeight: 'bold',
     fontSize: 16,
+    fontFamily: 'Lexend_700Bold',
+    textAlign: 'center',
   },
-  cancelButton: {
-    alignItems: 'center',
+  voltarButton: {
+    width: '100%',
+    backgroundColor: '#E0E0E0',
+    borderRadius: 12,
+    paddingVertical: 14,
   },
-  cancelText: {
-    color: '#E07612',
+  voltarButtonText: {
+    color: '#333',
+    fontWeight: '600',
     fontSize: 16,
+    fontFamily: 'Lexend_600SemiBold',
+    textAlign: 'center',
   },
   feedbackErro: {
     backgroundColor: '#FF5722',

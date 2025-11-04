@@ -3,7 +3,6 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   StatusBar,
-  Image,
   StyleSheet,
   Text,
   TextInput,
@@ -15,9 +14,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getResponsavel, updateResponsavel } from '../services/api';
+import { useAccessibility } from '../context/AccessibilityContext';
 
 export default function EditarPerfilScreen() {
   const router = useRouter();
+  const { transformText } = useAccessibility();
 
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
@@ -58,19 +59,19 @@ export default function EditarPerfilScreen() {
       if ('ok' in res) {
         // when using putJson, res is Response
         if ((res as any).ok) {
-          Alert.alert('Sucesso', 'Perfil atualizado.');
+          Alert.alert(transformText('Sucesso'), transformText('Perfil atualizado.'));
           router.back();
         } else {
           const txt = await (res as any).text();
-          Alert.alert('Erro', `Falha ao salvar: ${txt}`);
+          Alert.alert(transformText('Erro'), transformText(`Falha ao salvar: ${txt}`));
         }
       } else {
         // fallback if api returns json directly
-        Alert.alert('Sucesso', 'Perfil atualizado.');
+        Alert.alert(transformText('Sucesso'), transformText('Perfil atualizado.'));
         router.back();
       }
     } catch (e) {
-      Alert.alert('Erro', 'Não foi possível atualizar o perfil.');
+      Alert.alert(transformText('Erro'), transformText('Não foi possível atualizar o perfil.'));
     } finally {
       setLoading(false);
     }
@@ -83,27 +84,21 @@ export default function EditarPerfilScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Editar Perfil</Text>
+        <Text style={styles.headerTitle}>{transformText('Editar Perfil')}</Text>
         <View style={styles.headerSpacer} />
       </View>
 
       {/* Foto */}
       <View style={styles.profileContainer}>
         <View style={styles.avatarWrapper}>
-          <Image
-            source={{ uri: 'https://i.pravatar.cc/300' }}
-            style={styles.avatar}
-          />
-          <TouchableOpacity style={styles.editIcon}>
-            <Ionicons name="pencil" size={20} color="#E07612" />
-          </TouchableOpacity>
+          <Ionicons name="person-circle" size={120} color={Colors.light.primary} />
         </View>
       </View>
 
       {/* Inputs */}
       <View style={styles.form}>
         <TextInput
-          placeholder="Nome"
+          placeholder={transformText("Nome")}
           value={nome}
           onChangeText={setNome}
           style={[styles.input, nomeFocused && styles.inputFocused]}
@@ -112,7 +107,7 @@ export default function EditarPerfilScreen() {
         />
 
         <TextInput
-          placeholder="E-mail"
+          placeholder={transformText("E-mail")}
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
@@ -123,7 +118,7 @@ export default function EditarPerfilScreen() {
         />
 
         <TextInput
-          placeholder="Telefone"
+          placeholder={transformText("Telefone")}
           value={telefone}
           onChangeText={setTelefone}
           keyboardType="phone-pad"
@@ -135,7 +130,7 @@ export default function EditarPerfilScreen() {
 
       {/* Ações */}
       <TouchableOpacity style={styles.saveButton} onPress={salvar} disabled={loading}>
-        <Text style={styles.saveText}>{loading ? 'Salvando...' : 'Salvar'}</Text>
+        <Text style={styles.saveText}>{transformText(loading ? 'Salvando...' : 'Salvar')}</Text>
       </TouchableOpacity>
     </SafeAreaView>
   );

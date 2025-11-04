@@ -6,12 +6,18 @@ import {
   StyleSheet,
   Alert,
   StatusBar,
-  Animated
+  Animated,
+  Modal,
+  TextInput
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAccessibility } from '../context/AccessibilityContext';
+import { ensureAtividadeExists, registrarProgresso } from '../services/api';
+import { Colors } from '../constants/Colors';
 
 const symbols = ['⭐', '🌙', '☀️', '🌸', '🍀', '🎵', '🦕', '🦖'];
 
@@ -24,12 +30,40 @@ interface Card {
 
 export default function JogoMemoria() {
   const router = useRouter();
+  const { transformText } = useAccessibility();
   const [cards, setCards] = useState<Card[]>([]);
   const [flippedCards, setFlippedCards] = useState<{ symbol: string; index: number }[]>([]);
   const [matchedPairs, setMatchedPairs] = useState(0);
   const [moves, setMoves] = useState(0);
   const [canFlip, setCanFlip] = useState(true);
+  const [criancaId, setCriancaId] = useState<string | null>(null);
+  const [atividadeId, setAtividadeId] = useState<number | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [observacao, setObservacao] = useState('');
   const animacao = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    // Garantir criança selecionada e atividade existente
+    (async () => {
+      const id = await AsyncStorage.getItem('criancaSelecionada');
+      setCriancaId(id);
+      if (!id) {
+        Alert.alert(
+          transformText('Selecione uma criança'),
+          transformText('Você precisa selecionar uma criança na Home antes de iniciar o jogo.'),
+          [{ text: transformText('OK'), onPress: () => router.back() }]
+        );
+        return;
+      }
+      const aid = await ensureAtividadeExists(
+        'Jogo da Memória',
+        'Encontre os pares de símbolos',
+        'Lógica',
+        1
+      );
+      setAtividadeId(aid);
+    })();
+  }, []);
 
   const initGame = () => {
     const duplicated = [...symbols, ...symbols];
@@ -93,10 +127,7 @@ export default function JogoMemoria() {
 
           if (matchedPairs + 1 === symbols.length) {
             setTimeout(() => {
-              Alert.alert('🎉 Parabéns!', `Você venceu em ${moves + 1} tentativas!`, [
-                { text: 'Jogar novamente', onPress: initGame },
-                { text: 'Sair', onPress: () => router.back() },
-              ]);
+              setModalVisible(true);
             }, 500);
           }
         } else {
@@ -108,6 +139,44 @@ export default function JogoMemoria() {
         setFlippedCards([]);
         setCanFlip(true);
       }, 1000);
+    }
+  };
+
+  const calcularPontuacao = () => {
+    // Pontuação base: 100 pontos
+    // Deduzir pontos baseado no número de tentativas
+    const pontuacaoBase = 100;
+    const penalidade = Math.max(0, (moves - symbols.length) * 2); // Penaliza tentativas extras
+    return Math.max(0, pontuacaoBase - penalidade);
+  };
+
+  const salvarProgresso = async () => {
+    if (!criancaId || !atividadeId) {
+      Alert.alert(transformText('Erro'), transformText('Faltam informações para registrar o progresso.'));
+      return;
+    }
+
+    const pontuacao = calcularPontuacao();
+
+    try {
+      const res = await registrarProgresso({
+        crianca_id: Number(criancaId),
+        atividade_id: Number(atividadeId),
+        pontuacao: Number(pontuacao),
+        observacoes: observacao || undefined,
+        concluida: true,
+      });
+
+      if (res.ok) {
+        Alert.alert(transformText('Sucesso'), transformText('Progresso registrado.'));
+        setModalVisible(false);
+        router.push('/(tabs)/home');
+      } else {
+        const txt = await res.text();
+        Alert.alert(transformText('Erro'), `${transformText('Falha ao registrar')}: ${txt}`);
+      }
+    } catch (e) {
+      Alert.alert(transformText('Erro'), transformText('Falha de conexão ao registrar.'));
     }
   };
 
@@ -128,15 +197,15 @@ export default function JogoMemoria() {
         <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
           <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Jogo da Memória</Text>
+        <Text style={styles.headerTitle}>{transformText('Jogo da Memória')}</Text>
         <TouchableOpacity style={styles.headerButton} onPress={initGame}>
           <Ionicons name="refresh" size={22} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
 
       <View style={styles.stats}>
-        <Text style={styles.statsText}>Movimentos: {moves}</Text>
-        <Text style={styles.statsText}>Pares: {matchedPairs}/{symbols.length}</Text>
+        <Text style={styles.statsText}>{transformText('Movimentos')}: {moves}</Text>
+        <Text style={styles.statsText}>{transformText('Pares')}: {matchedPairs}/{symbols.length}</Text>
       </View>
 
       <View style={styles.grid}>
@@ -160,9 +229,39 @@ export default function JogoMemoria() {
 
       <View style={styles.footer}>
         <TouchableOpacity onPress={initGame} style={styles.fullButton}>
-          <Text style={styles.buttonText}>Reiniciar</Text>
+          <Text style={styles.buttonText}>{transformText('Reiniciar')}</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Modal de finalização */}
+      <Modal visible={modalVisible} animationType="slide" transparent>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalBox}>
+            <Text style={styles.modalTitle}>{transformText('🎉 Parabéns!')}</Text>
+            <Text style={styles.modalText}>
+              {transformText('Você completou o jogo em')} {moves} {transformText('tentativas!')}
+            </Text>
+            <Text style={styles.modalText}>
+              {transformText('Pontuação')}: {calcularPontuacao()}
+            </Text>
+            <TextInput
+              style={styles.input}
+              placeholder={transformText('Observação (opcional)')}
+              value={observacao}
+              onChangeText={setObservacao}
+            />
+            <TouchableOpacity style={styles.submitButton} onPress={salvarProgresso}>
+              <Text style={styles.submitButtonText}>{transformText('Enviar')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.voltarButton}
+              onPress={() => router.push('/(tabs)/home')}
+            >
+              <Text style={styles.voltarButtonText}>{transformText('Voltar para Home')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -253,6 +352,72 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 18,
     fontFamily: 'Lexend_700Bold',
+    textAlign: 'center',
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalBox: {
+    backgroundColor: '#FFF',
+    borderRadius: 20,
+    padding: 24,
+    width: '85%',
+    maxWidth: 400,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    fontFamily: 'Lexend_700Bold',
+    color: Colors.light.primary,
+    marginBottom: 16,
+  },
+  modalText: {
+    fontSize: 16,
+    fontFamily: 'Lexend_400Regular',
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  input: {
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 16,
+    marginBottom: 16,
+    fontSize: 16,
+    fontFamily: 'Lexend_400Regular',
+  },
+  submitButton: {
+    width: '100%',
+    backgroundColor: Colors.light.primary,
+    borderRadius: 12,
+    paddingVertical: 14,
+    marginBottom: 12,
+  },
+  submitButtonText: {
+    color: '#FFF',
+    fontWeight: 'bold',
+    fontSize: 16,
+    fontFamily: 'Lexend_700Bold',
+    textAlign: 'center',
+  },
+  voltarButton: {
+    width: '100%',
+    backgroundColor: '#E0E0E0',
+    borderRadius: 12,
+    paddingVertical: 14,
+  },
+  voltarButtonText: {
+    color: '#333',
+    fontWeight: '600',
+    fontSize: 16,
+    fontFamily: 'Lexend_600SemiBold',
     textAlign: 'center',
   },
 });

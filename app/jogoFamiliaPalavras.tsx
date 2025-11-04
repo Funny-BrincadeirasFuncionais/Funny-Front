@@ -421,25 +421,27 @@ export default function JogoFamiliaPalavras() {
                 </View>
             </View>
             {/* Modal de envio - exibido ao finalizar todas as fases */}
-            <Modal visible={modalVisible} transparent animationType="fade" onRequestClose={() => setModalVisible(false)}>
-                <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', paddingHorizontal: 24 }}>
-                    <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 20 }}>
-                        <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 8 }}>{transformText('Salvar Progresso')}</Text>
-                        <Text style={{ marginBottom: 12 }}>{transformText('Deseja adicionar alguma observação?')}</Text>
+            <Modal visible={modalVisible} animationType="slide" transparent>
+                <View style={styles.modalContainer}>
+                    <View style={styles.modalBox}>
+                        <Text style={styles.modalTitle}>{transformText('🎉 Parabéns!')}</Text>
+                        <Text style={styles.modalText}>
+                          {transformText('Você completou todas as fases!')}
+                        </Text>
                         <TextInput
-                          style={{ backgroundColor: '#f5f5f5', borderRadius: 8, padding: 10, marginBottom: 16 }}
+                          style={styles.input}
                           placeholder={transformText('Observação (opcional)')}
                           value={observacao}
                           onChangeText={setObservacao}
                         />
-                        <TouchableOpacity onPress={() => setObservacao('')} style={{ marginBottom: 8 }}>
-                            <Text style={{ color: '#E07612' }}>{transformText('Limpar observação')}</Text>
+                        <TouchableOpacity style={styles.submitButton} onPress={enviarResultado}>
+                            <Text style={styles.submitButtonText}>{transformText('Enviar')}</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={{ backgroundColor: '#E07612', borderRadius: 8, padding: 12, alignItems: 'center', marginBottom: 10 }} onPress={enviarResultado}>
-                            <Text style={{ color: '#fff', fontWeight: 'bold' }}>{transformText('Enviar')}</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={{ alignItems: 'center' }} onPress={() => setModalVisible(false)}>
-                            <Text style={{ color: '#E07612' }}>{transformText('Cancelar')}</Text>
+                        <TouchableOpacity
+                          style={styles.voltarButton}
+                          onPress={() => router.push('/(tabs)/home')}
+                        >
+                            <Text style={styles.voltarButtonText}>{transformText('Voltar para Home')}</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -721,15 +723,70 @@ const styles = StyleSheet.create({
         fontFamily: 'Lexend_700Bold',
     },
     voltarButton: {
-        paddingVertical: 12,
-        paddingHorizontal: 24,
+        width: '100%',
+        backgroundColor: '#E0E0E0',
+        borderRadius: 12,
+        paddingVertical: 14,
     },
     voltarButtonText: {
+        color: '#333',
+        fontWeight: '600',
         fontSize: 16,
-        color: '#FFFFFF',
-        fontFamily: 'Lexend_400Regular',
-        textDecorationLine: 'underline',
+        fontFamily: 'Lexend_600SemiBold',
+        textAlign: 'center',
     },
-    // Modal reuse (simple inline styling below in JSX)
+    modalContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0,0,0,0.5)',
+    },
+    modalBox: {
+        backgroundColor: '#FFF',
+        borderRadius: 20,
+        padding: 24,
+        width: '85%',
+        maxWidth: 400,
+        alignItems: 'center',
+    },
+    modalTitle: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        fontFamily: 'Lexend_700Bold',
+        color: Colors.light.primary,
+        marginBottom: 16,
+    },
+    modalText: {
+        fontSize: 16,
+        fontFamily: 'Lexend_400Regular',
+        color: '#333',
+        textAlign: 'center',
+        marginBottom: 8,
+    },
+    input: {
+        width: '100%',
+        borderWidth: 1,
+        borderColor: '#E0E0E0',
+        borderRadius: 12,
+        padding: 12,
+        marginTop: 16,
+        marginBottom: 16,
+        fontSize: 16,
+        fontFamily: 'Lexend_400Regular',
+    },
+    submitButton: {
+        width: '100%',
+        backgroundColor: Colors.light.primary,
+        borderRadius: 12,
+        paddingVertical: 14,
+        marginBottom: 12,
+    },
+    submitButtonText: {
+        color: '#FFF',
+        fontWeight: 'bold',
+        fontSize: 16,
+        fontFamily: 'Lexend_700Bold',
+        textAlign: 'center',
+    },
 });
 

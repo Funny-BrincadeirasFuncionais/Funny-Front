@@ -6,7 +6,6 @@ import { getJson, putJson, deleteJson } from '../../services/api';
 import { getProgressoCrianca, listAtividades } from '../../services/api';
 import {
   FlatList,
-  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -20,6 +19,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
+import { useAccessibility } from '../../context/AccessibilityContext';
 
 export default function CriancaProfileScreen() {
   const [modalDiagnostico, setModalDiagnostico] = useState(false);
@@ -27,6 +27,7 @@ export default function CriancaProfileScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const criancaId = params.id ? Number(params.id) : null;
+  const { transformText } = useAccessibility();
 
   const [diagList, setDiagList] = useState<any[]>([]);
   const [turmas, setTurmas] = useState<any[]>([]);
@@ -190,7 +191,7 @@ export default function CriancaProfileScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.push('/TeacherProfileScreen')}>
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Perfil da Criança</Text>
+        <Text style={styles.headerTitle}>{transformText('Perfil da Criança')}</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -198,17 +199,17 @@ export default function CriancaProfileScreen() {
         {/* Perfil */}
         <View style={styles.profileContainer}>
           <View style={styles.avatarWrapper}>
-            <Image source={{ uri: 'https://images.unsplash.com/photo-1560785496-3c9d27877182?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=80&w=1074' }} style={styles.avatar} />
+            <Ionicons name="person-circle" size={120} color={Colors.light.primary} />
           </View>
-          <Text style={styles.name}>{crianca.nome}</Text>
-          <Text style={styles.age}>Idade: {crianca.idade} anos</Text>
+          <Text style={styles.name}>{transformText(crianca.nome)}</Text>
+          <Text style={styles.age}>{transformText('Idade')}: {crianca.idade} {transformText('anos')}</Text>
 
           <View style={styles.buttonRow}>
             <TouchableOpacity
               style={styles.editButton}
               onPress={() => setModalDiagnostico(true)}
             >
-              <Text style={styles.editText}>Editar Diagnóstico</Text>
+              <Text style={styles.editText}>{transformText('Editar Diagnóstico')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -216,35 +217,35 @@ export default function CriancaProfileScreen() {
               onPress={deletarCrianca}
             >
               <Ionicons name="trash" size={18} color="#fff" />
-              <Text style={styles.deleteButtonTextTop}>Deletar</Text>
+              <Text style={styles.deleteButtonTextTop}>{transformText('Deletar')}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Painel de controle */}
         <View style={styles.panelContainer}>
-          <Text style={styles.sectionTitle}>Informações:</Text>
+          <Text style={styles.sectionTitle}>{transformText('Informações:')}</Text>
           <View style={styles.statsRow}>
             <View style={styles.statBox}>
               <Text style={styles.statValue}>{concluidasCount}</Text>
-              <Text style={styles.statLabel}>Atividades Concluídas</Text>
+              <Text style={styles.statLabel}>{transformText('Atividades Concluídas')}</Text>
             </View>
             <View style={styles.statBox}>
-              <Text style={styles.statValue}>{diagnosticoNome}</Text>
-              <Text style={styles.statLabel}>Diagnóstico</Text>
+              <Text style={styles.statValue}>{transformText(diagnosticoNome)}</Text>
+              <Text style={styles.statLabel}>{transformText('Diagnóstico')}</Text>
             </View>
           </View>
           <View style={[styles.statBox, { marginTop: 12 }]}>
-            <Text style={styles.statValue}>{turmaNome}</Text>
-            <Text style={styles.statLabel}>Turma</Text>
+            <Text style={styles.statValue}>{transformText(turmaNome)}</Text>
+            <Text style={styles.statLabel}>{transformText('Turma')}</Text>
           </View>
         </View>
 
         {/* Atividades (Progresso) */}
         <View style={styles.activitiesContainer}>
-          <Text style={styles.sectionTitle}>Atividades (histórico):</Text>
+          <Text style={styles.sectionTitle}>{transformText('Atividades (histórico):')}</Text>
           {progressos.length === 0 ? (
-            <Text style={{ color: '#666' }}>Nenhuma atividade registrada ainda.</Text>
+            <Text style={{ color: '#666' }}>{transformText('Nenhuma atividade registrada ainda.')}</Text>
           ) : (
             progressos.map((p) => {
               const atividade = p.atividade || atividadesMap[p.atividade_id] || null;
@@ -258,10 +259,10 @@ export default function CriancaProfileScreen() {
                       color={p.concluida ? '#4CAF50' : '#999'}
                     />
                     <View style={styles.activityInfo}>
-                      <Text style={styles.activityTitle}>{titulo}</Text>
-                      <Text style={styles.activityNote}>Pontuação: {p.pontuacao}</Text>
+                      <Text style={styles.activityTitle}>{transformText(titulo)}</Text>
+                      <Text style={styles.activityNote}>{transformText('Pontuação')}: {p.pontuacao}</Text>
                       {p.observacoes ? (
-                        <Text style={[styles.activityNote, { marginTop: 2 }]}>Obs.: {p.observacoes}</Text>
+                        <Text style={[styles.activityNote, { marginTop: 2 }]}>{transformText('Obs.')}: {p.observacoes}</Text>
                       ) : null}
                     </View>
                   </View>
@@ -276,7 +277,7 @@ export default function CriancaProfileScreen() {
       <Modal visible={modalDiagnostico} transparent animationType="fade" onRequestClose={() => setModalDiagnostico(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Selecione o Diagnóstico</Text>
+            <Text style={styles.modalTitle}>{transformText('Selecione o Diagnóstico')}</Text>
             <FlatList
               data={diagnosticos}
               keyExtractor={(item) => item.id.toString()}
@@ -288,7 +289,7 @@ export default function CriancaProfileScreen() {
                     diagnosticoSelecionado === item.id && { backgroundColor: '#FBE8D4' },
                   ]}
                 >
-                  <Text style={styles.optionText}>{item.tipo}</Text>
+                  <Text style={styles.optionText}>{transformText(item.tipo)}</Text>
                 </Pressable>
               )}
             />
@@ -297,13 +298,13 @@ export default function CriancaProfileScreen() {
                 style={[styles.modalButton, styles.cancelButton]}
                 onPress={() => setModalDiagnostico(false)}
               >
-                <Text style={[styles.modalButtonText, { color: '#E07612' }]}>Cancelar</Text>
+                <Text style={[styles.modalButtonText, { color: '#E07612' }]}>{transformText('Cancelar')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalButton, styles.confirmButton]}
                 onPress={atualizarDiagnostico}
               >
-                <Text style={[styles.modalButtonText, { color: 'white' }]}>Confirmar</Text>
+                <Text style={[styles.modalButtonText, { color: 'white' }]}>{transformText('Confirmar')}</Text>
               </TouchableOpacity>
             </View>
           </View>

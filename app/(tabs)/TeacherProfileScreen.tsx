@@ -3,7 +3,6 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   FlatList,
-  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -219,7 +218,7 @@ export default function ProfessorScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Professor</Text>
+        <Text style={styles.headerTitle}>{transformText('Professor')}</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -227,9 +226,9 @@ export default function ProfessorScreen() {
         {/* Perfil */}
         <View style={styles.profileContainer}>
           <View style={styles.avatarWrapper}>
-            <Image source={{ uri: 'https://i.pravatar.cc/300' }} style={styles.avatar} />
+            <Ionicons name="person-circle" size={120} color={Colors.light.primary} />
           </View>
-          <Text style={styles.name}>{responsavelNome ?? 'Nome e Sobrenome'}</Text>
+          <Text style={styles.name}>{transformText(responsavelNome ?? 'Nome e Sobrenome')}</Text>
           <Text style={styles.email}>{responsavelEmail ?? 'email@gmail.com'}</Text>
 
           <View style={styles.buttonRow}>
@@ -237,7 +236,7 @@ export default function ProfessorScreen() {
               style={styles.editButton}
               onPress={() => router.push('/EditarPerfilScreen')}
             >
-              <Text style={styles.editText}>Editar Perfil</Text>
+              <Text style={styles.editText}>{transformText('Editar Perfil')}</Text>
             </TouchableOpacity>
 
             {/* Select de relatório */}
@@ -246,17 +245,17 @@ export default function ProfessorScreen() {
                 style={styles.reportButton}
                 onPress={() => setShowSelect(!showSelect)}
               >
-                <Text style={styles.reportText}>Gerar relatório</Text>
+                <Text style={styles.reportText}>{transformText('Gerar relatório')}</Text>
                 <Ionicons name="chevron-down" size={16} color="white" style={{ marginLeft: 4 }} />
               </TouchableOpacity>
 
               {showSelect && (
                 <View style={styles.dropdown}>
                   <Pressable onPress={() => handleSelectType('Turma')} style={styles.dropdownItem}>
-                    <Text style={styles.dropdownText}>Turma</Text>
+                    <Text style={styles.dropdownText}>{transformText('Turma')}</Text>
                   </Pressable>
                   <Pressable onPress={() => handleSelectType('Aluno')} style={styles.dropdownItem}>
-                    <Text style={styles.dropdownText}>Aluno</Text>
+                    <Text style={styles.dropdownText}>{transformText('Aluno')}</Text>
                   </Pressable>
                 </View>
               )}
@@ -266,15 +265,15 @@ export default function ProfessorScreen() {
 
         {/* Painel de controle */}
         <View style={styles.panelContainer}>
-          <Text style={styles.sectionTitle}>Painel de controle:</Text>
+          <Text style={styles.sectionTitle}>{transformText('Painel de controle:')}</Text>
           <View style={styles.statsRow}>
             <View style={styles.statBox}>
               <Text style={styles.statValue}>{alunos.length}</Text>
-              <Text style={styles.statLabel}>Alunos Ativos</Text>
+              <Text style={styles.statLabel}>{transformText('Alunos Ativos')}</Text>
             </View>
             <View style={styles.statBox}>
               <Text style={styles.statValue}>{turmas.length}</Text>
-              <Text style={styles.statLabel}>Número de Turmas</Text>
+              <Text style={styles.statLabel}>{transformText('Número de Turmas')}</Text>
             </View>
           </View>
         </View>
@@ -282,25 +281,25 @@ export default function ProfessorScreen() {
         {/* Minhas turmas */}
         <View style={styles.classesContainer}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <Text style={styles.sectionTitle}>Minhas Turmas:</Text>
+            <Text style={styles.sectionTitle}>{transformText('Minhas Turmas:')}</Text>
             <TouchableOpacity onPress={() => router.push('/minhasTurmas' as any)}>
-              <Text style={{ color: Colors.light.primary, fontSize: 14, fontWeight: '600' }}>Ver todas →</Text>
+              <Text style={{ color: Colors.light.primary, fontSize: 14, fontWeight: '600' }}>{transformText('Ver todas')} →</Text>
             </TouchableOpacity>
           </View>
           {turmas.slice(0, 3).map((turma) => (
             <TouchableOpacity key={turma.id} style={styles.classItem} onPress={() => router.push(`/turma/${turma.id}` as any)}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.classText}>{turma.nome}</Text>
+                <Text style={styles.classText}>{transformText(turma.nome)}</Text>
                 <Text style={{ fontSize: 12, color: '#777', marginTop: 4 }}>
-                  {turma.criancas?.length || 0} {turma.criancas?.length === 1 ? 'criança' : 'crianças'}
+                  {turma.criancas?.length || 0} {turma.criancas?.length === 1 ? transformText('criança') : transformText('crianças')}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color="#000" />
             </TouchableOpacity>
           ))}
 
-          {loading && <Text style={{ marginTop: 8 }}>Carregando turmas...</Text>}
-          {!loading && turmas.length === 0 && <Text style={{ marginTop: 8 }}>Nenhuma turma encontrada.</Text>}
+          {loading && <Text style={{ marginTop: 8 }}>{transformText('Carregando turmas...')}</Text>}
+          {!loading && turmas.length === 0 && <Text style={{ marginTop: 8 }}>{transformText('Nenhuma turma encontrada.')}</Text>}
         </View>
       </ScrollView>
 
@@ -309,10 +308,10 @@ export default function ProfessorScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>
-              {reportType === 'Turma' ? 'Selecione a turma' : 'Selecione o aluno'}
+              {reportType === 'Turma' ? transformText('Selecione a turma') : transformText('Selecione o aluno')}
             </Text>
             <Text style={styles.modalSubtitle}>
-              Escolha alguma das opções abaixo para seguir com a emissão do relatório
+              {transformText('Escolha alguma das opções abaixo para seguir com a emissão do relatório')}
             </Text>
 
             <FlatList<ListItem>

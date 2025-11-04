@@ -342,8 +342,10 @@ export default function JogoMontaPalavra() {
             <Modal visible={modalVisible} animationType="slide" transparent>
                 <View style={styles.modalContainer}>
                     <View style={styles.modalBox}>
-                        <Text style={styles.modalTitle}>{transformText('Atividade Finalizada!')}</Text>
-                        <Text style={styles.modalText}>{transformText('Pontuação')}: {pontuacao}</Text>
+                        <Text style={styles.modalTitle}>{transformText('🎉 Parabéns!')}</Text>
+                        <Text style={styles.modalText}>
+                          {transformText('Pontuação')}: {pontuacao}
+                        </Text>
                         <TextInput
                             style={styles.input}
                             placeholder={transformText('Observação (opcional)')}
