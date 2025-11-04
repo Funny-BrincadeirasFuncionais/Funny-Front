@@ -11,9 +11,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
+import { useAccessibility } from '../context/AccessibilityContext';
 
 export default function JogosCotidianoScreen() {
   const router = useRouter();
+  const { transformText } = useAccessibility();
 
   const jogos = [
     {
@@ -33,12 +35,12 @@ export default function JogosCotidianoScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={Colors.light.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Jogos de Cotidiano</Text>
+        <Text style={styles.headerTitle}>{transformText('Jogos de Cotidiano')}</Text>
         <View style={styles.placeholder} />
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.contentContainer}>
-        <Text style={styles.sectionTitle}>Escolha um jogo para começar:</Text>
+        <Text style={styles.sectionTitle}>{transformText('Escolha um jogo para começar:')}</Text>
 
         {jogos.map((jogo) => (
           <TouchableOpacity
@@ -54,8 +56,8 @@ export default function JogosCotidianoScreen() {
               <Ionicons name={jogo.icone as any} size={48} color={Colors.light.primary} />
             </View>
             <View style={styles.gameInfo}>
-              <Text style={styles.gameName}>{jogo.nome}</Text>
-              <Text style={styles.gameDescription}>{jogo.descricao}</Text>
+              <Text style={styles.gameName}>{transformText(jogo.nome)}</Text>
+              <Text style={styles.gameDescription}>{transformText(jogo.descricao)}</Text>
             </View>
             <Ionicons name="chevron-forward" size={24} color={Colors.light.textSecondary} />
           </TouchableOpacity>

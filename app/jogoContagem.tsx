@@ -1,8 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { postJson, ensureAtividadeExists, registrarProgresso } from '../services/api';
+import { Alert, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View, StatusBar } from 'react-native';
+import { ensureAtividadeExists, registrarProgresso } from '../services/api';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import Svg, { Path } from 'react-native-svg';
+import { Colors } from '../constants/Colors';
+import { useAccessibility } from '../context/AccessibilityContext';
 
 
 const objetos = [
@@ -18,7 +23,8 @@ const objetos = [
   { emoji: '🍌', nome: 'bananas' },
 ];
 
-export default function ConteToque() {
+export default function JogoContagem() {
+  const { transformText, applyColor } = useAccessibility();
   const [criancaId, setCriancaId] = useState<string | null>(null);
   const [rodada, setRodada] = useState(1);
   const [acertos, setAcertos] = useState(0);
@@ -32,6 +38,8 @@ export default function ConteToque() {
   const [observacao, setObservacao] = useState('');
   const [notaFinal, setNotaFinal] = useState(0);
   const [atividadeId, setAtividadeId] = useState<number | null>(null);
+  const [feedbackErro, setFeedbackErro] = useState('');
+  const [mostrarErro, setMostrarErro] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -81,6 +89,9 @@ export default function ConteToque() {
       }
     } else {
       setErros(e => e + 1);
+      setFeedbackErro('Você escolheu a opção errada!');
+      setMostrarErro(true);
+      setTimeout(() => setMostrarErro(false), 2000);
     }
   }
 
@@ -116,127 +127,271 @@ export default function ConteToque() {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.rodada}>Rodada {rodada}/5</Text>
-      <Text style={styles.mensagem}>{mensagem}</Text>
-      <Text style={styles.emoji}>{emojisExibidos}</Text>
-      <View style={styles.opcoes}>
-        {opcoes.map((num, i) => (
-          <TouchableOpacity key={i} style={styles.botao} onPress={() => selecionar(num)}>
-            <Text style={styles.numero}>{num}</Text>
-          </TouchableOpacity>
-        ))}
+    <SafeAreaView style={styles.container} edges={['top','bottom']}>
+  <StatusBar barStyle="light-content" backgroundColor={applyColor(Colors.light.primary)} />
+
+      {/* Background blobs */}
+      <View style={styles.backgroundShapes}>
+        <Svg width="100%" height="100%" viewBox="0 0 400 800" preserveAspectRatio="none" style={styles.blobSvg}>
+          <Path d="M280,30 Q340,10 370,60 T360,140 Q330,170 280,150 T240,90 Q230,50 280,30 Z" fill={applyColor(Colors.light.primaryDark)} opacity={0.7}/>
+          <Path d="M-20,680 Q30,660 50,700 T40,760 Q10,790 -20,770 T-50,720 Q-60,680 -20,680 Z" fill={applyColor(Colors.light.primaryDark)} opacity={0.65}/>
+        </Svg>
       </View>
 
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
+          <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+  <Text style={styles.headerTitle}>{transformText('Desafio de Contagem')}</Text>
+        <View style={styles.headerButton} />
+      </View>
+
+      <View style={styles.content}>
+        {/* Rodada */}
+        <View style={styles.badgeRow}>
+          <Text style={styles.roundBadge}>{transformText(`Rodada ${rodada}/5`)}</Text>
+        </View>
+
+        {/* Mensagem */}
+  <Text style={styles.instruction}>{transformText(mensagem)}</Text>
+
+        {/* Área dos emojis */}
+        <View style={styles.emojiArea}>
+          <Text style={styles.emoji}>{emojisExibidos}</Text>
+        </View>
+
+        {/* Feedback de erro */}
+        {mostrarErro && (
+          <View style={styles.feedbackErro}>
+            <Text style={styles.feedbackErroTexto}>{transformText(feedbackErro)}</Text>
+          </View>
+        )}
+
+        {/* Opções */}
+        <View style={styles.optionsGrid}>
+          {opcoes.map((num, i) => (
+            <TouchableOpacity key={i} style={styles.optionCard} onPress={() => selecionar(num)} activeOpacity={0.8}>
+              <Text style={styles.optionNumber}>{num}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {/* Modal salvar progresso */}
       <Modal visible={modalVisible} animationType="slide" transparent>
         <View style={styles.modalContainer}>
           <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>Atividade Finalizada!</Text>
-            <Text style={styles.modalText}>Nota final: {notaFinal}</Text>
+            <Text style={styles.modalTitle}>{transformText('🎉 Parabéns!')}</Text>
+            <Text style={styles.modalText}>
+              {transformText('Nota final')}: {notaFinal.toFixed(1)} / 10
+            </Text>
             <TextInput
               style={styles.input}
-              placeholder="Escreva uma observação..."
+              placeholder={transformText('Observação (opcional)')}
               value={observacao}
               onChangeText={setObservacao}
             />
             <TouchableOpacity style={styles.submitButton} onPress={enviarResultado}>
-              <Text style={styles.submitButtonText}>Enviar</Text>
+              <Text style={styles.submitButtonText}>{transformText('Enviar')}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.voltarButton} onPress={() => router.push('/home')}>
-              <Text style={styles.voltarButtonText}>Voltar para Home</Text>
+            <TouchableOpacity
+              style={styles.voltarButton}
+              onPress={() => router.push('/(tabs)/home')}
+            >
+              <Text style={styles.voltarButtonText}>{transformText('Voltar para Home')}</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFA500',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
+    backgroundColor: Colors.light.primary,
   },
-  rodada: {
+  backgroundShapes: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    overflow: 'hidden',
+  },
+  blobSvg: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: 'transparent',
+    zIndex: 10,
+  },
+  headerButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#fff',
+    color: '#FFFFFF',
+    fontFamily: 'Lexend_700Bold',
   },
-  mensagem: {
-    fontSize: 22,
-    marginBottom: 20,
+  content: {
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    zIndex: 5,
+  },
+  badgeRow: {
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  roundBadge: {
+    color: '#FFF',
+    fontSize: 14,
+    fontFamily: 'Lexend_600SemiBold',
+    backgroundColor: '#FFFFFF22',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  instruction: {
+    fontSize: 18,
+    color: '#FFFFFF',
     textAlign: 'center',
-    color: '#fff',
+    fontFamily: 'Lexend_600SemiBold',
+    marginBottom: 16,
+  },
+  emojiArea: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: '#E0E0E0',
+    marginBottom: 16,
+    alignItems: 'center',
   },
   emoji: {
     fontSize: 40,
     textAlign: 'center',
-    marginBottom: 30,
   },
-  opcoes: {
+  optionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
+    gap: 10,
   },
-  botao: {
-    backgroundColor: '#fff',
-    padding: 18,
-    margin: 10,
-    borderRadius: 10,
+  optionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    margin: 4,
+    borderWidth: 2,
+    borderColor: '#E0E0E0',
+    borderBottomWidth: 4,
+    borderBottomColor: '#D0D0D0',
     minWidth: 60,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 5,
   },
-  numero: {
+  optionNumber: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#333',
+    fontFamily: 'Lexend_700Bold',
   },
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.5)',
-    paddingHorizontal: 30,
   },
   modalBox: {
-    backgroundColor: '#fff',
-    borderRadius: 15,
-    padding: 20,
+    backgroundColor: '#FFF',
+    borderRadius: 20,
+    padding: 24,
+    width: '85%',
+    maxWidth: 400,
+    alignItems: 'center',
   },
   modalTitle: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 10,
+    fontFamily: 'Lexend_700Bold',
+    color: Colors.light.primary,
+    marginBottom: 16,
   },
   modalText: {
-    fontSize: 18,
-    marginBottom: 10,
+    fontSize: 16,
+    fontFamily: 'Lexend_400Regular',
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 8,
   },
   input: {
-    backgroundColor: '#eee',
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 15,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 16,
+    marginBottom: 16,
+    fontSize: 16,
+    fontFamily: 'Lexend_400Regular',
   },
   submitButton: {
-    backgroundColor: '#E07612',
-    padding: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 10,
+    width: '100%',
+    backgroundColor: Colors.light.primary,
+    borderRadius: 12,
+    paddingVertical: 14,
+    marginBottom: 12,
   },
   submitButtonText: {
-    color: '#fff',
+    color: '#FFF',
+    fontWeight: 'bold',
     fontSize: 16,
+    fontFamily: 'Lexend_700Bold',
+    textAlign: 'center',
   },
   voltarButton: {
-    alignItems: 'center',
+    width: '100%',
+    backgroundColor: '#E0E0E0',
+    borderRadius: 12,
+    paddingVertical: 14,
   },
   voltarButtonText: {
-    color: '#E07612',
+    color: '#333',
+    fontWeight: '600',
     fontSize: 16,
+    fontFamily: 'Lexend_600SemiBold',
+    textAlign: 'center',
+  },
+  feedbackErro: {
+    backgroundColor: '#FF5722',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+  },
+  feedbackErroTexto: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    fontFamily: 'Lexend_600SemiBold',
   },
 });

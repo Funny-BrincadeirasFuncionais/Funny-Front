@@ -17,8 +17,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
+import { useAccessibility } from '../../context/AccessibilityContext';
 
 export default function HomeScreen() {
+  const { transformText } = useAccessibility();
   const [userName, setUserName] = useState('NOME');
   const [searchText, setSearchText] = useState('');
   const router = useRouter();
@@ -123,8 +125,8 @@ export default function HomeScreen() {
       <View style={styles.header}>
         <View style={styles.welcomeContainer}>
           <Text style={styles.welcomeText}>
-            <Text style={styles.welcomeTextBlack}>Bem-vindo ao </Text>
-            <Text style={styles.welcomeTextOrange}>Funny</Text>
+            <Text style={styles.welcomeTextBlack}>{transformText('Bem-vindo ao ')}</Text>
+            <Text style={styles.welcomeTextOrange}>{transformText('Funny')}</Text>
           </Text>
         </View>
         <View style={styles.headerButtons}>
@@ -151,7 +153,7 @@ export default function HomeScreen() {
 
       {/* Seleção de Turma e Criança */}
       <View style={styles.selectionContainer}>
-        <Text style={styles.selectionTitle}>Selecione para atividades:</Text>
+        <Text style={styles.selectionTitle}>{transformText('Selecione para atividades:')}</Text>
         <View style={styles.selectionRow}>
           <TouchableOpacity
             style={styles.selectionButton}
@@ -159,7 +161,7 @@ export default function HomeScreen() {
           >
             <Ionicons name="school" size={20} color={Colors.light.primary} />
             <Text style={styles.selectionButtonText} numberOfLines={1}>
-              {turmaSelecionada ? turmaSelecionada.nome : 'Escolher Turma'}
+              {turmaSelecionada ? turmaSelecionada.nome : transformText('Escolher Turma')}
             </Text>
           </TouchableOpacity>
 
@@ -167,7 +169,7 @@ export default function HomeScreen() {
             style={[styles.selectionButton, !turmaSelecionada && styles.selectionButtonDisabled]}
             onPress={() => {
               if (!turmaSelecionada) {
-                Alert.alert('Aviso', 'Selecione uma turma primeiro.');
+                Alert.alert(transformText('Aviso'), transformText('Selecione uma turma primeiro.'));
                 return;
               }
               setShowCriancaModal(true);
@@ -176,7 +178,7 @@ export default function HomeScreen() {
           >
             <Ionicons name="person" size={20} color={turmaSelecionada ? Colors.light.primary : '#ccc'} />
             <Text style={[styles.selectionButtonText, !turmaSelecionada && { color: '#ccc' }]} numberOfLines={1}>
-              {criancaSelecionada ? criancaSelecionada.nome : 'Escolher Criança'}
+              {criancaSelecionada ? criancaSelecionada.nome : transformText('Escolher Criança')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -193,7 +195,7 @@ export default function HomeScreen() {
                 style={styles.cardImage}
                 resizeMode="cover"
               />
-              <Text style={styles.cardTitle}>Matemática</Text>
+              <Text style={styles.cardTitle}>{transformText('Matemática')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.mainCard, styles.portugueseCard]} onPress={() => router.push('/jogosPortugues')}>
               <Image 
@@ -201,7 +203,7 @@ export default function HomeScreen() {
                 style={styles.cardImage}
                 resizeMode="cover"
               />
-              <Text style={styles.cardTitle}>Português</Text>
+              <Text style={styles.cardTitle}>{transformText('Português')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -213,7 +215,7 @@ export default function HomeScreen() {
                 style={styles.cardImage}
                 resizeMode="cover"
               />
-              <Text style={styles.cardTitle}>Lógica</Text>
+              <Text style={styles.cardTitle}>{transformText('Lógica')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.mainCard, styles.dailyLifeCard]} onPress={() => router.push('/jogosCotidiano')}>
               <Image 
@@ -221,7 +223,7 @@ export default function HomeScreen() {
                 style={styles.cardImage}
                 resizeMode="cover"
               />
-              <Text style={styles.cardTitle}>Cotidiano</Text>
+              <Text style={styles.cardTitle}>{transformText('Cotidiano')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -231,7 +233,7 @@ export default function HomeScreen() {
       <Modal visible={showTurmaModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Selecione a Turma</Text>
+            <Text style={styles.modalTitle}>{transformText('Selecione a Turma')}</Text>
             <FlatList
               data={turmas}
               keyExtractor={(item) => String(item.id)}
@@ -251,7 +253,7 @@ export default function HomeScreen() {
               style={styles.modalCloseButton}
               onPress={() => setShowTurmaModal(false)}
             >
-              <Text style={styles.modalCloseText}>Fechar</Text>
+              <Text style={styles.modalCloseText}>{transformText('Fechar')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -261,10 +263,10 @@ export default function HomeScreen() {
       <Modal visible={showCriancaModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Selecione a Criança</Text>
+            <Text style={styles.modalTitle}>{transformText('Selecione a Criança')}</Text>
             {criancasDaTurma.length === 0 ? (
               <Text style={{ textAlign: 'center', padding: 20, color: '#777' }}>
-                Nenhuma criança nesta turma
+                {transformText('Nenhuma criança nesta turma')}
               </Text>
             ) : (
               <FlatList
@@ -279,7 +281,7 @@ export default function HomeScreen() {
                     onPress={() => selecionarCrianca(item)}
                   >
                     <Text style={styles.modalItemText}>
-                      {item.nome} ({item.idade} anos)
+                      {item.nome} ({item.idade} {transformText('anos')})
                     </Text>
                   </Pressable>
                 )}
@@ -289,7 +291,7 @@ export default function HomeScreen() {
               style={styles.modalCloseButton}
               onPress={() => setShowCriancaModal(false)}
             >
-              <Text style={styles.modalCloseText}>Fechar</Text>
+              <Text style={styles.modalCloseText}>{transformText('Fechar')}</Text>
             </TouchableOpacity>
           </View>
         </View>

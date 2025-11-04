@@ -114,3 +114,12 @@ export async function registrarProgresso(payload: {
     observacoes: payload.observacoes ?? null,
   });
 }
+
+// ---- Responsáveis ----
+export async function getResponsavel(responsavelId: number) {
+  return getJson(`/responsaveis/${responsavelId}`);
+}
+
+export async function updateResponsavel(responsavelId: number, body: Partial<{ nome: string; email: string; telefone: string }>) {
+  return putJson(`/responsaveis/${responsavelId}`, body);
+}

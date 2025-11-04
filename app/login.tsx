@@ -7,6 +7,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Image, Pressable, StyleSheet, TextInput } from 'react-native';
 import apiFetch from '@/services/api';
+import { useAccessibility } from '@/context/AccessibilityContext';
 
 
 
@@ -18,13 +19,14 @@ export default function LoginScreen() {
   const [rememberMe, setRememberMe] = useState(false);
 
   const router = useRouter();
+  const { transformText } = useAccessibility();
 
   const handleLogin = async () => {
   console.log('🔐 Iniciando processo de login...');
   // Validação cliente: não permitir login com campos vazios
   if (!email?.trim() || !senha?.trim()) {
     console.warn('⚠️ Tentativa de login com campos vazios');
-    Alert.alert('Aviso', 'Por favor preencha e-mail e senha antes de entrar.');
+    Alert.alert(transformText('Aviso'), transformText('Por favor preencha e-mail e senha antes de entrar.'));
     return;
   }
   const payload = {
