@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
@@ -12,9 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { postJson } from '../services/api';
-import { Colors } from '../constants/Colors';
 
 interface Acao {
     id: string;
@@ -36,40 +35,42 @@ const rotinasPeriodos: RotinaPeriodo[] = [
         nome: 'Manhã',
         emoji: '🌅',
         cor: '#FFD700',
-        regraEspecial: 'Acordar deve ser sempre o primeiro!',
+        regraEspecial: 'Siga a ordem lógica: Acordar → Banho → Escovar → Café',
         acoes: [
             { id: 'acordar', texto: 'Acordar', emoji: '😴', ordemObrigatoria: 0 },
-            { id: 'escovar', texto: 'Escovar os dentes', emoji: '🦷', ordemObrigatoria: 1 },
-            { id: 'banho', texto: 'Tomar banho', emoji: '🚿' },
-            { id: 'vestir', texto: 'Vestir a roupa', emoji: '👕' },
-            { id: 'cafe', texto: 'Tomar café da manhã', emoji: '🥐', ordemObrigatoria: 2 },
-            { id: 'mochila', texto: 'Preparar a mochila', emoji: '🎒' },
+            { id: 'banho', texto: 'Tomar banho', emoji: '🚿', ordemObrigatoria: 1 },
+            { id: 'vestir', texto: 'Vestir a roupa', emoji: '👕', ordemObrigatoria: 2 },
+            { id: 'escovar', texto: 'Escovar os dentes', emoji: '🦷', ordemObrigatoria: 3 },
+            { id: 'cafe', texto: 'Tomar café da manhã', emoji: '🥐', ordemObrigatoria: 4 },
+            { id: 'mochila', texto: 'Preparar a mochila', emoji: '🎒', ordemObrigatoria: 5 },
         ]
     },
     {
         nome: 'Tarde',
         emoji: '☀️',
         cor: '#FFA500',
+        regraEspecial: 'Almoçar primeiro, depois estudar e brincar',
         acoes: [
-            { id: 'almoco', texto: 'Almoçar', emoji: '🍽️' },
-            { id: 'brincar', texto: 'Brincar', emoji: '🎮' },
-            { id: 'estudar', texto: 'Fazer lição de casa', emoji: '📚' },
-            { id: 'lanche', texto: 'Lanche da tarde', emoji: '🍎' },
-            { id: 'exercicio', texto: 'Fazer exercícios', emoji: '⚽' },
-            { id: 'descansar', texto: 'Descansar', emoji: '😌' },
+            { id: 'almoco', texto: 'Almoçar', emoji: '🍽️', ordemObrigatoria: 0 },
+            { id: 'descansar', texto: 'Descansar um pouco', emoji: '😌', ordemObrigatoria: 1 },
+            { id: 'estudar', texto: 'Fazer lição de casa', emoji: '📚', ordemObrigatoria: 2 },
+            { id: 'brincar', texto: 'Brincar', emoji: '🎮', ordemObrigatoria: 3 },
+            { id: 'exercicio', texto: 'Fazer exercícios', emoji: '⚽', ordemObrigatoria: 4 },
+            { id: 'lanche', texto: 'Lanche da tarde', emoji: '🍎', ordemObrigatoria: 5 },
         ]
     },
     {
         nome: 'Noite',
         emoji: '🌙',
         cor: '#4B0082',
+        regraEspecial: 'Jantar → Banho → Pijama → Escovar → Dormir',
         acoes: [
-            { id: 'jantar', texto: 'Jantar', emoji: '🍝' },
-            { id: 'banho-noite', texto: 'Tomar banho', emoji: '🚿' },
-            { id: 'escovar-noite', texto: 'Escovar os dentes', emoji: '🦷', ordemObrigatoria: -1 }, // Deve ser antes de dormir
-            { id: 'pijama', texto: 'Colocar pijama', emoji: '🛏️' },
-            { id: 'historias', texto: 'Ler histórias', emoji: '📖' },
-            { id: 'dormir', texto: 'Dormir', emoji: '💤', ordemObrigatoria: 999 }, // Deve ser sempre o último
+            { id: 'jantar', texto: 'Jantar', emoji: '🍝', ordemObrigatoria: 0 },
+            { id: 'banho-noite', texto: 'Tomar banho', emoji: '🚿', ordemObrigatoria: 1 },
+            { id: 'pijama', texto: 'Colocar pijama', emoji: '🛏️', ordemObrigatoria: 2 },
+            { id: 'escovar-noite', texto: 'Escovar os dentes', emoji: '🦷', ordemObrigatoria: 3 },
+            { id: 'historias', texto: 'Ler histórias', emoji: '📖', ordemObrigatoria: 4 },
+            { id: 'dormir', texto: 'Dormir', emoji: '💤', ordemObrigatoria: 5 },
         ]
     }
 ];
@@ -94,6 +95,7 @@ export default function JogoRotinaDia() {
     const [jogoFinalizado, setJogoFinalizado] = useState(false);
     const [notaFinal, setNotaFinal] = useState(0);
     const [criancaId, setCriancaId] = useState<string | null>(null);
+    const [periodoAcertado, setPeriodoAcertado] = useState<boolean[]>([]); // Rastrear quais períodos já foram acertados
 
     const periodo = rotinasPeriodos[periodoAtual];
 
@@ -184,38 +186,30 @@ export default function JogoRotinaDia() {
             }
         });
 
-        // Verificar ordem lógica geral
-        // Para manhã: escovar dentes antes de café
-        if (periodoAtual === 0) {
-            const escovarIndex = sequencia.findIndex(s => s.id === 'escovar');
-            const cafeIndex = sequencia.findIndex(s => s.id === 'cafe');
-            if (escovarIndex !== -1 && cafeIndex !== -1 && escovarIndex < cafeIndex) {
-                pontos += 1;
-                maxPontos += 1;
-            } else if (escovarIndex !== -1 && cafeIndex !== -1) {
-                erros.push('É melhor escovar os dentes antes de tomar café');
-            }
-        }
-
-        // Para noite: escovar dentes antes de dormir
-        if (periodoAtual === 2) {
-            const escovarIndex = sequencia.findIndex(s => s.id === 'escovar-noite');
-            const dormirIndex = sequencia.findIndex(s => s.id === 'dormir');
-            if (escovarIndex !== -1 && dormirIndex !== -1 && escovarIndex < dormirIndex) {
-                pontos += 1;
-                maxPontos += 1;
-            } else if (escovarIndex !== -1 && dormirIndex !== -1) {
-                erros.push('É melhor escovar os dentes antes de dormir');
-            }
-        }
+        // Verificar ordem lógica adicional - todas as ações devem estar na ordem correta
+        // Ações sem ordemObrigatoria definida não existem mais, mas mantemos a verificação
+        // para garantir que todas as ações obrigatórias estão na posição certa
 
         const percentual = (pontos / maxPontos) * 100;
         
         if (erros.length === 0 && sequencia.length === periodo.acoes.length) {
             setSequenciaValida(true);
             setPodeFinalizar(true);
-            mostrarMensagemFeedback(true, `Perfeito! Sequência completa! 🌟`);
-            setAcertos(prev => prev + 1);
+            
+            // Evitar incrementar acertos múltiplas vezes para o mesmo período
+            const jaAcertouEstePeriodo = periodoAcertado[periodoAtual] === true;
+            if (!jaAcertouEstePeriodo) {
+                setAcertos(prev => prev + 1);
+                setPeriodoAcertado(prev => {
+                    const novo = [...prev];
+                    novo[periodoAtual] = true;
+                    return novo;
+                });
+                mostrarMensagemFeedback(true, `Perfeito! Sequência completa! 🌟`);
+            } else {
+                // Já foi acertado, só mostrar feedback
+                mostrarMensagemFeedback(true, `Perfeito! Sequência completa! 🌟`);
+            }
         } else if (erros.length === 0) {
             setSequenciaValida(true);
             setPodeFinalizar(sequencia.length === periodo.acoes.length);
@@ -228,7 +222,7 @@ export default function JogoRotinaDia() {
                 : 'Ajuste algumas ações na sequência 😊';
             mostrarMensagemFeedback(false, mensagem);
         }
-    }, [sequencia, periodo, periodoAtual]);
+    }, [sequencia, periodo, periodoAtual, periodoAcertado]);
 
     useEffect(() => {
         if (sequencia.length > 0) {
@@ -277,16 +271,6 @@ export default function JogoRotinaDia() {
         });
     };
 
-    const moverAcao = (fromIndex: number, toIndex: number) => {
-        if (fromIndex === toIndex) return;
-        
-        setSequencia(prev => {
-            const nova = [...prev];
-            const [removida] = nova.splice(fromIndex, 1);
-            nova.splice(toIndex, 0, removida);
-            return nova;
-        });
-    };
 
     const avancarPeriodo = () => {
         if (periodoAtual < rotinasPeriodos.length - 1) {
@@ -300,11 +284,21 @@ export default function JogoRotinaDia() {
         const totalPeriodos = rotinasPeriodos.length;
         const percentualAcertos = (acertos / totalPeriodos) * 100;
         
-        // Penalizar muitas tentativas (mas não muito)
-        const penalidadeTentativas = Math.min((totalVerificacoes - totalPeriodos) * 0.3, 2);
+        // Penalizar tentativas extras de forma mais rigorosa
+        // Cada tentativa extra reduz mais a nota
+        const tentativasExtras = totalVerificacoes - totalPeriodos;
+        const penalidadeTentativas = Math.min(tentativasExtras * 0.8, 4); // Máximo de 4 pontos de penalidade
         
-        // Calcular nota (0-10)
+        // Calcular nota baseada no percentual de acertos
+        // Nota começa do percentual de acertos, depois subtrai penalidades
         let nota = (percentualAcertos / 10) - (penalidadeTentativas / 10);
+        
+        // Se não acertou todos os períodos, reduzir nota adicionalmente
+        if (acertos < totalPeriodos) {
+            const periodosErrados = totalPeriodos - acertos;
+            nota -= periodosErrados * 0.5; // Cada período errado reduz 0.5 pontos
+        }
+        
         nota = Math.max(0, Math.min(10, nota));
         
         return Math.round(nota * 10) / 10;
