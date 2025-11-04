@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
@@ -12,9 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { postJson } from '../services/api';
-import { Colors } from '../constants/Colors';
 
 interface FamiliaPalavras {
     termino: string;
@@ -27,31 +26,31 @@ const familiasPalavras: FamiliaPalavras[] = [
     {
         termino: '-asa',
         palavrasCorretas: ['CASA', 'ASA', 'BRASA', 'GASA'],
-        palavrasDistratoras: ['MESA', 'CÃO', 'LUA'],
+        palavrasDistratoras: ['MESA', 'CÃO', 'LUA', 'SOL', 'CAMA', 'GATO'],
         cor: '#4CAF50'
     },
     {
         termino: '-ato',
         palavrasCorretas: ['GATO', 'RATO', 'PATO', 'PRATO'],
-        palavrasDistratoras: ['MÃO', 'PÃO', 'SOL'],
+        palavrasDistratoras: ['MÃO', 'PÃO', 'SOL', 'MAR', 'CÉU', 'LUA'],
         cor: '#2196F3'
     },
     {
         termino: '-ada',
         palavrasCorretas: ['ENTRADA', 'SAÍDA', 'CHEGADA', 'PASSADA'],
-        palavrasDistratoras: ['CASA', 'MESA', 'CAMA'],
+        palavrasDistratoras: ['CASA', 'MESA', 'CAMA', 'PORTA', 'JANELA', 'BANCO'],
         cor: '#FF9800'
     },
     {
         termino: '-ão',
         palavrasCorretas: ['MÃO', 'PÃO', 'CÃO', 'CHÃO'],
-        palavrasDistratoras: ['SOL', 'LUA', 'MAR'],
+        palavrasDistratoras: ['SOL', 'LUA', 'MAR', 'CÉU', 'RIO', 'MONTANHA'],
         cor: '#9C27B0'
     },
     {
         termino: '-inho',
         palavrasCorretas: ['MENINO', 'CAMINHO', 'CARINHO', 'PEQUENINHO'],
-        palavrasDistratoras: ['CASA', 'GATO', 'PATO'],
+        palavrasDistratoras: ['CASA', 'GATO', 'PATO', 'BOLA', 'BRINQUEDO', 'ESCOLA'],
         cor: '#E91E63'
     }
 ];
@@ -77,6 +76,7 @@ export default function JogoFamiliaPalavras() {
     const [jogoFinalizado, setJogoFinalizado] = useState(false);
     const [notaFinal, setNotaFinal] = useState(0);
     const [criancaId, setCriancaId] = useState<string | null>(null);
+    const [faseAcertada, setFaseAcertada] = useState<boolean[]>([]); // Rastrear quais fases já foram acertadas
 
     const familiaAtual = familiasPalavras[faseAtual];
 
@@ -93,12 +93,12 @@ export default function JogoFamiliaPalavras() {
             // Criar array com todas as palavras (corretas + distratoras)
             const todasPalavras: PalavraItem[] = [
                 ...familiaAtual.palavrasCorretas.map((p, i) => ({
-                    id: `correta-${i}`,
+                    id: `correta-${faseAtual}-${i}-${Date.now()}`,
                     palavra: p,
                     pertenceFamilia: true
                 })),
                 ...familiaAtual.palavrasDistratoras.map((p, i) => ({
-                    id: `distratora-${i}`,
+                    id: `distratora-${faseAtual}-${i}-${Date.now()}`,
                     palavra: p,
                     pertenceFamilia: false
                 }))
@@ -122,22 +122,77 @@ export default function JogoFamiliaPalavras() {
         const palavrasCorretasNaFamilia = palavrasNaFamilia.filter(p => p.pertenceFamilia).length;
         const palavrasErradasNaFamilia = palavrasNaFamilia.filter(p => !p.pertenceFamilia).length;
 
+        // Evitar incrementar acertos múltiplas vezes para a mesma fase
+        const jaAcertouEstaFase = faseAcertada[faseAtual] === true;
+
         // Família completa se tiver todas as palavras corretas e nenhuma errada
         if (palavrasCorretasNaFamilia === totalCorretas && palavrasErradasNaFamilia === 0) {
             setFamiliaCompleta(true);
-            setAcertos(prev => prev + 1);
+            if (!jaAcertouEstaFase) {
+                setAcertos(prev => prev + 1);
+                setFaseAcertada(prev => {
+                    const novo = [...prev];
+                    novo[faseAtual] = true;
+                    return novo;
+                });
+            }
             mostrarMensagemFeedback(true);
         } else if (palavrasNaFamilia.length > 0) {
-            setTentativas(prev => prev + 1);
+            // Só contar tentativa se ainda não acertou esta fase
+            if (!jaAcertouEstaFase) {
+                setTentativas(prev => prev + 1);
+            }
             mostrarMensagemFeedback(false);
         }
-    }, [palavrasNaFamilia, familiaAtual]);
+    }, [palavrasNaFamilia, familiaAtual, faseAtual, faseAcertada]);
 
     useEffect(() => {
         if (palavrasNaFamilia.length > 0) {
             verificarFamilia();
         }
     }, [palavrasNaFamilia, verificarFamilia]);
+
+    const calcularNotaFinal = useCallback(() => {
+        const totalFases = familiasPalavras.length;
+        const percentualAcertos = (acertos / totalFases) * 100;
+        
+        // Penalizar tentativas extras de forma mais rigorosa
+        const tentativasExtras = tentativas - acertos; // Tentativas além das necessárias
+        const penalidadeTentativas = Math.min(tentativasExtras * 0.8, 4); // Máximo de 4 pontos
+        
+        // Calcular nota baseada no percentual de acertos
+        let nota = (percentualAcertos / 10) - (penalidadeTentativas / 10);
+        
+        // Se não acertou todas as fases, reduzir nota adicionalmente
+        if (acertos < totalFases) {
+            const fasesErradas = totalFases - acertos;
+            nota -= fasesErradas * 0.5; // Cada fase errada reduz 0.5 pontos
+        }
+        
+        nota = Math.max(0, Math.min(10, nota));
+        
+        return Math.round(nota * 10) / 10;
+    }, [acertos, tentativas]);
+
+    const finalizarJogo = useCallback(() => {
+        const nota = calcularNotaFinal();
+        setNotaFinal(nota);
+        setJogoFinalizado(true);
+    }, [calcularNotaFinal]);
+
+    const avancarFase = useCallback(() => {
+        setFaseAtual(prev => {
+            if (prev < familiasPalavras.length - 1) {
+                return prev + 1;
+            } else {
+                // Usar setTimeout para garantir que o estado foi atualizado antes de finalizar
+                setTimeout(() => {
+                    finalizarJogo();
+                }, 100);
+                return prev;
+            }
+        });
+    }, [finalizarJogo]);
 
     const mostrarMensagemFeedback = useCallback((correto: boolean) => {
         if (correto) {
@@ -168,11 +223,14 @@ export default function JogoFamiliaPalavras() {
             if (correto) {
                 setTimeout(() => {
                     setMostrarFeedback(false);
-                    avancarFase();
+                    // Usar setTimeout para garantir que o estado foi atualizado
+                    setTimeout(() => {
+                        avancarFase();
+                    }, 100);
                 }, 500);
             }
         });
-    }, [animacao, palavrasNaFamilia]);
+    }, [animacao, palavrasNaFamilia, avancarFase]);
 
     const selecionarPalavra = (palavra: PalavraItem) => {
         if (familiaCompleta) return;
@@ -190,34 +248,6 @@ export default function JogoFamiliaPalavras() {
             setPalavrasNaFamilia(prev => [...prev, palavra]);
             setPalavrasSelecionadas(prev => new Set([...prev, palavra.id]));
         }
-    };
-
-    const avancarFase = () => {
-        if (faseAtual < familiasPalavras.length - 1) {
-            setFaseAtual(prev => prev + 1);
-        } else {
-            finalizarJogo();
-        }
-    };
-
-    const calcularNotaFinal = () => {
-        const totalFases = familiasPalavras.length;
-        const percentualAcertos = (acertos / totalFases) * 100;
-        
-        // Penalizar muitas tentativas
-        const penalidadeTentativas = Math.min(tentativas * 0.5, 3);
-        
-        // Calcular nota (0-10)
-        let nota = (percentualAcertos / 10) - (penalidadeTentativas / 10);
-        nota = Math.max(0, Math.min(10, nota));
-        
-        return Math.round(nota * 10) / 10;
-    };
-
-    const finalizarJogo = () => {
-        const nota = calcularNotaFinal();
-        setNotaFinal(nota);
-        setJogoFinalizado(true);
     };
 
     const enviarResultado = async () => {
