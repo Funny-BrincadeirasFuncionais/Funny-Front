@@ -1,23 +1,22 @@
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
     Alert,
     Animated,
+    Modal,
     StatusBar,
     StyleSheet,
     Text,
     TouchableOpacity,
-    View,
-    TextInput,
-    Modal,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ensureAtividadeExists, registrarProgresso } from '../services/api';
 import { Colors } from '../constants/Colors';
 import { useAccessibility } from '../context/AccessibilityContext';
+import { ensureAtividadeExists, registrarProgresso } from '../services/api';
 
 interface FamiliaPalavras {
     termino: string;
@@ -29,32 +28,32 @@ interface FamiliaPalavras {
 const familiasPalavras: FamiliaPalavras[] = [
     {
         termino: '-asa',
-        palavrasCorretas: ['CASA', 'ASA', 'BRASA', 'ATRASA'],
-        palavrasDistratoras: ['MESA', 'CÃO', 'LUA'],
+        palavrasCorretas: ['CASA', 'ASA', 'BRASA', 'GASA'],
+        palavrasDistratoras: ['MESA', 'CÃO', 'LUA', 'SOL', 'CAMA', 'GATO'],
         cor: '#4CAF50'
     },
     {
         termino: '-ato',
         palavrasCorretas: ['GATO', 'RATO', 'PATO', 'PRATO'],
-        palavrasDistratoras: ['MÃO', 'PÃO', 'SOL'],
+        palavrasDistratoras: ['MÃO', 'PÃO', 'SOL', 'MAR', 'CÉU', 'LUA'],
         cor: '#2196F3'
     },
     {
         termino: '-ada',
-        palavrasCorretas: ['ENTRADA', 'SALADA', 'CHEGADA', 'PASSADA'],
-        palavrasDistratoras: ['CASA', 'MESA', 'CAMA'],
+        palavrasCorretas: ['ENTRADA', 'SAÍDA', 'CHEGADA', 'PASSADA'],
+        palavrasDistratoras: ['CASA', 'MESA', 'CAMA', 'PORTA', 'JANELA', 'BANCO'],
         cor: '#FF9800'
     },
     {
         termino: '-ão',
         palavrasCorretas: ['MÃO', 'PÃO', 'CÃO', 'CHÃO'],
-        palavrasDistratoras: ['SOL', 'LUA', 'MAR'],
+        palavrasDistratoras: ['SOL', 'LUA', 'MAR', 'CÉU', 'RIO', 'MONTANHA'],
         cor: '#9C27B0'
     },
     {
         termino: '-inho',
-        palavrasCorretas: ['GATINHO', 'CAMINHO', 'CARINHO', 'PEQUENINHO'],
-        palavrasDistratoras: ['CASA', 'GATO', 'PATO'],
+        palavrasCorretas: ['MENINO', 'CAMINHO', 'CARINHO', 'PEQUENINHO'],
+        palavrasDistratoras: ['CASA', 'GATO', 'PATO', 'BOLA', 'BRINQUEDO', 'ESCOLA'],
         cor: '#E91E63'
     }
 ];
@@ -81,6 +80,8 @@ export default function JogoFamiliaPalavras() {
     const [jogoFinalizado, setJogoFinalizado] = useState(false);
     const [notaFinal, setNotaFinal] = useState(0);
     const [criancaId, setCriancaId] = useState<string | null>(null);
+    const [faseAcertada, setFaseAcertada] = useState<boolean[]>([]); // Rastrear quais fases já foram acertadas
+    const [mostrarAjuda, setMostrarAjuda] = useState(false);
     const [atividadeId, setAtividadeId] = useState<number | null>(null);
     const [observacao, setObservacao] = useState('');
     const [modalVisible, setModalVisible] = useState(false);
@@ -121,12 +122,12 @@ export default function JogoFamiliaPalavras() {
             // pertenceFamilia é TRUE apenas se está na lista "palavrasCorretas"
             const todasPalavras: PalavraItem[] = [
                 ...familiaAtual.palavrasCorretas.map((p, i) => ({
-                    id: `correta-${i}`,
+                    id: `correta-${faseAtual}-${i}-${Date.now()}`,
                     palavra: p,
                     pertenceFamilia: true,
                 })),
                 ...familiaAtual.palavrasDistratoras.map((p, i) => ({
-                    id: `distratora-${i}`,
+                    id: `distratora-${faseAtual}-${i}-${Date.now()}`,
                     palavra: p,
                     pertenceFamilia: false,
                 }))
@@ -150,25 +151,77 @@ export default function JogoFamiliaPalavras() {
         const palavrasCorretasNaFamilia = palavrasNaFamilia.filter(p => p.pertenceFamilia).length;
         const palavrasErradasNaFamilia = palavrasNaFamilia.filter(p => !p.pertenceFamilia).length;
 
+        // Evitar incrementar acertos múltiplas vezes para a mesma fase
+        const jaAcertouEstaFase = faseAcertada[faseAtual] === true;
+
         // Família completa se tiver todas as palavras corretas e nenhuma errada
         if (palavrasCorretasNaFamilia === totalCorretas && palavrasErradasNaFamilia === 0) {
             setFamiliaCompleta(true);
-            setAcertos(prev => prev + 1);
+            if (!jaAcertouEstaFase) {
+                setAcertos(prev => prev + 1);
+                setFaseAcertada(prev => {
+                    const novo = [...prev];
+                    novo[faseAtual] = true;
+                    return novo;
+                });
+            }
             mostrarMensagemFeedback(true);
         } else if (palavrasNaFamilia.length > 0) {
-            // Conta erro apenas se alguma palavra errada for adicionada
-            if (palavrasErradasNaFamilia > 0) {
+            // Só contar tentativa se ainda não acertou esta fase
+            if (!jaAcertouEstaFase) {
                 setTentativas(prev => prev + 1);
             }
             mostrarMensagemFeedback(false);
         }
-    }, [palavrasNaFamilia, familiaAtual]);
+    }, [palavrasNaFamilia, familiaAtual, faseAtual, faseAcertada]);
 
     useEffect(() => {
         if (palavrasNaFamilia.length > 0) {
             verificarFamilia();
         }
     }, [palavrasNaFamilia, verificarFamilia]);
+
+    const calcularNotaFinal = useCallback(() => {
+        const totalFases = familiasPalavras.length;
+        const percentualAcertos = (acertos / totalFases) * 100;
+        
+        // Penalizar tentativas extras de forma mais rigorosa
+        const tentativasExtras = tentativas - acertos; // Tentativas além das necessárias
+        const penalidadeTentativas = Math.min(tentativasExtras * 0.8, 4); // Máximo de 4 pontos
+        
+        // Calcular nota baseada no percentual de acertos
+        let nota = (percentualAcertos / 10) - (penalidadeTentativas / 10);
+        
+        // Se não acertou todas as fases, reduzir nota adicionalmente
+        if (acertos < totalFases) {
+            const fasesErradas = totalFases - acertos;
+            nota -= fasesErradas * 0.5; // Cada fase errada reduz 0.5 pontos
+        }
+        
+        nota = Math.max(0, Math.min(10, nota));
+        
+        return Math.round(nota * 10) / 10;
+    }, [acertos, tentativas]);
+
+    const finalizarJogo = useCallback(() => {
+        const nota = calcularNotaFinal();
+        setNotaFinal(nota);
+        setJogoFinalizado(true);
+    }, [calcularNotaFinal]);
+
+    const avancarFase = useCallback(() => {
+        setFaseAtual(prev => {
+            if (prev < familiasPalavras.length - 1) {
+                return prev + 1;
+            } else {
+                // Usar setTimeout para garantir que o estado foi atualizado antes de finalizar
+                setTimeout(() => {
+                    finalizarJogo();
+                }, 100);
+                return prev;
+            }
+        });
+    }, [finalizarJogo]);
 
     const mostrarMensagemFeedback = useCallback((correto: boolean) => {
         if (correto) {
@@ -196,10 +249,17 @@ export default function JogoFamiliaPalavras() {
                 useNativeDriver: true,
             }),
         ]).start(() => {
-            // Não avançar automaticamente; o jogador deve tocar em "Continuar"
-            if (correto) setMostrarFeedback(false);
+            if (correto) {
+                setTimeout(() => {
+                    setMostrarFeedback(false);
+                    // Usar setTimeout para garantir que o estado foi atualizado
+                    setTimeout(() => {
+                        avancarFase();
+                    }, 100);
+                }, 500);
+            }
         });
-    }, [animacao, palavrasNaFamilia]);
+    }, [animacao, palavrasNaFamilia, avancarFase]);
 
     const selecionarPalavra = (palavra: PalavraItem) => {
         if (familiaCompleta) return;
@@ -215,33 +275,14 @@ export default function JogoFamiliaPalavras() {
         } else {
             // Adicionar palavra à família
             setPalavrasNaFamilia(prev => [...prev, palavra]);
-            setPalavrasSelecionadas(prev => new Set([...prev, palavra.id]));
+            setPalavrasSelecionadas(prev => {
+                const novo = new Set(prev);
+                novo.add(palavra.id);
+                return novo;
+            });
         }
     };
 
-    const avancarFase = () => {
-        if (faseAtual < familiasPalavras.length - 1) {
-            setFaseAtual(prev => prev + 1);
-        } else {
-            finalizarJogo();
-        }
-    };
-
-    const calcularNotaFinal = () => {
-        const totalFases = familiasPalavras.length;
-        // Nota baseada na proporção de acertos, com dedução por erros
-        const percentual = (acertos / totalFases) * 10;
-        const penalidade = Math.min(tentativas * 0.5, 5); // até -5 pontos por erros
-        const nota = Math.max(0, percentual - penalidade);
-        return Math.round(nota * 10) / 10;
-    };
-
-    const finalizarJogo = () => {
-        const nota = calcularNotaFinal();
-        setNotaFinal(nota);
-        // Exibir apenas o modal de salvar progresso (sem popup Parabéns)
-        setModalVisible(true);
-    };
     const enviarResultado = async () => {
         if (!criancaId || !atividadeId) {
             Alert.alert('Erro', 'Faltam informações para registrar.');
@@ -300,8 +341,11 @@ export default function JogoFamiliaPalavras() {
                 <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
                     <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>{transformText('Forme a Família')}</Text>
-                <TouchableOpacity style={styles.headerButton}>
+                <Text style={styles.headerTitle}>Forme a Família</Text>
+                <TouchableOpacity 
+                    style={styles.headerButton}
+                    onPress={() => setMostrarAjuda(true)}
+                >
                     <View style={styles.helpButton}>
                         <Text style={styles.helpButtonText}>?</Text>
                     </View>
@@ -420,28 +464,57 @@ export default function JogoFamiliaPalavras() {
                     </Text>
                 </View>
             </View>
-            {/* Modal de envio - exibido ao finalizar todas as fases */}
-            <Modal visible={modalVisible} animationType="slide" transparent>
-                <View style={styles.modalContainer}>
-                    <View style={styles.modalBox}>
-                        <Text style={styles.modalTitle}>{transformText('🎉 Parabéns!')}</Text>
-                        <Text style={styles.modalText}>
-                          {transformText('Você completou todas as fases!')}
-                        </Text>
-                        <TextInput
-                          style={styles.input}
-                          placeholder={transformText('Observação (opcional)')}
-                          value={observacao}
-                          onChangeText={setObservacao}
-                        />
-                        <TouchableOpacity style={styles.submitButton} onPress={enviarResultado}>
-                            <Text style={styles.submitButtonText}>{transformText('Enviar')}</Text>
-                        </TouchableOpacity>
+
+            {/* Modal de Ajuda */}
+            <Modal
+                visible={mostrarAjuda}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setMostrarAjuda(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Como Jogar</Text>
+                            <TouchableOpacity
+                                onPress={() => setMostrarAjuda(false)}
+                                style={styles.modalCloseButton}
+                            >
+                                <Ionicons name="close" size={24} color="#666666" />
+                            </TouchableOpacity>
+                        </View>
+                        
+                        <View style={styles.modalBody}>
+                            <Text style={styles.modalText}>
+                                <Text style={styles.modalTextBold}>Objetivo:</Text> Forme famílias de palavras que terminam com a mesma terminação!
+                            </Text>
+                            
+                            <Text style={styles.modalText}>
+                                <Text style={styles.modalTextBold}>Como jogar:</Text>
+                            </Text>
+                            
+                            <Text style={styles.modalText}>
+                                • Observe o termo mostrado (ex: -asa, -ato, -ada)
+                            </Text>
+                            <Text style={styles.modalText}>
+                                • Toque nas palavras disponíveis que terminam com esse termo
+                            </Text>
+                            <Text style={styles.modalText}>
+                                • As palavras corretas aparecerão na área da família
+                            </Text>
+                            <Text style={styles.modalText}>
+                                • Você pode remover palavras clicando nelas novamente
+                            </Text>
+                            <Text style={styles.modalText}>
+                                • Complete a família quando tiver todas as palavras corretas!
+                            </Text>
+                        </View>
+                        
                         <TouchableOpacity
-                          style={styles.voltarButton}
-                          onPress={() => router.push('/(tabs)/home')}
+                            style={styles.modalButton}
+                            onPress={() => setMostrarAjuda(false)}
                         >
-                            <Text style={styles.voltarButtonText}>{transformText('Voltar para Home')}</Text>
+                            <Text style={styles.modalButtonText}>Entendi!</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -749,14 +822,14 @@ const styles = StyleSheet.create({
         maxWidth: 400,
         alignItems: 'center',
     },
-    modalTitle: {
+    modalTitleEnvio: {
         fontSize: 24,
         fontWeight: 'bold',
         fontFamily: 'Lexend_700Bold',
         color: Colors.light.primary,
         marginBottom: 16,
     },
-    modalText: {
+    modalTextEnvio: {
         fontSize: 16,
         fontFamily: 'Lexend_400Regular',
         color: '#333',
@@ -787,6 +860,68 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontFamily: 'Lexend_700Bold',
         textAlign: 'center',
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 24,
+    },
+    modalContent: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 20,
+        width: '100%',
+        maxWidth: 400,
+        padding: 24,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.25,
+        shadowRadius: 8,
+        elevation: 8,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    modalTitle: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#333333',
+        fontFamily: 'Lexend_700Bold',
+    },
+    modalCloseButton: {
+        padding: 4,
+    },
+    modalBody: {
+        marginBottom: 24,
+    },
+    modalText: {
+        fontSize: 16,
+        color: '#666666',
+        fontFamily: 'Lexend_400Regular',
+        lineHeight: 24,
+        marginBottom: 12,
+    },
+    modalTextBold: {
+        fontWeight: 'bold',
+        color: '#333333',
+        fontFamily: 'Lexend_700Bold',
+    },
+    modalButton: {
+        backgroundColor: '#F78F3F',
+        borderRadius: 12,
+        paddingVertical: 14,
+        paddingHorizontal: 32,
+        alignItems: 'center',
+    },
+    modalButtonText: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#FFFFFF',
+        fontFamily: 'Lexend_700Bold',
     },
 });
 
