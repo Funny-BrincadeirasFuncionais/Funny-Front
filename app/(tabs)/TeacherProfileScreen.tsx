@@ -51,7 +51,7 @@ export default function ProfessorScreen() {
   };
 
   const [turmas, setTurmas] = useState<Turma[]>([]);
-  const [alunos, setAlunos] = useState<Array<{id: number; nome: string; idade: number}>>([]);
+  const [alunos, setAlunos] = useState<Array<{ id: number; nome: string; idade: number }>>([]);
   const [loading, setLoading] = useState(false);
   const [responsavelNome, setResponsavelNome] = useState<string | null>(null);
   const [responsavelEmail, setResponsavelEmail] = useState<string | null>(null);
@@ -62,7 +62,6 @@ export default function ProfessorScreen() {
     setShowDialog(true);
   };
 
-  // carregar turmas do responsavel atual (declarado no escopo para reutilizar)
   const carregarTurmas = async () => {
     setLoading(true);
     try {
@@ -73,43 +72,44 @@ export default function ProfessorScreen() {
         setLoading(false);
         return;
       }
-      // Buscar info do responsável (nome/email) — não assume que o endpoint traga turmas como objetos
+
       try {
         const resp = await getJson(`/responsaveis/${userId}`);
         if (resp) {
-          // resp.turmas geralmente é uma lista de IDs (segundo o backend), então apenas usamos nome/email
           setResponsavelNome(resp.nome ?? null);
           setResponsavelEmail(resp.email ?? null);
         }
       } catch (err) {
-        // não bloqueante — apenas logamos
         console.debug('Não foi possível carregar responsavel:', err);
       }
 
-      // Buscar todas as turmas e todas as crianças e então montar as turmas do usuário
       const [allTurmas, allCriancas] = await Promise.all([getJson('/turmas'), getJson('/criancas')]);
       const listaTurmas: any[] = Array.isArray(allTurmas) ? allTurmas : [];
       const listaCriancas: any[] = Array.isArray(allCriancas) ? allCriancas : [];
 
-      // filtrar turmas do responsavel
       const minhasTurmas = listaTurmas
-        .filter((t: any) => Number(t.responsavel_id) === Number(userId) || (t.responsavel && Number(t.responsavel.id) === Number(userId)))
+        .filter(
+          (t: any) =>
+            Number(t.responsavel_id) === Number(userId) ||
+            (t.responsavel && Number(t.responsavel.id) === Number(userId))
+        )
         .map((t: any) => ({
           id: Number(t.id),
           nome: t.nome,
           responsavel_id: Number(t.responsavel_id),
           responsavel: t.responsavel,
-          // associar crianças por turma_id
-          criancas: listaCriancas.filter((c: any) => Number(c.turma_id) === Number(t.id)).map((c: any) => ({
-            id: Number(c.id),
-            nome: c.nome,
-            idade: c.idade,
-            diagnostico_id: c.diagnostico_id
-          }))
+          criancas: listaCriancas
+            .filter((c: any) => Number(c.turma_id) === Number(t.id))
+            .map((c: any) => ({
+              id: Number(c.id),
+              nome: c.nome,
+              idade: c.idade,
+              diagnostico_id: c.diagnostico_id,
+            })),
         }));
 
       setTurmas(minhasTurmas);
-      const allAlunos = minhasTurmas.flatMap(t =>
+      const allAlunos = minhasTurmas.flatMap((t) =>
         (t.criancas || []).map((c: any) => ({ id: c.id, nome: c.nome, idade: c.idade }))
       );
       setAlunos(allAlunos);
@@ -157,12 +157,12 @@ export default function ProfessorScreen() {
       if (editingTurmaId) {
         response = await putJson(`/turmas/${editingTurmaId}`, {
           nome: turmaNome,
-          responsavel_id: Number(userId)
+          responsavel_id: Number(userId),
         });
       } else {
         response = await postJson('/turmas', {
           nome: turmaNome,
-          responsavel_id: Number(userId)
+          responsavel_id: Number(userId),
         });
       }
 
@@ -185,7 +185,7 @@ export default function ProfessorScreen() {
   const confirmarRemoverTurma = (id: number) => {
     Alert.alert('Confirmar', 'Deseja remover esta turma?', [
       { text: 'Cancelar', style: 'cancel' },
-      { text: 'Remover', style: 'destructive', onPress: () => { void removerTurma(id); } },
+      { text: 'Remover', style: 'destructive', onPress: () => void removerTurma(id) },
     ]);
   };
 
@@ -205,10 +205,22 @@ export default function ProfessorScreen() {
     }
   };
 
+  // 🟠 AQUI FOI AJUSTADO
   const handleEmitir = () => {
+    if (!selectedItem || !reportType) return;
     setShowDialog(false);
-    console.log(`Emitindo relatório de ${reportType}: ID ${selectedItem}`);
-    // aqui pode ir para outra tela futuramente
+
+    if (reportType === 'Turma') {
+      router.push({
+        pathname: '/RelatorioTurmaScreen',
+        params: { turmaId: String(selectedItem) },
+      });
+    } else if (reportType === 'Aluno') {
+      router.push({
+        pathname: '/RelatorioAlunoScreen',
+        params: { alunoId: String(selectedItem) },
+      });
+    }
   };
 
   return (
@@ -232,19 +244,13 @@ export default function ProfessorScreen() {
           <Text style={styles.email}>{responsavelEmail ?? 'email@gmail.com'}</Text>
 
           <View style={styles.buttonRow}>
-            <TouchableOpacity
-              style={styles.editButton}
-              onPress={() => router.push('/EditarPerfilScreen')}
-            >
+            <TouchableOpacity style={styles.editButton} onPress={() => router.push('/EditarPerfilScreen')}>
               <Text style={styles.editText}>{transformText('Editar Perfil')}</Text>
             </TouchableOpacity>
 
             {/* Select de relatório */}
             <View style={{ flex: 1 }}>
-              <TouchableOpacity
-                style={styles.reportButton}
-                onPress={() => setShowSelect(!showSelect)}
-              >
+              <TouchableOpacity style={styles.reportButton} onPress={() => setShowSelect(!showSelect)}>
                 <Text style={styles.reportText}>{transformText('Gerar relatório')}</Text>
                 <Ionicons name="chevron-down" size={16} color="white" style={{ marginLeft: 4 }} />
               </TouchableOpacity>
@@ -283,15 +289,22 @@ export default function ProfessorScreen() {
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <Text style={styles.sectionTitle}>{transformText('Minhas Turmas:')}</Text>
             <TouchableOpacity onPress={() => router.push('/minhasTurmas' as any)}>
-              <Text style={{ color: Colors.light.primary, fontSize: 14, fontWeight: '600' }}>{transformText('Ver todas')} →</Text>
+              <Text style={{ color: Colors.light.primary, fontSize: 14, fontWeight: '600' }}>
+                {transformText('Ver todas')} →
+              </Text>
             </TouchableOpacity>
           </View>
           {turmas.slice(0, 3).map((turma) => (
-            <TouchableOpacity key={turma.id} style={styles.classItem} onPress={() => router.push(`/turma/${turma.id}` as any)}>
+            <TouchableOpacity
+              key={turma.id}
+              style={styles.classItem}
+              onPress={() => router.push(`/turma/${turma.id}` as any)}
+            >
               <View style={{ flex: 1 }}>
                 <Text style={styles.classText}>{transformText(turma.nome)}</Text>
                 <Text style={{ fontSize: 12, color: '#777', marginTop: 4 }}>
-                  {turma.criancas?.length || 0} {turma.criancas?.length === 1 ? transformText('criança') : transformText('crianças')}
+                  {turma.criancas?.length || 0}{' '}
+                  {turma.criancas?.length === 1 ? transformText('criança') : transformText('crianças')}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color="#000" />
@@ -299,7 +312,9 @@ export default function ProfessorScreen() {
           ))}
 
           {loading && <Text style={{ marginTop: 8 }}>{transformText('Carregando turmas...')}</Text>}
-          {!loading && turmas.length === 0 && <Text style={{ marginTop: 8 }}>{transformText('Nenhuma turma encontrada.')}</Text>}
+          {!loading && turmas.length === 0 && (
+            <Text style={{ marginTop: 8 }}>{transformText('Nenhuma turma encontrada.')}</Text>
+          )}
         </View>
       </ScrollView>
 
@@ -308,10 +323,14 @@ export default function ProfessorScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>
-              {reportType === 'Turma' ? transformText('Selecione a turma') : transformText('Selecione o aluno')}
+              {reportType === 'Turma'
+                ? transformText('Selecione a turma')
+                : transformText('Selecione o aluno')}
             </Text>
             <Text style={styles.modalSubtitle}>
-              {transformText('Escolha alguma das opções abaixo para seguir com a emissão do relatório')}
+              {transformText(
+                'Escolha alguma das opções abaixo para seguir com a emissão do relatório'
+              )}
             </Text>
 
             <FlatList<ListItem>
@@ -352,7 +371,12 @@ export default function ProfessorScreen() {
       </Modal>
 
       {/* Modal Criar / Editar Turma */}
-      <Modal visible={modalTurmaVisible} transparent animationType="fade" onRequestClose={() => setModalTurmaVisible(false)}>
+      <Modal
+        visible={modalTurmaVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setModalTurmaVisible(false)}
+      >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>{editingTurmaId ? 'Editar Turma' : 'Nova Turma'}</Text>
@@ -371,11 +395,16 @@ export default function ProfessorScreen() {
             />
 
             <View style={styles.modalButtons}>
-              <TouchableOpacity style={[styles.modalButton, styles.cancelButton]} onPress={() => setModalTurmaVisible(false)}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setModalTurmaVisible(false)}
+              >
                 <Text style={[styles.modalButtonText, { color: '#E07612' }]}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.modalButton, styles.confirmButton]} onPress={salvarTurma}>
-                <Text style={[styles.modalButtonText, { color: 'white' }]}>{editingTurmaId ? 'Salvar' : 'Criar'}</Text>
+                <Text style={[styles.modalButtonText, { color: 'white' }]}>
+                  {editingTurmaId ? 'Salvar' : 'Criar'}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
