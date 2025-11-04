@@ -5,6 +5,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
     Alert,
     Animated,
+    Modal,
     StatusBar,
     StyleSheet,
     Text,
@@ -77,6 +78,7 @@ export default function JogoFamiliaPalavras() {
     const [notaFinal, setNotaFinal] = useState(0);
     const [criancaId, setCriancaId] = useState<string | null>(null);
     const [faseAcertada, setFaseAcertada] = useState<boolean[]>([]); // Rastrear quais fases já foram acertadas
+    const [mostrarAjuda, setMostrarAjuda] = useState(false);
 
     const familiaAtual = familiasPalavras[faseAtual];
 
@@ -377,7 +379,10 @@ export default function JogoFamiliaPalavras() {
                     <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Forme a Família</Text>
-                <TouchableOpacity style={styles.headerButton}>
+                <TouchableOpacity 
+                    style={styles.headerButton}
+                    onPress={() => setMostrarAjuda(true)}
+                >
                     <View style={styles.helpButton}>
                         <Text style={styles.helpButtonText}>?</Text>
                     </View>
@@ -486,6 +491,61 @@ export default function JogoFamiliaPalavras() {
                     </Text>
                 </View>
             </View>
+
+            {/* Modal de Ajuda */}
+            <Modal
+                visible={mostrarAjuda}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setMostrarAjuda(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Como Jogar</Text>
+                            <TouchableOpacity
+                                onPress={() => setMostrarAjuda(false)}
+                                style={styles.modalCloseButton}
+                            >
+                                <Ionicons name="close" size={24} color="#666666" />
+                            </TouchableOpacity>
+                        </View>
+                        
+                        <View style={styles.modalBody}>
+                            <Text style={styles.modalText}>
+                                <Text style={styles.modalTextBold}>Objetivo:</Text> Forme famílias de palavras que terminam com a mesma terminação!
+                            </Text>
+                            
+                            <Text style={styles.modalText}>
+                                <Text style={styles.modalTextBold}>Como jogar:</Text>
+                            </Text>
+                            
+                            <Text style={styles.modalText}>
+                                • Observe o termo mostrado (ex: -asa, -ato, -ada)
+                            </Text>
+                            <Text style={styles.modalText}>
+                                • Toque nas palavras disponíveis que terminam com esse termo
+                            </Text>
+                            <Text style={styles.modalText}>
+                                • As palavras corretas aparecerão na área da família
+                            </Text>
+                            <Text style={styles.modalText}>
+                                • Você pode remover palavras clicando nelas novamente
+                            </Text>
+                            <Text style={styles.modalText}>
+                                • Complete a família quando tiver todas as palavras corretas!
+                            </Text>
+                        </View>
+                        
+                        <TouchableOpacity
+                            style={styles.modalButton}
+                            onPress={() => setMostrarAjuda(false)}
+                        >
+                            <Text style={styles.modalButtonText}>Entendi!</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -771,6 +831,68 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontFamily: 'Lexend_400Regular',
         textDecorationLine: 'underline',
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 24,
+    },
+    modalContent: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 20,
+        width: '100%',
+        maxWidth: 400,
+        padding: 24,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.25,
+        shadowRadius: 8,
+        elevation: 8,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    modalTitle: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#333333',
+        fontFamily: 'Lexend_700Bold',
+    },
+    modalCloseButton: {
+        padding: 4,
+    },
+    modalBody: {
+        marginBottom: 24,
+    },
+    modalText: {
+        fontSize: 16,
+        color: '#666666',
+        fontFamily: 'Lexend_400Regular',
+        lineHeight: 24,
+        marginBottom: 12,
+    },
+    modalTextBold: {
+        fontWeight: 'bold',
+        color: '#333333',
+        fontFamily: 'Lexend_700Bold',
+    },
+    modalButton: {
+        backgroundColor: '#F78F3F',
+        borderRadius: 12,
+        paddingVertical: 14,
+        paddingHorizontal: 32,
+        alignItems: 'center',
+    },
+    modalButtonText: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#FFFFFF',
+        fontFamily: 'Lexend_700Bold',
     },
 });
 

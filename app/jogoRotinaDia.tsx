@@ -5,6 +5,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
     Alert,
     Animated,
+    Modal,
     StatusBar,
     StyleSheet,
     Text,
@@ -96,6 +97,7 @@ export default function JogoRotinaDia() {
     const [notaFinal, setNotaFinal] = useState(0);
     const [criancaId, setCriancaId] = useState<string | null>(null);
     const [periodoAcertado, setPeriodoAcertado] = useState<boolean[]>([]); // Rastrear quais períodos já foram acertados
+    const [mostrarAjuda, setMostrarAjuda] = useState(false);
 
     const periodo = rotinasPeriodos[periodoAtual];
 
@@ -437,7 +439,10 @@ export default function JogoRotinaDia() {
                     <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>A Rotina do Dia</Text>
-                <TouchableOpacity style={styles.headerButton}>
+                <TouchableOpacity 
+                    style={styles.headerButton}
+                    onPress={() => setMostrarAjuda(true)}
+                >
                     <View style={styles.helpButton}>
                         <Text style={styles.helpButtonText}>?</Text>
                     </View>
@@ -562,6 +567,64 @@ export default function JogoRotinaDia() {
                     </Text>
                 </View>
             </View>
+
+            {/* Modal de Ajuda */}
+            <Modal
+                visible={mostrarAjuda}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setMostrarAjuda(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Como Jogar</Text>
+                            <TouchableOpacity
+                                onPress={() => setMostrarAjuda(false)}
+                                style={styles.modalCloseButton}
+                            >
+                                <Ionicons name="close" size={24} color="#666666" />
+                            </TouchableOpacity>
+                        </View>
+                        
+                        <View style={styles.modalBody}>
+                            <Text style={styles.modalText}>
+                                <Text style={styles.modalTextBold}>Objetivo:</Text> Organize as ações do dia na sequência correta!
+                            </Text>
+                            
+                            <Text style={styles.modalText}>
+                                <Text style={styles.modalTextBold}>Como jogar:</Text>
+                            </Text>
+                            
+                            <Text style={styles.modalText}>
+                                • Você verá ações de um período do dia (Manhã, Tarde ou Noite)
+                            </Text>
+                            <Text style={styles.modalText}>
+                                • Toque nas ações disponíveis para organizá-las na sequência
+                            </Text>
+                            <Text style={styles.modalText}>
+                                • As ações aparecerão na linha do tempo numerada
+                            </Text>
+                            <Text style={styles.modalText}>
+                                • Você pode remover ações clicando no X
+                            </Text>
+                            <Text style={styles.modalText}>
+                                • Organize todas as ações na ordem correta para avançar!
+                            </Text>
+                            <Text style={styles.modalText}>
+                                • Cada período tem regras especiais mostradas na tela
+                            </Text>
+                        </View>
+                        
+                        <TouchableOpacity
+                            style={styles.modalButton}
+                            onPress={() => setMostrarAjuda(false)}
+                        >
+                            <Text style={styles.modalButtonText}>Entendi!</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -909,6 +972,68 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontFamily: 'Lexend_400Regular',
         textDecorationLine: 'underline',
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 24,
+    },
+    modalContent: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 20,
+        width: '100%',
+        maxWidth: 400,
+        padding: 24,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.25,
+        shadowRadius: 8,
+        elevation: 8,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    modalTitle: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#333333',
+        fontFamily: 'Lexend_700Bold',
+    },
+    modalCloseButton: {
+        padding: 4,
+    },
+    modalBody: {
+        marginBottom: 24,
+    },
+    modalText: {
+        fontSize: 16,
+        color: '#666666',
+        fontFamily: 'Lexend_400Regular',
+        lineHeight: 24,
+        marginBottom: 12,
+    },
+    modalTextBold: {
+        fontWeight: 'bold',
+        color: '#333333',
+        fontFamily: 'Lexend_700Bold',
+    },
+    modalButton: {
+        backgroundColor: '#F78F3F',
+        borderRadius: 12,
+        paddingVertical: 14,
+        paddingHorizontal: 32,
+        alignItems: 'center',
+    },
+    modalButtonText: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#FFFFFF',
+        fontFamily: 'Lexend_700Bold',
     },
 });
 
