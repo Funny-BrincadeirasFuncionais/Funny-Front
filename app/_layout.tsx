@@ -30,6 +30,10 @@ export default function RootLayout() {
         {/* Grupo de tabs (aparece só depois do login) */}
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 
+        {/* Telas de gerenciamento */}
+        <Stack.Screen name="minhasTurmas" />
+        <Stack.Screen name="minhasAtividades" />
+
         {/* Telas de jogos */}
         <Stack.Screen name="jogosMatematica" />
         <Stack.Screen name="jogosPortugues" />
@@ -39,6 +43,7 @@ export default function RootLayout() {
         <Stack.Screen name="jogoPalavra" />
         <Stack.Screen name="jogoMontaPalavra" />
         <Stack.Screen name="jogoFamiliaPalavras" />
+        <Stack.Screen name="jogoRotinaDia" />
       </Stack>
     </SafeAreaProvider>
   );

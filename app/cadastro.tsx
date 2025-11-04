@@ -22,6 +22,7 @@ export default function CadastroScreen() {
   const router = useRouter();
 
   const handleRegister = async () => {
+    console.log('📝 Iniciando processo de cadastro...');
     setIsLoading(true);
     const payload = {
       nome,
@@ -29,23 +30,27 @@ export default function CadastroScreen() {
       senha,
       telefone,
     };
+    console.log('📋 Dados do formulário preparados');
 
     try {
-      // 1. Registrar usuário
+      console.log('1️⃣ Registrando novo usuário...');
       const res1 = await apiFetch('/auth/register', {
         method: 'POST',
         body: JSON.stringify(payload),
       });
 
       if (!res1.ok) {
-        console.error('Erro no registro:', await res1.text());
+        const errorText = await res1.text();
+        console.error('❌ Erro no registro:', errorText);
+        console.error('Status:', res1.status);
         Alert.alert('Erro', 'Falha no cadastro. Verifique os dados e tente novamente.');
         setIsLoading(false);
         return;
       }
+      console.log('✅ Usuário registrado com sucesso!');
 
       // 2. Fazer login para obter token
-      console.log('Tentando fazer login com:', { email });
+      console.log('2️⃣ Iniciando autenticação automática...');
       const loginRes = await apiFetch('/auth/login', {
         method: 'POST',
         headers: {
@@ -55,10 +60,12 @@ export default function CadastroScreen() {
       });
 
       const responseText = await loginRes.text();
-      console.log('Login response text:', responseText);
+      console.log('📥 Resposta do servidor recebida');
 
       if (!loginRes.ok) {
-        console.error('Erro no login. Status:', loginRes.status, 'Resposta:', responseText);
+        console.error('❌ Falha na autenticação automática');
+        console.error('Status:', loginRes.status);
+        console.error('Resposta:', responseText);
         Alert.alert('Erro', 'Cadastro realizado, mas falha ao fazer login automático.');
         setIsLoading(false);
         router.push('/login');
@@ -68,10 +75,11 @@ export default function CadastroScreen() {
       // Tenta converter a resposta em JSON
       let responseData;
       try {
+        console.log('🔄 Processando resposta do servidor...');
         responseData = JSON.parse(responseText);
-        console.log('Login response:', responseData);
+        console.log('✅ Resposta processada com sucesso');
       } catch (jsonError) {
-        console.error('Erro ao processar resposta do login:', jsonError);
+        console.error('❌ Erro ao processar resposta JSON:', jsonError);
         Alert.alert('Erro', 'Resposta inválida do servidor.');
         setIsLoading(false);
         router.push('/login');
@@ -79,7 +87,7 @@ export default function CadastroScreen() {
       }
 
       if (!responseData?.access_token) {
-        console.error('Token não encontrado na resposta:', responseData);
+        console.error('❌ Token ausente na resposta do servidor');
         Alert.alert('Erro', 'Erro ao obter token de autenticação.');
         setIsLoading(false);
         router.push('/login');
@@ -87,10 +95,11 @@ export default function CadastroScreen() {
       }
 
       try {
+        console.log('💾 Salvando token de acesso...');
         await AsyncStorage.setItem('token', responseData.access_token);
-        console.log('Token salvo com sucesso');
+        console.log('✅ Token salvo com sucesso no AsyncStorage');
       } catch (storageError) {
-        console.error('Erro ao salvar token:', storageError);
+        console.error('❌ Erro ao salvar token:', storageError);
         Alert.alert('Erro', 'Erro ao salvar dados de autenticação.');
         setIsLoading(false);
         router.push('/login');
@@ -98,24 +107,30 @@ export default function CadastroScreen() {
       }
 
       // 3. Criar responsável (com token de autenticação)
+      console.log('3️⃣ Criando perfil de responsável...');
       const res2 = await apiFetch('/responsaveis', {
         method: 'POST',
         body: JSON.stringify(payload),
       });
 
       if (res2.ok) {
+        console.log('✅ Perfil de responsável criado com sucesso');
         setIsLoading(false);
+        console.log('🎉 Processo de cadastro finalizado com sucesso!');
         Alert.alert('Sucesso', 'Cadastro realizado com sucesso!');
+        console.log('🔄 Redirecionando para a tela de login...');
         router.push('/login');
       } else {
+        console.error('❌ Erro ao criar perfil de responsável');
+        const errorText = await res2.text();
+        console.error('Detalhes do erro:', errorText);
         setIsLoading(false);
         Alert.alert('Erro', 'Falha ao criar perfil de responsável. Por favor, tente fazer login.');
-        console.error('Erro:', await res2.text());
         router.push('/login');
       }
     } catch (error) {
+      console.error('❌ Erro inesperado durante o cadastro:', error);
       setIsLoading(false);
-      console.error('Erro ao cadastrar:', error);
       Alert.alert('Erro', 'Não foi possível conectar ao servidor.');
     }
   };
