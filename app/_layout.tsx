@@ -30,6 +30,10 @@ export default function RootLayout() {
         {/* Grupo de tabs (aparece só depois do login) */}
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 
+        {/* Telas de gerenciamento */}
+        <Stack.Screen name="minhasTurmas" />
+        <Stack.Screen name="minhasAtividades" />
+
         {/* Telas de jogos */}
         <Stack.Screen name="jogosMatematica" />
         <Stack.Screen name="jogosPortugues" />

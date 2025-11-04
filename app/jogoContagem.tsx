@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { postJson } from '../services/api';
+import { postJson, ensureAtividadeExists, registrarProgresso } from '../services/api';
 
 
 const objetos = [
@@ -31,12 +31,27 @@ export default function ConteToque() {
   const [modalVisible, setModalVisible] = useState(false);
   const [observacao, setObservacao] = useState('');
   const [notaFinal, setNotaFinal] = useState(0);
+  const [atividadeId, setAtividadeId] = useState<number | null>(null);
   const router = useRouter();
 
   useEffect(() => {
     const carregarDados = async () => {
       const id = await AsyncStorage.getItem('criancaSelecionada');
       setCriancaId(id);
+      if (!id) {
+        Alert.alert('Selecione uma criança', 'Você precisa selecionar uma criança na Home antes de iniciar o jogo.', [
+          { text: 'OK', onPress: () => router.back() },
+        ]);
+        return;
+      }
+      // Garantir que a Atividade exista
+      const aid = await ensureAtividadeExists(
+        'Desafio de Contagem',
+        'Conte os objetos e selecione a quantidade correta',
+        'Matemática',
+        1
+      );
+      setAtividadeId(aid);
       gerarRodada();
     };
     carregarDados();
@@ -74,21 +89,26 @@ export default function ConteToque() {
       Alert.alert('Erro', 'Nenhuma criança selecionada.');
       return;
     }
+    if (!atividadeId) {
+      Alert.alert('Erro', 'Não foi possível identificar a atividade.');
+      return;
+    }
 
     try {
-      const res = await postJson('/progresso/registrar', {
-        criancaId: Number(criancaId),
-        atividadeId: 9,
-        pontuacao: notaFinal,
-        observacoes: observacao,
+      const res = await registrarProgresso({
+        crianca_id: Number(criancaId),
+        atividade_id: Number(atividadeId),
+        pontuacao: Number(notaFinal),
+        observacoes: observacao || undefined,
         concluida: true,
       });
 
       if (res.ok) {
         Alert.alert('Enviado!', 'Resultado registrado com sucesso.');
-        router.push('/home');
+        router.push('/(tabs)/home');
       } else {
-        Alert.alert('Erro ao enviar', 'Servidor recusou os dados.');
+        const txt = await res.text();
+        Alert.alert('Erro ao enviar', `Servidor recusou os dados: ${txt}`);
       }
     } catch (e) {
       Alert.alert('Erro de conexão', 'Falha ao enviar para o servidor.');

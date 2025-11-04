@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
@@ -19,7 +20,7 @@ export default function JogosMatematicaScreen() {
     {
       id: '1',
       nome: 'Desafio de Contagem',
-      descricao: 'Placeholder de matemática',
+      descricao: 'Conte objetos e selecione o número correto',
       icone: 'calculator-outline',
     },
   ];
@@ -43,9 +44,13 @@ export default function JogosMatematicaScreen() {
           <TouchableOpacity
             key={jogo.id}
             style={styles.gameCard}
-            onPress={() => {
-              // Navegação futura para o jogo específico
-              console.log(`Navegar para jogo: ${jogo.nome}`);
+            onPress={async () => {
+              const cid = await AsyncStorage.getItem('criancaSelecionada');
+              if (!cid) {
+                alert('Selecione uma criança na Home antes de iniciar um jogo.');
+                return;
+              }
+              router.push('/jogoContagem');
             }}
           >
             <View style={styles.gameIconContainer}>

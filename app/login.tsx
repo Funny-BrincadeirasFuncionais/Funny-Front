@@ -20,55 +20,74 @@ export default function LoginScreen() {
   const router = useRouter();
 
   const handleLogin = async () => {
+  console.log('🔐 Iniciando processo de login...');
+  // Validação cliente: não permitir login com campos vazios
+  if (!email?.trim() || !senha?.trim()) {
+    console.warn('⚠️ Tentativa de login com campos vazios');
+    Alert.alert('Aviso', 'Por favor preencha e-mail e senha antes de entrar.');
+    return;
+  }
   const payload = {
     email,
     senha,
   };
 
   try {
+    console.log('📡 Enviando requisição de autenticação...');
     const response = await apiFetch('/auth/login', {
       method: 'POST',
       body: JSON.stringify(payload),
     });
 
     const data = await response.json();
+    console.log('📥 Resposta do servidor recebida');
 
     if (response.ok) {
-      // Salva o token sempre
+      console.log('✅ Autenticação bem-sucedida!');
       if (data.access_token) {
+        console.log('💾 Salvando token de acesso no AsyncStorage...');
         await AsyncStorage.setItem('token', data.access_token);
       }
 
-      // Busca todos os responsáveis para identificar o ID do usuário logado
+      console.log('🔍 Buscando informações do responsável...');
       const resp = await apiFetch('/responsaveis');
       let lista;
       try {
         lista = await resp.json();
-        console.log('Resposta /responsaveis:', lista);
+        console.log('📋 Lista de responsáveis obtida:', lista.length, 'responsáveis encontrados');
       } catch (e) {
-        console.error('Erro ao processar resposta de /responsaveis:', e);
+        console.error('❌ Erro ao processar resposta de /responsaveis:', e);
         lista = [];
       }
 
       if (Array.isArray(lista)) {
+        console.log('🔍 Procurando responsável com email:', email);
         const responsavel = lista.find((item: any) => item.email === email);
         if (responsavel?.id) {
+          console.log('✅ Responsável encontrado! ID:', responsavel.id);
           await AsyncStorage.setItem('userId', responsavel.id.toString());
+          console.log('💾 ID do responsável salvo no AsyncStorage');
         } else {
+          console.warn('⚠️ Usuário logado mas não encontrado como responsável');
           Alert.alert('Aviso', 'Usuário logado, mas não encontrado na lista de responsáveis.');
         }
       } else {
+        console.error('❌ Formato inválido na resposta de responsáveis');
         Alert.alert('Erro', 'Resposta inesperada do servidor ao buscar responsáveis.');
         console.error('Resposta inesperada de /responsaveis:', lista);
       }
 
+      console.log('🎉 Login finalizado com sucesso!');
       Alert.alert('Sucesso', 'Login realizado com sucesso!');
-      router.push('/home');
+      console.log('🔄 Redirecionando para a tela inicial (tabs)...');
+      // usar replace para evitar voltar para a tela de login
+      router.replace('/(tabs)/home');
     } else {
+      console.error('❌ Falha na autenticação:', data.message);
       Alert.alert('Erro', data.message || 'Falha no login.');
     }
   } catch (error) {
-    console.error('Erro ao fazer login:', error);
+    console.error('❌ Erro na requisição:', error);
     Alert.alert('Erro', 'Erro ao conectar com o servidor.');
   }
 };
@@ -124,19 +143,8 @@ export default function LoginScreen() {
           </Pressable>
         </ThemedView>
 
-        {/* Botão de login real (comentado por enquanto) */}
-        {/*<Pressable style={styles.loginButton} onPress={handleLogin}> 
-        <ThemedText style={styles.loginButtonText}>Entrar</ThemedText>
-        </Pressable>*/}
-
-        {/* Botão provisório: vai direto para home.tsx */}
-        <Pressable
-          style={styles.loginButton}
-          onPress={() => {
-            // Provisório: navega direto para a home dentro das tabs
-            router.replace('/(tabs)/home');
-          }}
-        >
+        {/* Botão de login real: chama o handler que valida/efetua autenticação */}
+        <Pressable style={styles.loginButton} onPress={handleLogin}>
           <ThemedText style={styles.loginButtonText}>Entrar</ThemedText>
         </Pressable>
 
