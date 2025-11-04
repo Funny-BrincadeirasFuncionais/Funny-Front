@@ -139,18 +139,6 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* Search Bar */}
-      {/* <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color={Colors.light.textSecondary} style={styles.searchIcon} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Procurar..."
-          placeholderTextColor={Colors.light.textSecondary}
-          value={searchText}
-          onChangeText={setSearchText}
-        />
-      </View> */}
-
       {/* Seleção de Turma e Criança */}
       <View style={styles.selectionContainer}>
         <Text style={styles.selectionTitle}>{transformText('Selecione para atividades:')}</Text>

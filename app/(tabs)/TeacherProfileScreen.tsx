@@ -205,7 +205,6 @@ export default function ProfessorScreen() {
     }
   };
 
-  // 🟠 AQUI FOI AJUSTADO
   const handleEmitir = () => {
     if (!selectedItem || !reportType) return;
     setShowDialog(false);
@@ -463,7 +462,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 10,
     elevation: 6,
-    zIndex: 100, // garante que fique acima do resto
+    zIndex: 100,
     shadowColor: '#000',
     shadowOpacity: 0.15,
     shadowRadius: 5,
@@ -509,7 +508,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     width: '88%',
-    maxHeight: 420, // limita o tamanho total do modal
+    maxHeight: 420,
   },
   modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 6 },
   modalSubtitle: { color: '#555', marginBottom: 16 },
