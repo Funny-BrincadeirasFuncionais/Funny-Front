@@ -2,20 +2,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
-import { useAccessibility } from '../context/AccessibilityContext';
 
 export default function JogosLogicaScreen() {
   const router = useRouter();
-  const { transformText } = useAccessibility();
 
   const jogos = [
     {
@@ -30,31 +28,31 @@ export default function JogosLogicaScreen() {
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.light.background} />
 
+      {/* Cabeçalho */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={Colors.light.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{transformText('Jogos de Lógica')}</Text>
+        <Text style={styles.headerTitle}>Jogos de Lógica</Text>
         <View style={styles.placeholder} />
       </View>
 
+      {/* Conteúdo */}
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.contentContainer}>
-        <Text style={styles.sectionTitle}>{transformText('Escolha um jogo para começar:')}</Text>
+        <Text style={styles.sectionTitle}>Escolha um jogo para começar:</Text>
 
-        {jogos.map((jogo) => (
+        {jogos.map((item) => (
           <TouchableOpacity
-            key={jogo.id}
+            key={item.id}
             style={styles.gameCard}
-            onPress={() => {
-              console.log(`Navegar para jogo: ${jogo.nome}`);
-            }}
+            onPress={() => router.push('/JogoMemoria')}
           >
             <View style={styles.gameIconContainer}>
-              <Ionicons name={jogo.icone as any} size={48} color={Colors.light.primary} />
+              <Ionicons name={item.icone as any} size={48} color={Colors.light.primary} />
             </View>
             <View style={styles.gameInfo}>
-              <Text style={styles.gameName}>{transformText(jogo.nome)}</Text>
-              <Text style={styles.gameDescription}>{transformText(jogo.descricao)}</Text>
+              <Text style={styles.gameName}>{item.nome}</Text>
+              <Text style={styles.gameDescription}>{item.descricao}</Text>
             </View>
             <Ionicons name="chevron-forward" size={24} color={Colors.light.textSecondary} />
           </TouchableOpacity>
@@ -139,4 +137,3 @@ const styles = StyleSheet.create({
     color: Colors.light.textSecondary,
   },
 });
-
