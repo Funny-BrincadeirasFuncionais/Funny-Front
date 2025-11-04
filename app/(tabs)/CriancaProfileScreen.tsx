@@ -213,9 +213,7 @@ export default function CriancaProfileScreen() {
 
             <TouchableOpacity
               style={styles.deleteButtonTop}
-              onPress={() => {
-                router.push('/TeacherProfileScreen');
-              }}
+              onPress={deletarCrianca}
             >
               <Ionicons name="trash" size={18} color="#fff" />
               <Text style={styles.deleteButtonTextTop}>Deletar</Text>

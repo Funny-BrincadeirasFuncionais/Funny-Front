@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   StatusBar,
   Image,
@@ -8,23 +8,73 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getResponsavel, updateResponsavel } from '../services/api';
 
 export default function EditarPerfilScreen() {
   const router = useRouter();
 
   const [nome, setNome] = useState('');
-  const [sobrenome, setSobrenome] = useState('');
   const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [userId, setUserId] = useState<number | null>(null);
 
   const [nomeFocused, setNomeFocused] = useState(false);
-  const [sobrenomeFocused, setSobrenomeFocused] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
   const [telefoneFocused, setTelefoneFocused] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const uid = await AsyncStorage.getItem('userId');
+        if (!uid) return;
+        setUserId(Number(uid));
+        setLoading(true);
+        const data = await getResponsavel(Number(uid));
+        if (data) {
+          setNome(data.nome || '');
+          setEmail(data.email || '');
+          setTelefone(data.telefone || '');
+        }
+      } catch (e) {
+        console.warn('Falha ao carregar perfil', e);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const salvar = async () => {
+    if (!userId) return;
+    try {
+      setLoading(true);
+      const res = await updateResponsavel(userId, { nome, email, telefone });
+      if ('ok' in res) {
+        // when using putJson, res is Response
+        if ((res as any).ok) {
+          Alert.alert('Sucesso', 'Perfil atualizado.');
+          router.back();
+        } else {
+          const txt = await (res as any).text();
+          Alert.alert('Erro', `Falha ao salvar: ${txt}`);
+        }
+      } else {
+        // fallback if api returns json directly
+        Alert.alert('Sucesso', 'Perfil atualizado.');
+        router.back();
+      }
+    } catch (e) {
+      Alert.alert('Erro', 'Não foi possível atualizar o perfil.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -62,15 +112,6 @@ export default function EditarPerfilScreen() {
         />
 
         <TextInput
-          placeholder="Sobrenome"
-          value={sobrenome}
-          onChangeText={setSobrenome}
-          style={[styles.input, sobrenomeFocused && styles.inputFocused]}
-          onFocus={() => setSobrenomeFocused(true)}
-          onBlur={() => setSobrenomeFocused(false)}
-        />
-
-        <TextInput
           placeholder="E-mail"
           value={email}
           onChangeText={setEmail}
@@ -92,9 +133,9 @@ export default function EditarPerfilScreen() {
         />
       </View>
 
-      {/* Botão mudar senha */}
-      <TouchableOpacity style={styles.passwordButton}>
-        <Text style={styles.passwordText}>Mudar senha</Text>
+      {/* Ações */}
+      <TouchableOpacity style={styles.saveButton} onPress={salvar} disabled={loading}>
+        <Text style={styles.saveText}>{loading ? 'Salvando...' : 'Salvar'}</Text>
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -175,6 +216,19 @@ const styles = StyleSheet.create({
   },
   passwordText: {
     color: '#E07612',
+    fontFamily: 'Lexend_700Bold',
+    fontSize: 16,
+  },
+  saveButton: {
+    backgroundColor: '#E07612',
+    borderRadius: 8,
+    padding: 14,
+    alignItems: 'center',
+    marginHorizontal: 24,
+    marginTop: 16,
+  },
+  saveText: {
+    color: 'white',
     fontFamily: 'Lexend_700Bold',
     fontSize: 16,
   },

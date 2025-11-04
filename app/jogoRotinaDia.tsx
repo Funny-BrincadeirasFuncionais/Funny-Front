@@ -8,12 +8,15 @@ import {
     StyleSheet,
     Text,
     TouchableOpacity,
-    View
+    View,
+    TextInput,
+    ScrollView,
+    Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { postJson } from '../services/api';
+import { ensureAtividadeExists, registrarProgresso } from '../services/api';
 import { Colors } from '../constants/Colors';
 
 interface Acao {
@@ -94,6 +97,9 @@ export default function JogoRotinaDia() {
     const [jogoFinalizado, setJogoFinalizado] = useState(false);
     const [notaFinal, setNotaFinal] = useState(0);
     const [criancaId, setCriancaId] = useState<string | null>(null);
+    const [atividadeId, setAtividadeId] = useState<number | null>(null);
+    const [observacao, setObservacao] = useState('');
+    const [modalVisible, setModalVisible] = useState(false);
 
     const periodo = rotinasPeriodos[periodoAtual];
 
@@ -101,6 +107,19 @@ export default function JogoRotinaDia() {
         const carregarDados = async () => {
             const id = await AsyncStorage.getItem('criancaSelecionada');
             setCriancaId(id);
+            if (!id) {
+                Alert.alert('Selecione uma criança', 'Você precisa selecionar uma criança na Home antes de iniciar o jogo.', [
+                    { text: 'OK', onPress: () => router.back() },
+                ]);
+                return;
+            }
+            const aid = await ensureAtividadeExists(
+                'Rotina do Dia',
+                'Organize as ações na sequência correta.',
+                'Cotidiano',
+                1
+            );
+            setAtividadeId(aid);
         };
         carregarDados();
     }, []);
@@ -139,7 +158,18 @@ export default function JogoRotinaDia() {
 
         // Verificar regras obrigatórias
         periodo.acoes.forEach((acao) => {
-            if (acao.ordemObrigatoria !== undefined && acao.ordemObrigatoria >= 0) {
+            if (acao.ordemObrigatoria === 999) {
+                // Deve estar sempre no final (dormir)
+                maxPontos += 2;
+                const posicaoNaSequencia = sequencia.findIndex(s => s.id === acao.id);
+                if (posicaoNaSequencia === -1) {
+                    erros.push(`${acao.texto} não está na sequência`);
+                } else if (posicaoNaSequencia !== sequencia.length - 1) {
+                    erros.push(`${acao.texto} deve ser a última ação`);
+                } else {
+                    pontos += 2;
+                }
+            } else if (acao.ordemObrigatoria !== undefined && acao.ordemObrigatoria >= 0) {
                 // Verificar se está na posição correta obrigatória
                 maxPontos += 2; // Regras obrigatórias valem mais pontos
                 const posicaoNaSequencia = sequencia.findIndex(s => s.id === acao.id);
@@ -148,17 +178,6 @@ export default function JogoRotinaDia() {
                     erros.push(`${acao.texto} não está na sequência`);
                 } else if (posicaoNaSequencia !== acao.ordemObrigatoria) {
                     erros.push(`${acao.texto} deve estar na ${acao.ordemObrigatoria + 1}ª posição`);
-                } else {
-                    pontos += 2;
-                }
-            } else if (acao.ordemObrigatoria === 999) {
-                // Deve estar sempre no final (dormir)
-                maxPontos += 2;
-                const posicaoNaSequencia = sequencia.findIndex(s => s.id === acao.id);
-                if (posicaoNaSequencia === -1) {
-                    erros.push(`${acao.texto} não está na sequência`);
-                } else if (posicaoNaSequencia !== sequencia.length - 1) {
-                    erros.push(`${acao.texto} deve ser a última ação`);
                 } else {
                     pontos += 2;
                 }
@@ -300,8 +319,9 @@ export default function JogoRotinaDia() {
         const totalPeriodos = rotinasPeriodos.length;
         const percentualAcertos = (acertos / totalPeriodos) * 100;
         
-        // Penalizar muitas tentativas (mas não muito)
-        const penalidadeTentativas = Math.min((totalVerificacoes - totalPeriodos) * 0.3, 2);
+        // Penalizar tentativas com erro (totalVerificacoes - acertos)
+        const errosTentativas = totalVerificacoes - acertos;
+        const penalidadeTentativas = Math.min(errosTentativas * 0.5, 3);
         
         // Calcular nota (0-10)
         let nota = (percentualAcertos / 10) - (penalidadeTentativas / 10);
@@ -314,41 +334,31 @@ export default function JogoRotinaDia() {
         const nota = calcularNotaFinal();
         setNotaFinal(nota);
         setJogoFinalizado(true);
+        setModalVisible(true);
     };
-
     const enviarResultado = async () => {
-        if (!criancaId) {
-            Alert.alert('Erro', 'Nenhuma criança selecionada.');
+        if (!criancaId || !atividadeId) {
+            Alert.alert('Erro', 'Faltam informações para registrar.');
             return;
         }
-
         try {
-            const response = await postJson('/progresso/registrar-minijogo', {
-                pontuacao: notaFinal,
-                categoria: 'Cotidiano',
+            const res = await registrarProgresso({
                 crianca_id: Number(criancaId),
-                observacoes: `Completou ${acertos} de ${rotinasPeriodos.length} períodos do dia corretamente.`
+                atividade_id: Number(atividadeId),
+                pontuacao: Number(notaFinal),
+                observacoes: (observacao || `Completou ${acertos} de ${rotinasPeriodos.length} períodos corretamente.`),
+                concluida: true,
             });
-
-            if (response.ok) {
-                const data = await response.json();
-                Alert.alert(
-                    'Sucesso! 🎉',
-                    'Resultado registrado com sucesso!',
-                    [
-                        {
-                            text: 'Voltar',
-                            onPress: () => router.back(),
-                        },
-                    ]
-                );
+            if (res.ok) {
+                Alert.alert('Sucesso', 'Progresso registrado.');
+                setModalVisible(false);
+                router.push('/(tabs)/home');
             } else {
-                const error = await response.json();
-                Alert.alert('Erro ao enviar', error.detail || 'Servidor recusou os dados.');
+                const txt = await res.text();
+                Alert.alert('Erro', `Falha ao registrar: ${txt}`);
             }
         } catch (e) {
-            console.error('Erro ao enviar resultado:', e);
-            Alert.alert('Erro de conexão', 'Falha ao enviar para o servidor.');
+            Alert.alert('Erro', 'Falha de conexão ao registrar.');
         }
     };
 
@@ -381,8 +391,7 @@ export default function JogoRotinaDia() {
                     <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
                         <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Jogo Finalizado!</Text>
-                    <View style={styles.headerButton} />
+            <Text style={styles.headerTitle}>Jogo Finalizado!</Text>
                 </View>
 
                 <View style={styles.content}>
@@ -399,7 +408,7 @@ export default function JogoRotinaDia() {
                         
                         <TouchableOpacity
                             style={styles.enviarButton}
-                            onPress={enviarResultado}
+                            onPress={() => setModalVisible(true)}
                             activeOpacity={0.8}
                         >
                             <Text style={styles.enviarButtonText}>Enviar Resultado</Text>
@@ -413,6 +422,30 @@ export default function JogoRotinaDia() {
                         </TouchableOpacity>
                     </View>
                 </View>
+                {/* Modal de envio */}
+                <Modal visible={modalVisible} transparent animationType="fade" onRequestClose={() => setModalVisible(false)}>
+                    <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', paddingHorizontal: 24 }}>
+                        <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 20 }}>
+                            <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 8 }}>Salvar Progresso</Text>
+                            <Text style={{ marginBottom: 12 }}>Deseja adicionar alguma observação?</Text>
+                            <TextInput
+                              style={{ backgroundColor: '#f5f5f5', borderRadius: 8, padding: 10, marginBottom: 16 }}
+                              placeholder="Observação (opcional)"
+                              value={observacao}
+                              onChangeText={setObservacao}
+                            />
+                            <TouchableOpacity onPress={() => setObservacao('')} style={{ marginBottom: 8 }}>
+                                <Text style={{ color: '#E07612' }}>Limpar observação</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={{ backgroundColor: '#E07612', borderRadius: 8, padding: 12, alignItems: 'center', marginBottom: 10 }} onPress={enviarResultado}>
+                                <Text style={{ color: '#fff', fontWeight: 'bold' }}>Enviar</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={{ alignItems: 'center' }} onPress={() => setModalVisible(false)}>
+                                <Text style={{ color: '#E07612' }}>Cancelar</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </Modal>
             </SafeAreaView>
         );
     }
@@ -450,7 +483,7 @@ export default function JogoRotinaDia() {
                 </TouchableOpacity>
             </View>
 
-            <View style={styles.content}>
+            <ScrollView style={styles.content} contentContainerStyle={styles.contentInner}>
                 {/* Período Atual */}
                 <View style={[styles.periodoContainer, { backgroundColor: periodo.cor }]}>
                     <Text style={styles.periodoEmoji}>{periodo.emoji}</Text>
@@ -534,7 +567,7 @@ export default function JogoRotinaDia() {
                                         jaNaSequencia && styles.acaoDisponivelCardUsada,
                                     ]}
                                     onPress={() => !jaNaSequencia && adicionarAcao(acao)}
-                                    disabled={jaNaSequencia}
+                                    disabled={!!jaNaSequencia}
                                     activeOpacity={0.7}
                                 >
                                     <Text style={styles.acaoDisponivelEmoji}>{acao.emoji}</Text>
@@ -567,7 +600,7 @@ export default function JogoRotinaDia() {
                         Período {periodoAtual + 1} de {rotinasPeriodos.length}
                     </Text>
                 </View>
-            </View>
+            </ScrollView>
         </SafeAreaView>
     );
 }
@@ -624,9 +657,12 @@ const styles = StyleSheet.create({
     },
     content: {
         flex: 1,
+        zIndex: 5,
+    },
+    contentInner: {
         paddingHorizontal: 24,
         paddingTop: 20,
-        zIndex: 5,
+        paddingBottom: 24,
     },
     periodoContainer: {
         alignItems: 'center',
@@ -763,7 +799,6 @@ const styles = StyleSheet.create({
         color: '#FF9800',
     },
     acoesDisponiveisContainer: {
-        flex: 1,
         marginBottom: 16,
     },
     acoesLabel: {

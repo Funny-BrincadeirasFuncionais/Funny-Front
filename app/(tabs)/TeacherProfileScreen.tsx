@@ -19,9 +19,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getJson, postJson, putJson, deleteJson } from '../../services/api';
+import { useAccessibility } from '../../context/AccessibilityContext';
 
 export default function ProfessorScreen() {
   const router = useRouter();
+  const { transformText } = useAccessibility();
 
   type ListItem = Turma | { id: number; nome: string; idade: number };
 

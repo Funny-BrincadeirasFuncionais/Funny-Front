@@ -11,9 +11,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
+import { useAccessibility } from '../context/AccessibilityContext';
 
 export default function SobreScreen() {
   const router = useRouter();
+  const { transformText } = useAccessibility();
 
   const handleBackPress = () => {
     router.back();
@@ -31,7 +33,7 @@ export default function SobreScreen() {
         >
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Sobre o Funny</Text>
+        <Text style={styles.headerTitle}>{transformText('Sobre o Funny')}</Text>
         <View style={styles.headerSpacer} />
       </View>
 

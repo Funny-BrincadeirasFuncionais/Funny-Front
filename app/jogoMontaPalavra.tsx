@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { Colors } from '../constants/Colors';
 import { ensureAtividadeExists, registrarProgresso } from '../services/api';
+import { useAccessibility } from '../context/AccessibilityContext';
 
 interface Palavra {
     palavra: string;
@@ -33,6 +34,7 @@ const palavras: Palavra[] = [
 
 export default function JogoMontaPalavra() {
     const router = useRouter();
+    const { transformText } = useAccessibility();
     const [faseAtual, setFaseAtual] = useState(0);
     const [letrasEmbaralhadas, setLetrasEmbaralhadas] = useState<string[]>([]);
     const [letrasSelecionadas, setLetrasSelecionadas] = useState<string[]>([]);
@@ -56,8 +58,8 @@ export default function JogoMontaPalavra() {
             const id = await AsyncStorage.getItem('criancaSelecionada');
             setCriancaId(id);
             if (!id) {
-                Alert.alert('Selecione uma criança', 'Você precisa selecionar uma criança na Home antes de iniciar o jogo.', [
-                    { text: 'OK', onPress: () => router.back() },
+                Alert.alert(transformText('Selecione uma criança'), transformText('Você precisa selecionar uma criança na Home antes de iniciar o jogo.'), [
+                    { text: transformText('OK'), onPress: () => router.back() },
                 ]);
                 return;
             }
@@ -88,9 +90,9 @@ export default function JogoMontaPalavra() {
 
     const mostrarMensagemFeedback = useCallback((correto: boolean) => {
         if (correto) {
-            setMensagemFeedback('Parabéns! Você acertou! 🌟');
+            setMensagemFeedback(transformText('Parabéns! Você acertou! 🌟'));
         } else {
-            setMensagemFeedback('Quase lá! Tente novamente! 😊');
+            setMensagemFeedback(transformText('Quase lá! Tente novamente! 😊'));
         }
         setMostrarFeedback(true);
         
@@ -235,7 +237,7 @@ export default function JogoMontaPalavra() {
                 <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
                     <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Descubra a figura</Text>
+                <Text style={styles.headerTitle}>{transformText('Descubra a figura')}</Text>
                 <TouchableOpacity style={styles.headerButton}>
                     <View style={styles.helpButton}>
                         <Text style={styles.helpButtonText}>?</Text>
@@ -324,7 +326,7 @@ export default function JogoMontaPalavra() {
                                 !palavraCorreta && styles.continuarButtonTextDisabled,
                             ]}
                         >
-                            Continuar
+                            {transformText('Continuar')}
                         </Text>
                     </TouchableOpacity>
                 </View>
@@ -332,7 +334,7 @@ export default function JogoMontaPalavra() {
                 {/* Botão Reiniciar */}
                 {letrasSelecionadas.length > 0 && (
                     <TouchableOpacity style={styles.reiniciarButton} onPress={reiniciarPalavra}>
-                        <Text style={styles.reiniciarButtonText}>Tentar novamente</Text>
+                        <Text style={styles.reiniciarButtonText}>{transformText('Tentar novamente')}</Text>
                     </TouchableOpacity>
                 )}
             </View>
@@ -340,11 +342,11 @@ export default function JogoMontaPalavra() {
             <Modal visible={modalVisible} animationType="slide" transparent>
                 <View style={styles.modalContainer}>
                     <View style={styles.modalBox}>
-                        <Text style={styles.modalTitle}>Atividade Finalizada!</Text>
-                        <Text style={styles.modalText}>Pontuação: {pontuacao}</Text>
+                        <Text style={styles.modalTitle}>{transformText('Atividade Finalizada!')}</Text>
+                        <Text style={styles.modalText}>{transformText('Pontuação')}: {pontuacao}</Text>
                         <TextInput
                             style={styles.input}
-                            placeholder="Observação (opcional)"
+                            placeholder={transformText('Observação (opcional)')}
                             value={observacao}
                             onChangeText={setObservacao}
                         />
@@ -352,7 +354,7 @@ export default function JogoMontaPalavra() {
                             style={styles.submitButton}
                             onPress={async () => {
                                 if (!criancaId || !atividadeId) {
-                                    Alert.alert('Erro', 'Faltam informações para registrar o progresso.');
+                                    Alert.alert(transformText('Erro'), transformText('Faltam informações para registrar o progresso.'));
                                     return;
                                 }
                                 try {
@@ -364,22 +366,22 @@ export default function JogoMontaPalavra() {
                                         concluida: true,
                                     });
                                     if (res.ok) {
-                                        Alert.alert('Sucesso', 'Progresso registrado.');
+                                        Alert.alert(transformText('Sucesso'), transformText('Progresso registrado.'));
                                         setModalVisible(false);
                                         router.push('/(tabs)/home');
                                     } else {
                                         const txt = await res.text();
-                                        Alert.alert('Erro', `Falha ao registrar: ${txt}`);
+                                        Alert.alert(transformText('Erro'), `${transformText('Falha ao registrar')}: ${txt}`);
                                     }
                                 } catch (e) {
-                                    Alert.alert('Erro', 'Falha de conexão ao registrar.');
+                                    Alert.alert(transformText('Erro'), transformText('Falha de conexão ao registrar.'));
                                 }
                             }}
                         >
-                            <Text style={styles.submitButtonText}>Enviar</Text>
+                            <Text style={styles.submitButtonText}>{transformText('Enviar')}</Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={styles.voltarButton} onPress={() => router.push('/(tabs)/home')}>
-                            <Text style={styles.voltarButtonText}>Voltar para Home</Text>
+                            <Text style={styles.voltarButtonText}>{transformText('Voltar para Home')}</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
