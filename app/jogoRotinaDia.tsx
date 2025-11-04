@@ -1,24 +1,24 @@
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
     Alert,
     Animated,
+    Modal,
+    ScrollView,
     StatusBar,
     StyleSheet,
     Text,
+    TextInput,
     TouchableOpacity,
     View,
-    TextInput,
-    ScrollView,
-    Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ensureAtividadeExists, registrarProgresso } from '../services/api';
 import { Colors } from '../constants/Colors';
 import { useAccessibility } from '../context/AccessibilityContext';
+import { ensureAtividadeExists, registrarProgresso } from '../services/api';
 
 interface Acao {
     id: string;
@@ -40,40 +40,42 @@ const rotinasPeriodos: RotinaPeriodo[] = [
         nome: 'Manhã',
         emoji: '🌅',
         cor: '#FFD700',
-        regraEspecial: 'Acordar deve ser sempre o primeiro!',
+        regraEspecial: 'Siga a ordem lógica: Acordar → Banho → Escovar → Café',
         acoes: [
             { id: 'acordar', texto: 'Acordar', emoji: '😴', ordemObrigatoria: 0 },
-            { id: 'escovar', texto: 'Escovar os dentes', emoji: '🦷', ordemObrigatoria: 1 },
-            { id: 'banho', texto: 'Tomar banho', emoji: '🚿' },
-            { id: 'vestir', texto: 'Vestir a roupa', emoji: '👕' },
-            { id: 'cafe', texto: 'Tomar café da manhã', emoji: '🥐', ordemObrigatoria: 2 },
-            { id: 'mochila', texto: 'Preparar a mochila', emoji: '🎒' },
+            { id: 'banho', texto: 'Tomar banho', emoji: '🚿', ordemObrigatoria: 1 },
+            { id: 'vestir', texto: 'Vestir a roupa', emoji: '👕', ordemObrigatoria: 2 },
+            { id: 'escovar', texto: 'Escovar os dentes', emoji: '🦷', ordemObrigatoria: 3 },
+            { id: 'cafe', texto: 'Tomar café da manhã', emoji: '🥐', ordemObrigatoria: 4 },
+            { id: 'mochila', texto: 'Preparar a mochila', emoji: '🎒', ordemObrigatoria: 5 },
         ]
     },
     {
         nome: 'Tarde',
         emoji: '☀️',
         cor: '#FFA500',
+        regraEspecial: 'Almoçar primeiro, depois estudar e brincar',
         acoes: [
-            { id: 'almoco', texto: 'Almoçar', emoji: '🍽️' },
-            { id: 'brincar', texto: 'Brincar', emoji: '🎮' },
-            { id: 'estudar', texto: 'Fazer lição de casa', emoji: '📚' },
-            { id: 'lanche', texto: 'Lanche da tarde', emoji: '🍎' },
-            { id: 'exercicio', texto: 'Fazer exercícios', emoji: '⚽' },
-            { id: 'descansar', texto: 'Descansar', emoji: '😌' },
+            { id: 'almoco', texto: 'Almoçar', emoji: '🍽️', ordemObrigatoria: 0 },
+            { id: 'descansar', texto: 'Descansar um pouco', emoji: '😌', ordemObrigatoria: 1 },
+            { id: 'estudar', texto: 'Fazer lição de casa', emoji: '📚', ordemObrigatoria: 2 },
+            { id: 'brincar', texto: 'Brincar', emoji: '🎮', ordemObrigatoria: 3 },
+            { id: 'exercicio', texto: 'Fazer exercícios', emoji: '⚽', ordemObrigatoria: 4 },
+            { id: 'lanche', texto: 'Lanche da tarde', emoji: '🍎', ordemObrigatoria: 5 },
         ]
     },
     {
         nome: 'Noite',
         emoji: '🌙',
         cor: '#4B0082',
+        regraEspecial: 'Jantar → Banho → Pijama → Escovar → Dormir',
         acoes: [
-            { id: 'jantar', texto: 'Jantar', emoji: '🍝' },
-            { id: 'banho-noite', texto: 'Tomar banho', emoji: '🚿' },
-            { id: 'escovar-noite', texto: 'Escovar os dentes', emoji: '🦷', ordemObrigatoria: -1 }, // Deve ser antes de dormir
-            { id: 'pijama', texto: 'Colocar pijama', emoji: '🛏️' },
-            { id: 'historias', texto: 'Ler histórias', emoji: '📖' },
-            { id: 'dormir', texto: 'Dormir', emoji: '💤', ordemObrigatoria: 999 }, // Deve ser sempre o último
+            { id: 'jantar', texto: 'Jantar', emoji: '🍝', ordemObrigatoria: 0 },
+            { id: 'banho-noite', texto: 'Tomar banho', emoji: '🚿', ordemObrigatoria: 1 },
+            { id: 'pijama', texto: 'Colocar pijama', emoji: '🛏️', ordemObrigatoria: 2 },
+            { id: 'escovar-noite', texto: 'Escovar os dentes', emoji: '🦷', ordemObrigatoria: 3 },
+            { id: 'historias', texto: 'Ler histórias', emoji: '📖', ordemObrigatoria: 4 },
+            { id: 'dormir', texto: 'Dormir', emoji: '💤', ordemObrigatoria: 5 },
         ]
     }
 ];
@@ -99,6 +101,8 @@ export default function JogoRotinaDia() {
     const [jogoFinalizado, setJogoFinalizado] = useState(false);
     const [notaFinal, setNotaFinal] = useState(0);
     const [criancaId, setCriancaId] = useState<string | null>(null);
+    const [periodoAcertado, setPeriodoAcertado] = useState<boolean[]>([]); // Rastrear quais períodos já foram acertados
+    const [mostrarAjuda, setMostrarAjuda] = useState(false);
     const [atividadeId, setAtividadeId] = useState<number | null>(null);
     const [observacao, setObservacao] = useState('');
     const [modalVisible, setModalVisible] = useState(false);
@@ -205,38 +209,30 @@ export default function JogoRotinaDia() {
             }
         });
 
-        // Verificar ordem lógica geral
-        // Para manhã: escovar dentes antes de café
-        if (periodoAtual === 0) {
-            const escovarIndex = sequencia.findIndex(s => s.id === 'escovar');
-            const cafeIndex = sequencia.findIndex(s => s.id === 'cafe');
-            if (escovarIndex !== -1 && cafeIndex !== -1 && escovarIndex < cafeIndex) {
-                pontos += 1;
-                maxPontos += 1;
-            } else if (escovarIndex !== -1 && cafeIndex !== -1) {
-                erros.push('É melhor escovar os dentes antes de tomar café');
-            }
-        }
-
-        // Para noite: escovar dentes antes de dormir
-        if (periodoAtual === 2) {
-            const escovarIndex = sequencia.findIndex(s => s.id === 'escovar-noite');
-            const dormirIndex = sequencia.findIndex(s => s.id === 'dormir');
-            if (escovarIndex !== -1 && dormirIndex !== -1 && escovarIndex < dormirIndex) {
-                pontos += 1;
-                maxPontos += 1;
-            } else if (escovarIndex !== -1 && dormirIndex !== -1) {
-                erros.push('É melhor escovar os dentes antes de dormir');
-            }
-        }
+        // Verificar ordem lógica adicional - todas as ações devem estar na ordem correta
+        // Ações sem ordemObrigatoria definida não existem mais, mas mantemos a verificação
+        // para garantir que todas as ações obrigatórias estão na posição certa
 
         const percentual = (pontos / maxPontos) * 100;
         
         if (erros.length === 0 && sequencia.length === periodo.acoes.length) {
             setSequenciaValida(true);
             setPodeFinalizar(true);
-            mostrarMensagemFeedback(true, `Perfeito! Sequência completa! 🌟`);
-            setAcertos(prev => prev + 1);
+            
+            // Evitar incrementar acertos múltiplas vezes para o mesmo período
+            const jaAcertouEstePeriodo = periodoAcertado[periodoAtual] === true;
+            if (!jaAcertouEstePeriodo) {
+                setAcertos(prev => prev + 1);
+                setPeriodoAcertado(prev => {
+                    const novo = [...prev];
+                    novo[periodoAtual] = true;
+                    return novo;
+                });
+                mostrarMensagemFeedback(true, `Perfeito! Sequência completa! 🌟`);
+            } else {
+                // Já foi acertado, só mostrar feedback
+                mostrarMensagemFeedback(true, `Perfeito! Sequência completa! 🌟`);
+            }
         } else if (erros.length === 0) {
             setSequenciaValida(true);
             setPodeFinalizar(sequencia.length === periodo.acoes.length);
@@ -249,7 +245,7 @@ export default function JogoRotinaDia() {
                 : 'Ajuste algumas ações na sequência 😊';
             mostrarMensagemFeedback(false, mensagem);
         }
-    }, [sequencia, periodo, periodoAtual]);
+    }, [sequencia, periodo, periodoAtual, periodoAcertado]);
 
     useEffect(() => {
         if (sequencia.length > 0) {
@@ -298,16 +294,6 @@ export default function JogoRotinaDia() {
         });
     };
 
-    const moverAcao = (fromIndex: number, toIndex: number) => {
-        if (fromIndex === toIndex) return;
-        
-        setSequencia(prev => {
-            const nova = [...prev];
-            const [removida] = nova.splice(fromIndex, 1);
-            nova.splice(toIndex, 0, removida);
-            return nova;
-        });
-    };
 
     const avancarPeriodo = () => {
         if (periodoAtual < rotinasPeriodos.length - 1) {
@@ -321,12 +307,21 @@ export default function JogoRotinaDia() {
         const totalPeriodos = rotinasPeriodos.length;
         const percentualAcertos = (acertos / totalPeriodos) * 100;
         
-        // Penalizar tentativas com erro (totalVerificacoes - acertos)
-        const errosTentativas = totalVerificacoes - acertos;
-        const penalidadeTentativas = Math.min(errosTentativas * 0.5, 3);
+        // Penalizar tentativas extras de forma mais rigorosa
+        // Cada tentativa extra reduz mais a nota
+        const tentativasExtras = totalVerificacoes - totalPeriodos;
+        const penalidadeTentativas = Math.min(tentativasExtras * 0.8, 4); // Máximo de 4 pontos de penalidade
         
-        // Calcular nota (0-10)
+        // Calcular nota baseada no percentual de acertos
+        // Nota começa do percentual de acertos, depois subtrai penalidades
         let nota = (percentualAcertos / 10) - (penalidadeTentativas / 10);
+        
+        // Se não acertou todos os períodos, reduzir nota adicionalmente
+        if (acertos < totalPeriodos) {
+            const periodosErrados = totalPeriodos - acertos;
+            nota -= periodosErrados * 0.5; // Cada período errado reduz 0.5 pontos
+        }
+        
         nota = Math.max(0, Math.min(10, nota));
         
         return Math.round(nota * 10) / 10;
@@ -428,8 +423,8 @@ export default function JogoRotinaDia() {
                 <Modal visible={modalVisible} animationType="slide" transparent>
                     <View style={styles.modalContainer}>
                         <View style={styles.modalBox}>
-                            <Text style={styles.modalTitle}>{transformText('🎉 Parabéns!')}</Text>
-                            <Text style={styles.modalText}>
+                            <Text style={styles.modalTitleEnvio}>{transformText('🎉 Parabéns!')}</Text>
+                            <Text style={styles.modalTextEnvio}>
                               {transformText('Você completou a rotina!')}
                             </Text>
                             <TextInput
@@ -480,7 +475,10 @@ export default function JogoRotinaDia() {
                     <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>A Rotina do Dia</Text>
-                <TouchableOpacity style={styles.headerButton}>
+                <TouchableOpacity 
+                    style={styles.headerButton}
+                    onPress={() => setMostrarAjuda(true)}
+                >
                     <View style={styles.helpButton}>
                         <Text style={styles.helpButtonText}>?</Text>
                     </View>
@@ -605,6 +603,64 @@ export default function JogoRotinaDia() {
                     </Text>
                 </View>
             </ScrollView>
+
+            {/* Modal de Ajuda */}
+            <Modal
+                visible={mostrarAjuda}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setMostrarAjuda(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Como Jogar</Text>
+                            <TouchableOpacity
+                                onPress={() => setMostrarAjuda(false)}
+                                style={styles.modalCloseButton}
+                            >
+                                <Ionicons name="close" size={24} color="#666666" />
+                            </TouchableOpacity>
+                        </View>
+                        
+                        <View style={styles.modalBody}>
+                            <Text style={styles.modalText}>
+                                <Text style={styles.modalTextBold}>Objetivo:</Text> Organize as ações do dia na sequência correta!
+                            </Text>
+                            
+                            <Text style={styles.modalText}>
+                                <Text style={styles.modalTextBold}>Como jogar:</Text>
+                            </Text>
+                            
+                            <Text style={styles.modalText}>
+                                • Você verá ações de um período do dia (Manhã, Tarde ou Noite)
+                            </Text>
+                            <Text style={styles.modalText}>
+                                • Toque nas ações disponíveis para organizá-las na sequência
+                            </Text>
+                            <Text style={styles.modalText}>
+                                • As ações aparecerão na linha do tempo numerada
+                            </Text>
+                            <Text style={styles.modalText}>
+                                • Você pode remover ações clicando no X
+                            </Text>
+                            <Text style={styles.modalText}>
+                                • Organize todas as ações na ordem correta para avançar!
+                            </Text>
+                            <Text style={styles.modalText}>
+                                • Cada período tem regras especiais mostradas na tela
+                            </Text>
+                        </View>
+                        
+                        <TouchableOpacity
+                            style={styles.modalButton}
+                            onPress={() => setMostrarAjuda(false)}
+                        >
+                            <Text style={styles.modalButtonText}>Entendi!</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -972,14 +1028,14 @@ const styles = StyleSheet.create({
             maxWidth: 400,
             alignItems: 'center',
         },
-        modalTitle: {
+        modalTitleEnvio: {
             fontSize: 24,
             fontWeight: 'bold',
             fontFamily: 'Lexend_700Bold',
             color: Colors.light.primary,
             marginBottom: 16,
         },
-        modalText: {
+        modalTextEnvio: {
             fontSize: 16,
             fontFamily: 'Lexend_400Regular',
             color: '#333',
@@ -1010,6 +1066,68 @@ const styles = StyleSheet.create({
             fontSize: 16,
             fontFamily: 'Lexend_700Bold',
             textAlign: 'center',
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 24,
+    },
+    modalContent: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 20,
+        width: '100%',
+        maxWidth: 400,
+        padding: 24,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.25,
+        shadowRadius: 8,
+        elevation: 8,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    modalTitle: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#333333',
+        fontFamily: 'Lexend_700Bold',
+    },
+    modalCloseButton: {
+        padding: 4,
+    },
+    modalBody: {
+        marginBottom: 24,
+    },
+    modalText: {
+        fontSize: 16,
+        color: '#666666',
+        fontFamily: 'Lexend_400Regular',
+        lineHeight: 24,
+        marginBottom: 12,
+    },
+    modalTextBold: {
+        fontWeight: 'bold',
+        color: '#333333',
+        fontFamily: 'Lexend_700Bold',
+    },
+    modalButton: {
+        backgroundColor: '#F78F3F',
+        borderRadius: 12,
+        paddingVertical: 14,
+        paddingHorizontal: 32,
+        alignItems: 'center',
+    },
+    modalButtonText: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#FFFFFF',
+        fontFamily: 'Lexend_700Bold',
     },
 });
 
