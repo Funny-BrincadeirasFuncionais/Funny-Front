@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getJson, postJson } from '../services/api';
+import { useAccessibility } from '../context/AccessibilityContext';
 
 type Turma = {
   id: number;
@@ -38,6 +39,7 @@ type Turma = {
 
 export default function MinhasTurmasScreen() {
   const router = useRouter();
+  const { transformText } = useAccessibility();
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -84,7 +86,7 @@ export default function MinhasTurmasScreen() {
       setTurmas(minhasTurmas);
     } catch (e) {
       console.error('Erro ao carregar turmas:', e);
-      Alert.alert('Erro', 'Falha ao carregar turmas.');
+      Alert.alert(transformText('Erro'), transformText('Falha ao carregar turmas.'));
     } finally {
       setLoading(false);
     }
@@ -101,14 +103,14 @@ export default function MinhasTurmasScreen() {
 
   const criarTurma = async () => {
     if (!turmaNome.trim()) {
-      Alert.alert('Validação', 'Informe o nome da turma.');
+      Alert.alert(transformText('Validação'), transformText('Informe o nome da turma.'));
       return;
     }
 
     try {
       const userId = await AsyncStorage.getItem('userId');
       if (!userId) {
-        Alert.alert('Erro', 'Usuário não identificado.');
+        Alert.alert(transformText('Erro'), transformText('Usuário não identificado.'));
         return;
       }
 
@@ -120,15 +122,15 @@ export default function MinhasTurmasScreen() {
       if (response.ok) {
         setModalVisible(false);
         setTurmaNome('');
-        Alert.alert('Sucesso', 'Turma criada com sucesso.');
+        Alert.alert(transformText('Sucesso'), transformText('Turma criada com sucesso.'));
         await carregarTurmas();
       } else {
         const text = await response.text();
-        Alert.alert('Erro', `Falha ao criar turma: ${response.status} ${text}`);
+        Alert.alert(transformText('Erro'), `${transformText('Falha ao criar turma')}: ${response.status} ${text}`);
       }
     } catch (e) {
       console.error('Erro ao criar turma', e);
-      Alert.alert('Erro', 'Falha ao criar turma.');
+      Alert.alert(transformText('Erro'), transformText('Falha ao criar turma.'));
     }
   };
 
@@ -144,17 +146,17 @@ export default function MinhasTurmasScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Minhas Turmas</Text>
+        <Text style={styles.headerTitle}>{transformText('Minhas Turmas')}</Text>
         <View style={styles.headerSpacer} />
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 100 }}>
-        {loading && <Text style={{ textAlign: 'center', marginTop: 20 }}>Carregando turmas...</Text>}
+        {loading && <Text style={{ textAlign: 'center', marginTop: 20 }}>{transformText('Carregando turmas...')}</Text>}
         
         {!loading && turmas.length === 0 && (
           <View style={{ alignItems: 'center', marginTop: 40 }}>
             <Text style={{ fontSize: 16, color: '#777', marginBottom: 20 }}>
-              Você ainda não tem turmas cadastradas.
+              {transformText('Você ainda não tem turmas cadastradas.')}
             </Text>
           </View>
         )}
@@ -169,7 +171,7 @@ export default function MinhasTurmasScreen() {
               <Text style={styles.turmaNome}>{turma.nome}</Text>
               <Text style={styles.turmaInfo}>
                 {turma.criancas?.length || 0}{' '}
-                {turma.criancas?.length === 1 ? 'criança' : 'crianças'}
+                {turma.criancas?.length === 1 ? transformText('criança') : transformText('crianças')}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={24} color="#000" />
@@ -189,9 +191,9 @@ export default function MinhasTurmasScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Nova Turma</Text>
+            <Text style={styles.modalTitle}>{transformText('Nova Turma')}</Text>
             <TextInput
-              placeholder="Nome da turma"
+              placeholder={transformText('Nome da turma')}
               value={turmaNome}
               onChangeText={setTurmaNome}
               style={styles.input}
@@ -203,7 +205,7 @@ export default function MinhasTurmasScreen() {
                 onPress={() => setModalVisible(false)}
               >
                 <Text style={[styles.modalButtonText, { color: '#E07612' }]}>
-                  Cancelar
+                  {transformText('Cancelar')}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -211,7 +213,7 @@ export default function MinhasTurmasScreen() {
                 onPress={criarTurma}
               >
                 <Text style={[styles.modalButtonText, { color: 'white' }]}>
-                  Criar
+                  {transformText('Criar')}
                 </Text>
               </TouchableOpacity>
             </View>

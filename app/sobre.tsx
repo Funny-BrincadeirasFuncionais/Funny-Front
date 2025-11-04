@@ -11,9 +11,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
+import { useAccessibility } from '../context/AccessibilityContext';
 
 export default function SobreScreen() {
   const router = useRouter();
+  const { transformText } = useAccessibility();
 
   const handleBackPress = () => {
     router.back();
@@ -31,7 +33,7 @@ export default function SobreScreen() {
         >
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Sobre o Funny</Text>
+        <Text style={styles.headerTitle}>{transformText('Sobre o Funny')}</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -42,10 +44,9 @@ export default function SobreScreen() {
           <View style={styles.logoContainer}>
             <Ionicons name="school" size={64} color={Colors.light.primary} />
           </View>
-          <Text style={styles.introTitle}>Sobre o Funny</Text>
+          <Text style={styles.introTitle}>{transformText('Sobre o Funny')}</Text>
           <Text style={styles.introDescription}>
-            Um aplicativo educativo inclusivo criado especialmente para apoiar o aprendizado 
-            de crianças com Transtorno do Espectro Autista (TEA).
+            {transformText('Um aplicativo educativo inclusivo criado especialmente para apoiar o aprendizado de crianças com Transtorno do Espectro Autista (TEA).')}
           </Text>
         </View>
 
@@ -55,10 +56,9 @@ export default function SobreScreen() {
             <View style={styles.cardIcon}>
               <Ionicons name="people" size={32} color={Colors.light.primary} />
             </View>
-            <Text style={styles.cardTitle}>Para Quem Foi Feito</Text>
+            <Text style={styles.cardTitle}>{transformText('Para Quem Foi Feito')}</Text>
             <Text style={styles.cardDescription}>
-              Crianças neurodivergentes em fase de alfabetização, professores, terapeutas e familiares 
-              que desejam acompanhar o desenvolvimento da criança.
+              {transformText('Crianças neurodivergentes em fase de alfabetização, professores, terapeutas e familiares que desejam acompanhar o desenvolvimento da criança.')}
             </Text>
           </View>
 
@@ -66,10 +66,9 @@ export default function SobreScreen() {
             <View style={styles.cardIcon}>
               <Ionicons name="game-controller" size={32} color={Colors.light.primary} />
             </View>
-            <Text style={styles.cardTitle}>Como Funciona</Text>
+            <Text style={styles.cardTitle}>{transformText('Como Funciona')}</Text>
             <Text style={styles.cardDescription}>
-              Atividades interativas em categorias como Português, Lógica, Números e Cotidiano, 
-              com instruções claras e feedback positivo.
+              {transformText('Atividades interativas em categorias como Português, Lógica, Números e Cotidiano, com instruções claras e feedback positivo.')}
             </Text>
           </View>
 
@@ -77,10 +76,9 @@ export default function SobreScreen() {
             <View style={styles.cardIcon}>
               <Ionicons name="library" size={32} color={Colors.light.primary} />
             </View>
-            <Text style={styles.cardTitle}>Metodologia</Text>
+            <Text style={styles.cardTitle}>{transformText('Metodologia')}</Text>
             <Text style={styles.cardDescription}>
-              Baseado em práticas TEACCH e ABA, utiliza reforço positivo, histórias sociais 
-              e pictogramas para facilitar o aprendizado.
+              {transformText('Baseado em práticas TEACCH e ABA, utiliza reforço positivo, histórias sociais e pictogramas para facilitar o aprendizado.')}
             </Text>
           </View>
 
@@ -88,48 +86,47 @@ export default function SobreScreen() {
             <View style={styles.cardIcon}>
               <Ionicons name="settings" size={32} color={Colors.light.primary} />
             </View>
-            <Text style={styles.cardTitle}>Personalização</Text>
+            <Text style={styles.cardTitle}>{transformText('Personalização')}</Text>
             <Text style={styles.cardDescription}>
-              Ambiente seguro e personalizável com configurações de sons, cores e níveis 
-              de estímulo sensorial.
+              {transformText('Ambiente seguro e personalizável com configurações de sons, cores e níveis de estímulo sensorial.')}
             </Text>
           </View>
         </View>
 
         <View style={styles.techSection}>
-          <Text style={styles.sectionTitle}>Tecnologias e Recursos</Text>
+          <Text style={styles.sectionTitle}>{transformText('Tecnologias e Recursos')}</Text>
           
           <View style={styles.techGrid}>
             <View style={styles.techCard}>
               <View style={styles.techIcon}>
                 <Ionicons name="code-slash" size={24} color={Colors.light.primary} />
               </View>
-              <Text style={styles.techTitle}>Tecnologias</Text>
-              <Text style={styles.techText}>React Native • Expo • TypeScript • Expo Router</Text>
+              <Text style={styles.techTitle}>{transformText('Tecnologias')}</Text>
+              <Text style={styles.techText}>{transformText('React Native • Expo • TypeScript • Expo Router')}</Text>
             </View>
 
             <View style={styles.techCard}>
               <View style={styles.techIcon}>
                 <Ionicons name="color-palette" size={24} color={Colors.light.primary} />
               </View>
-              <Text style={styles.techTitle}>Design</Text>
-              <Text style={styles.techText}>Fonte Lexend • Interface Inclusiva • UX Adaptativo</Text>
+              <Text style={styles.techTitle}>{transformText('Design')}</Text>
+              <Text style={styles.techText}>{transformText('Fonte Lexend • Interface Inclusiva • UX Adaptativo')}</Text>
             </View>
 
             <View style={styles.techCard}>
               <View style={styles.techIcon}>
                 <Ionicons name="star" size={24} color={Colors.light.primary} />
               </View>
-              <Text style={styles.techTitle}>Recursos</Text>
-              <Text style={styles.techText}>Gamificação • Relatórios • Personalização • Acessibilidade</Text>
+              <Text style={styles.techTitle}>{transformText('Recursos')}</Text>
+              <Text style={styles.techText}>{transformText('Gamificação • Relatórios • Personalização • Acessibilidade')}</Text>
             </View>
 
             <View style={styles.techCard}>
               <View style={styles.techIcon}>
                 <Ionicons name="book" size={24} color={Colors.light.primary} />
               </View>
-              <Text style={styles.techTitle}>Metodologias</Text>
-              <Text style={styles.techText}>TEACCH • ABA • Pictogramas • Histórias Sociais</Text>
+              <Text style={styles.techTitle}>{transformText('Metodologias')}</Text>
+              <Text style={styles.techText}>{transformText('TEACCH • ABA • Pictogramas • Histórias Sociais')}</Text>
             </View>
           </View>
         </View>
@@ -137,12 +134,12 @@ export default function SobreScreen() {
         {/* Footer */}
         <View style={styles.footerContainer}>
           <View style={styles.footerCard}>
-            <Text style={styles.footerTitle}>Funny v1.0</Text>
+            <Text style={styles.footerTitle}>{transformText('Funny v1.0')}</Text>
             <Text style={styles.footerText}>
-              Desenvolvido com 💙 para promover inclusão e aprendizado
+              {transformText('Desenvolvido com 💙 para promover inclusão e aprendizado')}
             </Text>
             <Text style={styles.footerText}>
-              © 2025 - Aplicativo Educativo Inclusivo
+              {transformText('© 2025 - Aplicativo Educativo Inclusivo')}
             </Text>
           </View>
         </View>

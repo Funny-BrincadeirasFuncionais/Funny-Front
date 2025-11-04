@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ScrollView,
   StatusBar,
@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
+import { useAccessibility } from '../context/AccessibilityContext';
 
 interface AccessibilityOption {
   id: string;
@@ -24,57 +25,44 @@ interface AccessibilityOption {
 
 export default function AcessibilidadeScreen() {
   const router = useRouter();
+  const { uppercase, lowSaturation, reduceMotion, setUppercase, setLowSaturation, setReduceMotion, transformText } = useAccessibility();
 
   const [acessibilidadeOptions, setAcessibilidadeOptions] = useState<AccessibilityOption[]>([
     {
       id: 'letras_maiusculas',
-      title: 'Letras em Caixa-Alta',
-      description: 'Exibe todo o texto do aplicativo em LETRAS MAIÚSCULAS para melhor legibilidade',
+      title: transformText('Letras em Caixa-Alta'),
+      description: transformText('Exibe todo o texto do aplicativo em LETRAS MAIÚSCULAS para melhor legibilidade'),
       icon: 'text',
-      enabled: false,
-      onToggle: (enabled: boolean) => {
-        setAcessibilidadeOptions(prev => 
-          prev.map(option => 
-            option.id === 'letras_maiusculas' 
-              ? { ...option, enabled }
-              : option
-          )
-        );
-      }
+      enabled: uppercase,
+      onToggle: (enabled: boolean) => setUppercase(enabled),
     },
     {
       id: 'baixa_saturacao',
-      title: 'Baixa Saturação',
-      description: 'Reduz a intensidade das cores para reduzir estímulos visuais excessivos',
+      title: transformText('Baixa Saturação'),
+      description: transformText('Reduz a intensidade das cores para reduzir estímulos visuais excessivos'),
       icon: 'color-palette',
-      enabled: false,
-      onToggle: (enabled: boolean) => {
-        setAcessibilidadeOptions(prev => 
-          prev.map(option => 
-            option.id === 'baixa_saturacao' 
-              ? { ...option, enabled }
-              : option
-          )
-        );
-      }
+      enabled: lowSaturation,
+      onToggle: (enabled: boolean) => setLowSaturation(enabled),
     },
     {
       id: 'animacoes_reduzidas',
-      title: 'Animações Reduzidas',
-      description: 'Diminui ou remove animações para reduzir distrações e melhorar o foco',
+      title: transformText('Animações Reduzidas'),
+      description: transformText('Diminui ou remove animações para reduzir distrações e melhorar o foco'),
       icon: 'pause-circle',
-      enabled: false,
-      onToggle: (enabled: boolean) => {
-        setAcessibilidadeOptions(prev => 
-          prev.map(option => 
-            option.id === 'animacoes_reduzidas' 
-              ? { ...option, enabled }
-              : option
-          )
-        );
-      }
+      enabled: reduceMotion,
+      onToggle: (enabled: boolean) => setReduceMotion(enabled),
     }
   ]);
+
+  // Keep the UI toggles in sync when context changes
+  useEffect(() => {
+    setAcessibilidadeOptions(prev => prev.map(o => {
+      if (o.id === 'letras_maiusculas') return { ...o, enabled: uppercase };
+      if (o.id === 'baixa_saturacao') return { ...o, enabled: lowSaturation };
+      if (o.id === 'animacoes_reduzidas') return { ...o, enabled: reduceMotion };
+      return o;
+    }));
+  }, [uppercase, lowSaturation, reduceMotion]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -87,14 +75,14 @@ export default function AcessibilidadeScreen() {
         >
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Acessibilidade</Text>
+        <Text style={styles.headerTitle}>{transformText('Acessibilidade')}</Text>
         <View style={styles.headerSpacer} />
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.introContainer}>
           <Ionicons name="accessibility" size={48} color={Colors.light.primary} />
-          <Text style={styles.introTitle}>Configurações de Acessibilidade</Text>
+          <Text style={styles.introTitle}>{transformText('Configurações de Acessibilidade')}</Text>
         </View>
 
         <View style={styles.optionsContainer}>
@@ -127,13 +115,13 @@ export default function AcessibilidadeScreen() {
           <View style={styles.infoItem}>
             <Ionicons name="information-circle" size={20} color={Colors.light.primary} />
             <Text style={styles.infoText}>
-              As configurações serão aplicadas imediatamente em todo o aplicativo
+              {transformText('As configurações serão aplicadas imediatamente em todo o aplicativo')}
             </Text>
           </View>
           <View style={styles.infoItem}>
             <Ionicons name="heart" size={20} color="#FF6B6B" />
             <Text style={styles.infoText}>
-              Essas opções foram pensadas especialmente para crianças com TEA e outras necessidades especiais
+              {transformText('Essas opções foram pensadas especialmente para crianças com TEA e outras necessidades especiais')}
             </Text>
           </View>
         </View>

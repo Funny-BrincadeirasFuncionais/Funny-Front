@@ -15,11 +15,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/Colors';
 import { getJson, postJson, putJson, deleteJson } from '../../services/api';
+import { useAccessibility } from '../../context/AccessibilityContext';
 
 export default function TurmaScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
   const turmaId = Number(params.id);
+  const { transformText } = useAccessibility();
 
   const [turma, setTurma] = useState<any | null>(null);
   const [criancas, setCriancas] = useState<any[]>([]);
@@ -52,8 +54,8 @@ export default function TurmaScreen() {
       const diag = await getJson('/diagnosticos');
       setDiagnosticos(Array.isArray(diag) ? diag : []);
     } catch (e) {
-      console.error('Erro ao carregar turma/crianças:', e);
-      Alert.alert('Erro', 'Falha ao carregar dados da turma.');
+  console.error('Erro ao carregar turma/crianças:', e);
+  Alert.alert(transformText('Erro'), transformText('Falha ao carregar dados da turma.'));
     } finally {
       setLoading(false);
     }
@@ -65,12 +67,12 @@ export default function TurmaScreen() {
 
   const abrirCrianca = (c: any) => {
     // navegar para a tela de perfil da criança passando id como query param
-    router.push(`/CriancaProfileScreen?id=${c.id}`);
+  router.push(`/CriancaProfileScreen?id=${c.id}`);
   };
 
   const criarCrianca = async () => {
     if (!novoNome.trim() || !novaIdade.trim() || !novoDiagnostico) {
-      Alert.alert('Validação', 'Preencha nome, idade e diagnóstico');
+      Alert.alert(transformText('Validação'), transformText('Preencha nome, idade e diagnóstico'));
       return;
     }
 
@@ -93,11 +95,11 @@ export default function TurmaScreen() {
       setNovoNome('');
       setNovaIdade('');
       setNovoDiagnostico(null);
-      Alert.alert('Sucesso', 'Criança criada e atribuída à turma');
+      Alert.alert(transformText('Sucesso'), transformText('Criança criada e atribuída à turma'));
       await carregar();
     } catch (e: any) {
       console.error('Erro ao criar criança:', e);
-      Alert.alert('Erro', `Falha ao criar criança: ${e.message || e}`);
+      Alert.alert(transformText('Erro'), transformText(`Falha ao criar criança: ${e.message || e}`));
     }
   };
 
@@ -109,7 +111,7 @@ export default function TurmaScreen() {
 
   const salvarEdicaoTurma = async () => {
     if (!nomeTurmaEdit.trim()) {
-      Alert.alert('Validação', 'Informe o nome da turma.');
+      Alert.alert(transformText('Validação'), transformText('Informe o nome da turma.'));
       return;
     }
 
@@ -117,26 +119,26 @@ export default function TurmaScreen() {
       const res = await putJson(`/turmas/${turmaId}`, { nome: nomeTurmaEdit });
       if (res.ok) {
         setShowEditarModal(false);
-        Alert.alert('Sucesso', 'Turma atualizada com sucesso.');
+        Alert.alert(transformText('Sucesso'), transformText('Turma atualizada com sucesso.'));
         await carregar();
       } else {
         const txt = await res.text();
-        Alert.alert('Erro', `Falha ao atualizar: ${res.status} ${txt}`);
+        Alert.alert(transformText('Erro'), transformText(`Falha ao atualizar: ${res.status} ${txt}`));
       }
     } catch (e: any) {
       console.error('Erro ao atualizar turma:', e);
-      Alert.alert('Erro', `Falha ao atualizar turma: ${e.message || e}`);
+      Alert.alert(transformText('Erro'), transformText(`Falha ao atualizar turma: ${e.message || e}`));
     }
   };
 
   const confirmarDeletarTurma = () => {
     setShowMenu(false);
     Alert.alert(
-      'Confirmar',
-      'Deseja realmente deletar esta turma? Todas as crianças associadas ficarão sem turma.',
+      transformText('Confirmar'),
+      transformText('Deseja realmente deletar esta turma? Todas as crianças associadas ficarão sem turma.'),
       [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Deletar', style: 'destructive', onPress: deletarTurma },
+        { text: transformText('Cancelar'), style: 'cancel' },
+        { text: transformText('Deletar'), style: 'destructive', onPress: deletarTurma },
       ]
     );
   };
@@ -145,15 +147,15 @@ export default function TurmaScreen() {
     try {
       const res = await deleteJson(`/turmas/${turmaId}`);
       if (res.ok) {
-        Alert.alert('Sucesso', 'Turma deletada com sucesso.');
+        Alert.alert(transformText('Sucesso'), transformText('Turma deletada com sucesso.'));
         router.back();
       } else {
         const txt = await res.text();
-        Alert.alert('Erro', `Falha ao deletar: ${res.status} ${txt}`);
+        Alert.alert(transformText('Erro'), transformText(`Falha ao deletar: ${res.status} ${txt}`));
       }
     } catch (e: any) {
       console.error('Erro ao deletar turma:', e);
-      Alert.alert('Erro', `Falha ao deletar turma: ${e.message || e}`);
+      Alert.alert(transformText('Erro'), transformText(`Falha ao deletar turma: ${e.message || e}`));
     }
   };
 
@@ -164,7 +166,7 @@ export default function TurmaScreen() {
         <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.title}>{turma?.nome ?? `Turma ${turmaId}`}</Text>
+  <Text style={styles.title}>{transformText(turma?.nome ?? `Turma ${turmaId}`)}</Text>
         <TouchableOpacity onPress={() => setShowMenu(!showMenu)} style={{ padding: 8 }}>
           <Ionicons name="ellipsis-vertical" size={24} color="#000" />
         </TouchableOpacity>
@@ -174,56 +176,56 @@ export default function TurmaScreen() {
         <View style={styles.menu}>
           <TouchableOpacity style={styles.menuItem} onPress={abrirEditarTurma}>
             <Ionicons name="pencil" size={20} color={Colors.light.primary} />
-            <Text style={styles.menuText}>Editar turma</Text>
+            <Text style={styles.menuText}>{transformText('Editar turma')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.menuItem} onPress={confirmarDeletarTurma}>
             <Ionicons name="trash" size={20} color="#ff4d4d" />
-            <Text style={[styles.menuText, { color: '#ff4d4d' }]}>Deletar turma</Text>
+            <Text style={[styles.menuText, { color: '#ff4d4d' }]}>{transformText('Deletar turma')}</Text>
           </TouchableOpacity>
         </View>
       )}
 
       <View style={{ padding: 16 }}>
-        <Text style={{ fontWeight: 'bold', marginBottom: 8 }}>Crianças da turma</Text>
+  <Text style={{ fontWeight: 'bold', marginBottom: 8 }}>{transformText('Crianças da turma')}</Text>
         <FlatList
           data={criancas}
           keyExtractor={(item) => String(item.id)}
           renderItem={({ item }) => (
             <TouchableOpacity onPress={() => abrirCrianca(item)} style={styles.criancaItem}>
-              <Text style={{ fontSize: 16 }}>{item.nome} ({item.idade} anos)</Text>
+              <Text style={{ fontSize: 16 }}>{transformText(`${item.nome} (${item.idade} anos)`)}</Text>
             </TouchableOpacity>
           )}
         />
 
         <TouchableOpacity style={[styles.button, { marginTop: 12 }]} onPress={() => setShowCriancaModal(true)}>
-          <Text style={{ color: 'white' }}>+ Nova Criança</Text>
+          <Text style={{ color: 'white' }}>{transformText('+ Nova Criança')}</Text>
         </TouchableOpacity>
       </View>
 
       <Modal visible={showCriancaModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
-            <Text style={{ fontWeight: 'bold', fontSize: 16 }}>Nova Criança</Text>
-            <TextInput placeholder="Nome" value={novoNome} onChangeText={setNovoNome} style={styles.input} />
-            <TextInput placeholder="Idade" value={novaIdade} onChangeText={setNovaIdade} keyboardType="numeric" style={styles.input} />
+            <Text style={{ fontWeight: 'bold', fontSize: 16 }}>{transformText('Nova Criança')}</Text>
+            <TextInput placeholder={transformText('Nome')} value={novoNome} onChangeText={setNovoNome} style={styles.input} />
+            <TextInput placeholder={transformText('Idade')} value={novaIdade} onChangeText={setNovaIdade} keyboardType="numeric" style={styles.input} />
 
-            <Text style={{ marginTop: 8 }}>Diagnóstico</Text>
+            <Text style={{ marginTop: 8 }}>{transformText('Diagnóstico')}</Text>
             <FlatList
               data={diagnosticos}
               keyExtractor={(d) => String(d.id)}
               renderItem={({ item }) => (
                 <TouchableOpacity onPress={() => setNovoDiagnostico(item.id)} style={[styles.option, novoDiagnostico === item.id && { backgroundColor: '#FBE8D4' }]}>
-                  <Text>{item.tipo}</Text>
+                  <Text>{transformText(item.tipo)}</Text>
                 </TouchableOpacity>
               )}
             />
 
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
               <TouchableOpacity onPress={() => setShowCriancaModal(false)} style={[styles.button, { backgroundColor: 'white', borderWidth: 1, borderColor: Colors.light.primary }]}>
-                <Text style={{ color: Colors.light.primary }}>Cancelar</Text>
+                <Text style={{ color: Colors.light.primary }}>{transformText('Cancelar')}</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={criarCrianca} style={styles.button}>
-                <Text style={{ color: 'white' }}>Criar</Text>
+                <Text style={{ color: 'white' }}>{transformText('Criar')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -234,9 +236,9 @@ export default function TurmaScreen() {
       <Modal visible={showEditarModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
-            <Text style={{ fontWeight: 'bold', fontSize: 16 }}>Editar Turma</Text>
+            <Text style={{ fontWeight: 'bold', fontSize: 16 }}>{transformText('Editar Turma')}</Text>
             <TextInput
-              placeholder="Nome da turma"
+              placeholder={transformText('Nome da turma')}
               value={nomeTurmaEdit}
               onChangeText={setNomeTurmaEdit}
               style={styles.input}
@@ -247,10 +249,10 @@ export default function TurmaScreen() {
                 onPress={() => setShowEditarModal(false)}
                 style={[styles.button, { backgroundColor: 'white', borderWidth: 1, borderColor: Colors.light.primary }]}
               >
-                <Text style={{ color: Colors.light.primary }}>Cancelar</Text>
+                <Text style={{ color: Colors.light.primary }}>{transformText('Cancelar')}</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={salvarEdicaoTurma} style={styles.button}>
-                <Text style={{ color: 'white' }}>Salvar</Text>
+                <Text style={{ color: 'white' }}>{transformText('Salvar')}</Text>
               </TouchableOpacity>
             </View>
           </View>

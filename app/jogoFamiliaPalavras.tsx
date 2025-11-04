@@ -14,7 +14,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
-import { postJson } from '../services/api';
+import { Colors } from '../constants/Colors';
+import { useAccessibility } from '../context/AccessibilityContext';
+import { ensureAtividadeExists, registrarProgresso } from '../services/api';
 
 interface FamiliaPalavras {
     termino: string;
@@ -64,6 +66,7 @@ interface PalavraItem {
 
 export default function JogoFamiliaPalavras() {
     const router = useRouter();
+    const { transformText } = useAccessibility();
     const [faseAtual, setFaseAtual] = useState(0);
     const [palavrasDisponiveis, setPalavrasDisponiveis] = useState<PalavraItem[]>([]);
     const [palavrasNaFamilia, setPalavrasNaFamilia] = useState<PalavraItem[]>([]);
@@ -79,6 +82,9 @@ export default function JogoFamiliaPalavras() {
     const [criancaId, setCriancaId] = useState<string | null>(null);
     const [faseAcertada, setFaseAcertada] = useState<boolean[]>([]); // Rastrear quais fases já foram acertadas
     const [mostrarAjuda, setMostrarAjuda] = useState(false);
+    const [atividadeId, setAtividadeId] = useState<number | null>(null);
+    const [observacao, setObservacao] = useState('');
+    const [modalVisible, setModalVisible] = useState(false);
 
     const familiaAtual = familiasPalavras[faseAtual];
 
@@ -86,23 +92,44 @@ export default function JogoFamiliaPalavras() {
         const carregarDados = async () => {
             const id = await AsyncStorage.getItem('criancaSelecionada');
             setCriancaId(id);
+            if (!id) {
+                Alert.alert('Selecione uma criança', 'Você precisa selecionar uma criança na Home antes de iniciar o jogo.', [
+                    { text: 'OK', onPress: () => router.back() },
+                ]);
+                return;
+            }
+            const aid = await ensureAtividadeExists(
+                'Família de Palavras',
+                'Selecione palavras que pertencem à mesma família (mesma terminação).',
+                'Português',
+                1
+            );
+            setAtividadeId(aid);
         };
         carregarDados();
     }, []);
 
+    // Util: normalizar e checar terminação (ignora acentos)
+    const normalize = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const matchesTerm = (palavra: string, termino: string) => {
+        const suf = termino.replace(/^-/, '').toLowerCase();
+        return normalize(palavra).toLowerCase().endsWith(suf);
+    };
+
     useEffect(() => {
         if (familiaAtual) {
             // Criar array com todas as palavras (corretas + distratoras)
+            // pertenceFamilia é TRUE apenas se está na lista "palavrasCorretas"
             const todasPalavras: PalavraItem[] = [
                 ...familiaAtual.palavrasCorretas.map((p, i) => ({
                     id: `correta-${faseAtual}-${i}-${Date.now()}`,
                     palavra: p,
-                    pertenceFamilia: true
+                    pertenceFamilia: true,
                 })),
                 ...familiaAtual.palavrasDistratoras.map((p, i) => ({
                     id: `distratora-${faseAtual}-${i}-${Date.now()}`,
                     palavra: p,
-                    pertenceFamilia: false
+                    pertenceFamilia: false,
                 }))
             ];
             
@@ -248,43 +275,37 @@ export default function JogoFamiliaPalavras() {
         } else {
             // Adicionar palavra à família
             setPalavrasNaFamilia(prev => [...prev, palavra]);
-            setPalavrasSelecionadas(prev => new Set([...prev, palavra.id]));
+            setPalavrasSelecionadas(prev => {
+                const novo = new Set(prev);
+                novo.add(palavra.id);
+                return novo;
+            });
         }
     };
 
     const enviarResultado = async () => {
-        if (!criancaId) {
-            Alert.alert('Erro', 'Nenhuma criança selecionada.');
+        if (!criancaId || !atividadeId) {
+            Alert.alert('Erro', 'Faltam informações para registrar.');
             return;
         }
-
         try {
-            const response = await postJson('/progresso/registrar-minijogo', {
-                pontuacao: notaFinal,
-                categoria: 'Português',
+            const res = await registrarProgresso({
                 crianca_id: Number(criancaId),
-                observacoes: `Formou ${acertos} de ${familiasPalavras.length} famílias corretamente.`
+                atividade_id: Number(atividadeId),
+                pontuacao: Number(notaFinal),
+                observacoes: (observacao || `Formou ${acertos} de ${familiasPalavras.length} famílias corretamente.`),
+                concluida: true,
             });
-
-            if (response.ok) {
-                const data = await response.json();
-                Alert.alert(
-                    'Sucesso! 🎉',
-                    'Resultado registrado com sucesso!',
-                    [
-                        {
-                            text: 'Voltar',
-                            onPress: () => router.back(),
-                        },
-                    ]
-                );
+            if (res.ok) {
+                Alert.alert('Sucesso', 'Progresso registrado.');
+                setModalVisible(false);
+                router.push('/(tabs)/home');
             } else {
-                const error = await response.json();
-                Alert.alert('Erro ao enviar', error.detail || 'Servidor recusou os dados.');
+                const txt = await res.text();
+                Alert.alert('Erro', `Falha ao registrar: ${txt}`);
             }
         } catch (e) {
-            console.error('Erro ao enviar resultado:', e);
-            Alert.alert('Erro de conexão', 'Falha ao enviar para o servidor.');
+            Alert.alert('Erro', 'Falha de conexão ao registrar.');
         }
     };
 
@@ -293,65 +314,7 @@ export default function JogoFamiliaPalavras() {
         outputRange: [1, 1.1],
     });
 
-    if (jogoFinalizado) {
-        return (
-            <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-                <StatusBar barStyle="light-content" backgroundColor="#F78F3F" />
-                
-                <View style={styles.backgroundShapes}>
-                    <Svg width="100%" height="100%" viewBox="0 0 400 800" preserveAspectRatio="none" style={styles.blobSvg}>
-                        <Path
-                            d="M280,30 Q340,10 370,60 T360,140 Q330,170 280,150 T240,90 Q230,50 280,30 Z"
-                            fill="#E07612"
-                            opacity={0.7}
-                        />
-                        <Path
-                            d="M-20,680 Q30,660 50,700 T40,760 Q10,790 -20,770 T-50,720 Q-60,680 -20,680 Z"
-                            fill="#E07612"
-                            opacity={0.65}
-                        />
-                    </Svg>
-                </View>
-
-                <View style={styles.header}>
-                    <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
-                        <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
-                    </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Jogo Finalizado!</Text>
-                    <View style={styles.headerButton} />
-                </View>
-
-                <View style={styles.content}>
-                    <View style={styles.resultadoContainer}>
-                        <Text style={styles.resultadoEmoji}>🎉</Text>
-                        <Text style={styles.resultadoTitulo}>Parabéns!</Text>
-                        <Text style={styles.resultadoTexto}>
-                            Você formou {acertos} de {familiasPalavras.length} famílias!
-                        </Text>
-                        <View style={styles.notaContainer}>
-                            <Text style={styles.notaLabel}>Sua nota:</Text>
-                            <Text style={styles.notaValor}>{notaFinal.toFixed(1)} / 10</Text>
-                        </View>
-                        
-                        <TouchableOpacity
-                            style={styles.enviarButton}
-                            onPress={enviarResultado}
-                            activeOpacity={0.8}
-                        >
-                            <Text style={styles.enviarButtonText}>Enviar Resultado</Text>
-                        </TouchableOpacity>
-                        
-                        <TouchableOpacity
-                            style={styles.voltarButton}
-                            onPress={() => router.back()}
-                        >
-                            <Text style={styles.voltarButtonText}>Voltar</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </SafeAreaView>
-        );
-    }
+    // Removido o popup de "Jogo Finalizado" para evitar sobreposição; usaremos apenas o modal.
 
     return (
         <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -393,21 +356,21 @@ export default function JogoFamiliaPalavras() {
                 {/* Instrução */}
                 <View style={styles.instrucaoContainer}>
                     <Text style={styles.instrucaoTexto}>
-                        Arraste palavras que terminam com
+                        {transformText('Arraste palavras que terminam com')}
                     </Text>
                     <View style={[styles.terminoBadge, { backgroundColor: familiaAtual.cor }]}>
                         <Text style={styles.terminoTexto}>{familiaAtual.termino}</Text>
                     </View>
-                    <Text style={styles.instrucaoTexto}>para formar a família!</Text>
+                    <Text style={styles.instrucaoTexto}>{transformText('para formar a família!')}</Text>
                 </View>
 
                 {/* Área da Família */}
                 <View style={styles.familiaContainer}>
-                    <Text style={styles.familiaLabel}>Família de Palavras:</Text>
+                    <Text style={styles.familiaLabel}>{transformText('Família de Palavras:')}</Text>
                     <View style={styles.familiaArea}>
                         {palavrasNaFamilia.length === 0 ? (
                             <Text style={styles.familiaVazia}>
-                                Arraste palavras aqui
+                                {transformText('Arraste palavras aqui')}
                             </Text>
                         ) : (
                             <View style={styles.palavrasNaFamilia}>
@@ -457,7 +420,7 @@ export default function JogoFamiliaPalavras() {
 
                 {/* Palavras Disponíveis */}
                 <View style={styles.palavrasDisponiveisContainer}>
-                    <Text style={styles.palavrasLabel}>Palavras Disponíveis:</Text>
+                    <Text style={styles.palavrasLabel}>{transformText('Palavras Disponíveis:')}</Text>
                     <View style={styles.palavrasGrid}>
                         {palavrasDisponiveis.map((palavra) => {
                             const selecionada = palavrasSelecionadas.has(palavra.id);
@@ -469,7 +432,6 @@ export default function JogoFamiliaPalavras() {
                                         selecionada && styles.palavraCardSelecionada,
                                     ]}
                                     onPress={() => selecionarPalavra(palavra)}
-                                    disabled={familiaCompleta}
                                     activeOpacity={0.7}
                                 >
                                     <Text style={[
@@ -484,10 +446,21 @@ export default function JogoFamiliaPalavras() {
                     </View>
                 </View>
 
+                {/* Botão Continuar (só quando formar a família corretamente) */}
+                {familiaCompleta && (
+                    <TouchableOpacity
+                        style={styles.enviarButton}
+                        onPress={avancarFase}
+                        activeOpacity={0.8}
+                    >
+                        <Text style={styles.enviarButtonText}>{transformText('Continuar')}</Text>
+                    </TouchableOpacity>
+                )}
+
                 {/* Progresso */}
                 <View style={styles.progressoContainer}>
                     <Text style={styles.progressoTexto}>
-                        Fase {faseAtual + 1} de {familiasPalavras.length}
+                        {transformText(`Fase ${faseAtual + 1} de ${familiasPalavras.length}`)}
                     </Text>
                 </View>
             </View>
@@ -823,14 +796,70 @@ const styles = StyleSheet.create({
         fontFamily: 'Lexend_700Bold',
     },
     voltarButton: {
-        paddingVertical: 12,
-        paddingHorizontal: 24,
+        width: '100%',
+        backgroundColor: '#E0E0E0',
+        borderRadius: 12,
+        paddingVertical: 14,
     },
     voltarButtonText: {
+        color: '#333',
+        fontWeight: '600',
         fontSize: 16,
-        color: '#FFFFFF',
+        fontFamily: 'Lexend_600SemiBold',
+        textAlign: 'center',
+    },
+    modalContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0,0,0,0.5)',
+    },
+    modalBox: {
+        backgroundColor: '#FFF',
+        borderRadius: 20,
+        padding: 24,
+        width: '85%',
+        maxWidth: 400,
+        alignItems: 'center',
+    },
+    modalTitleEnvio: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        fontFamily: 'Lexend_700Bold',
+        color: Colors.light.primary,
+        marginBottom: 16,
+    },
+    modalTextEnvio: {
+        fontSize: 16,
         fontFamily: 'Lexend_400Regular',
-        textDecorationLine: 'underline',
+        color: '#333',
+        textAlign: 'center',
+        marginBottom: 8,
+    },
+    input: {
+        width: '100%',
+        borderWidth: 1,
+        borderColor: '#E0E0E0',
+        borderRadius: 12,
+        padding: 12,
+        marginTop: 16,
+        marginBottom: 16,
+        fontSize: 16,
+        fontFamily: 'Lexend_400Regular',
+    },
+    submitButton: {
+        width: '100%',
+        backgroundColor: Colors.light.primary,
+        borderRadius: 12,
+        paddingVertical: 14,
+        marginBottom: 12,
+    },
+    submitButtonText: {
+        color: '#FFF',
+        fontWeight: 'bold',
+        fontSize: 16,
+        fontFamily: 'Lexend_700Bold',
+        textAlign: 'center',
     },
     modalOverlay: {
         flex: 1,

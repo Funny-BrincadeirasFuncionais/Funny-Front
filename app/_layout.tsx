@@ -2,6 +2,7 @@ import { Lexend_400Regular, Lexend_700Bold, useFonts } from '@expo-google-fonts/
 import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
+import { AccessibilityProvider } from '../context/AccessibilityContext';
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -19,6 +20,7 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
+      <AccessibilityProvider>
       <Stack screenOptions={{ headerShown: false }}>
         {/* Onboarding vem primeiro */}
         <Stack.Screen name="onboarding" />
@@ -45,6 +47,7 @@ export default function RootLayout() {
         <Stack.Screen name="jogoFamiliaPalavras" />
         <Stack.Screen name="jogoRotinaDia" />
       </Stack>
+      </AccessibilityProvider>
     </SafeAreaProvider>
   );
 }
