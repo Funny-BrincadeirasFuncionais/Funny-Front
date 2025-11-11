@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -14,9 +15,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getJson, postJson } from '../../services/api';
 import { useAccessibility } from '../../context/AccessibilityContext';
+import { getJson, postJson } from '../../services/api';
 
 type Turma = {
   id: number;
@@ -143,7 +143,10 @@ export default function MinhasTurmasTab() {
       <StatusBar barStyle="dark-content" backgroundColor={Colors.light.background} />
       
       <View style={styles.header}>
-  <Text style={styles.headerTitle}>{transformText('Minhas Turmas')}</Text>
+      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color="#000" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>{transformText('Minhas Turmas')}</Text>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 100 }}>
@@ -226,18 +229,20 @@ export default function MinhasTurmasTab() {
 
 const styles = StyleSheet.create({
   header: {
+    flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 24,
     paddingVertical: 15,
     backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   headerTitle: {
+    flex: 1,
     fontSize: 20,
     fontWeight: 'bold',
     color: '#000',
+    textAlign: 'center',
   },
+  backButton: { padding: 8 },
   turmaCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',

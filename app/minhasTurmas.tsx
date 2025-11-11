@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -14,9 +15,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getJson, postJson } from '../services/api';
 import { useAccessibility } from '../context/AccessibilityContext';
+import { getJson, postJson } from '../services/api';
 
 type Turma = {
   id: number;

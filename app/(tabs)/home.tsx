@@ -2,8 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { getJson } from '../../services/api';
 import {
+  Alert,
+  FlatList,
   Image,
   Modal,
   Pressable,
@@ -12,12 +13,11 @@ import {
   Text,
   TouchableOpacity,
   View,
-  FlatList,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
 import { useAccessibility } from '../../context/AccessibilityContext';
+import { getJson } from '../../services/api';
 
 export default function HomeScreen() {
   const { transformText } = useAccessibility();
@@ -117,6 +117,8 @@ export default function HomeScreen() {
     ? criancas.filter((c: any) => Number(c.turma_id) === Number(turmaSelecionada.id))
     : criancas;
 
+  const isSelectionDisabled = !turmaSelecionada || !criancaSelecionada;
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.light.background} />
@@ -177,17 +179,17 @@ export default function HomeScreen() {
         <View style={styles.mainGrid}>
           {/* Primeira linha */}
           <View style={styles.gridRow}>
-            <TouchableOpacity style={[styles.mainCard, styles.mathematicsCard]} onPress={() => router.push('/jogosMatematica')}>
-              <Image 
-                source={require('../../assets/images/math.png')}
+            <TouchableOpacity style={[styles.mainCard, styles.mathematicsCard, isSelectionDisabled && styles.disabledCard]} onPress={() => router.push('/jogosMatematica')} disabled={isSelectionDisabled}>
+            <Image
+                source={isSelectionDisabled ? require('../../assets/images/mathdisabled.png') : require('../../assets/images/math.png')}
                 style={styles.cardImage}
                 resizeMode="cover"
               />
               <Text style={styles.cardTitle}>{transformText('Matemática')}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.mainCard, styles.portugueseCard]} onPress={() => router.push('/jogosPortugues')}>
+            <TouchableOpacity style={[styles.mainCard, styles.portugueseCard, isSelectionDisabled && styles.disabledCard]} onPress={() => router.push('/jogosPortugues')} disabled={isSelectionDisabled}>
               <Image 
-                source={require('../../assets/images/port.png')} 
+                source={isSelectionDisabled ? require('../../assets/images/portdisabled.png') : require('../../assets/images/port.png')} 
                 style={styles.cardImage}
                 resizeMode="cover"
               />
@@ -197,17 +199,17 @@ export default function HomeScreen() {
 
           {/* Segunda linha */}
           <View style={styles.gridRow}>
-            <TouchableOpacity style={[styles.mainCard, styles.logicCard]} onPress={() => router.push('/jogosLogica')}>
+            <TouchableOpacity style={[styles.mainCard, styles.logicCard, isSelectionDisabled && styles.disabledCard]} onPress={() => router.push('/jogosLogica')} disabled={isSelectionDisabled}>
               <Image 
-                source={require('../../assets/images/logic.png')} 
+                source={isSelectionDisabled ? require('../../assets/images/logicdisabled.png') : require('../../assets/images/logic.png')} 
                 style={styles.cardImage}
                 resizeMode="cover"
               />
               <Text style={styles.cardTitle}>{transformText('Lógica')}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.mainCard, styles.dailyLifeCard]} onPress={() => router.push('/jogosCotidiano')}>
+            <TouchableOpacity style={[styles.mainCard, styles.dailyLifeCard, isSelectionDisabled && styles.disabledCard]} onPress={() => router.push('/jogosCotidiano')} disabled={isSelectionDisabled}>
               <Image 
-                source={require('../../assets/images/daily.png')} 
+                source={isSelectionDisabled ? require('../../assets/images/dailydisabled.png') : require('../../assets/images/daily.png')} 
                 style={styles.cardImage}
                 resizeMode="cover"
               />
@@ -293,6 +295,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'white',
+  },
+  disabledCard: {
+    backgroundColor: '#E0E0E0',
+    opacity: 0.35,
+    backgroundImage: 'url(../../assets/images/disabled.png)',
   },
   header: {
     flexDirection: 'row',
