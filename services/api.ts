@@ -108,11 +108,36 @@ export async function registrarProgresso(payload: {
   observacoes?: string | null;
   concluida?: boolean;
 }) {
-  return postJson('/progresso/registrar', {
-    ...payload,
-    concluida: payload.concluida ?? true,
-    observacoes: payload.observacoes ?? null,
-  });
+  try {
+    const res = await postJson('/progresso/registrar', {
+      ...payload,
+      concluida: payload.concluida ?? true,
+      observacoes: payload.observacoes ?? null,
+    });
+
+    const result: {
+      ok: boolean;
+      status: number;
+      data?: any;
+      text?: string;
+      error?: string;
+    } = { ok: res.ok, status: res.status };
+
+    const ct = res.headers.get?.('content-type') || '';
+    if (ct.includes('application/json')) {
+      try {
+        result.data = await res.json();
+      } catch (e: any) {
+        result.text = await res.text().catch(() => undefined);
+      }
+    } else {
+      result.text = await res.text().catch(() => undefined);
+    }
+
+    return result;
+  } catch (e: any) {
+    return { ok: false, status: 0, error: e?.message ?? 'network error' };
+  }
 }
 
 // ---- Responsáveis ----

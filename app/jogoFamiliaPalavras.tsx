@@ -301,8 +301,9 @@ export default function JogoFamiliaPalavras() {
                 setModalVisible(false);
                 router.push('/(tabs)/home');
             } else {
-                const txt = await res.text();
-                Alert.alert('Erro', `Falha ao registrar: ${txt}`);
+                const r: any = res;
+                const message = r?.data?.error ?? r?.text ?? r?.error ?? `status ${r?.status}`;
+                Alert.alert('Erro', `Falha ao registrar: ${message}`);
             }
         } catch (e) {
             Alert.alert('Erro', 'Falha de conexão ao registrar.');

@@ -372,8 +372,9 @@ export default function JogoMontaPalavra() {
                                         setModalVisible(false);
                                         router.push('/(tabs)/home');
                                     } else {
-                                        const txt = await res.text();
-                                        Alert.alert(transformText('Erro'), `${transformText('Falha ao registrar')}: ${txt}`);
+                                        const r: any = res;
+                                        const message = r?.data?.error ?? r?.text ?? r?.error ?? `status ${r?.status}`;
+                                        Alert.alert(transformText('Erro'), `${transformText('Falha ao registrar')}: ${message}`);
                                     }
                                 } catch (e) {
                                     Alert.alert(transformText('Erro'), transformText('Falha de conexão ao registrar.'));

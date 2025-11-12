@@ -118,8 +118,9 @@ export default function JogoContagem() {
         Alert.alert('Enviado!', 'Resultado registrado com sucesso.');
         router.push('/(tabs)/home');
       } else {
-        const txt = await res.text();
-        Alert.alert('Erro ao enviar', `Servidor recusou os dados: ${txt}`);
+        const r: any = res;
+        const message = r?.data?.error ?? r?.text ?? r?.error ?? `status ${r?.status}`;
+        Alert.alert('Erro ao enviar', `Servidor recusou os dados: ${message}`);
       }
     } catch (e) {
       Alert.alert('Erro de conexão', 'Falha ao enviar para o servidor.');
