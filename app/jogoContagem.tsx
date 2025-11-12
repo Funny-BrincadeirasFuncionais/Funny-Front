@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View, StatusBar } from 'react-native';
-import { ensureAtividadeExists, registrarProgresso } from '../services/api';
+import { ensureAtividadeExists, registrarProgresso, registrarMinijogo } from '../services/api';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Path } from 'react-native-svg';
@@ -56,7 +56,7 @@ export default function JogoContagem() {
       const aid = await ensureAtividadeExists(
         'Desafio de Contagem',
         'Conte os objetos e selecione a quantidade correta',
-        'Matemática',
+        'Matemáticas',
         1
       );
       setAtividadeId(aid);
@@ -64,6 +64,34 @@ export default function JogoContagem() {
     };
     carregarDados();
   }, []);
+
+  // When modal opens (game finished) register a minijogo automatically
+  const [minijogoRegistered, setMinijogoRegistered] = useState(false);
+  useEffect(() => {
+    (async () => {
+      if (modalVisible && !minijogoRegistered && criancaId !== null) {
+        setMinijogoRegistered(true);
+        const res = await registrarMinijogo({
+          pontuacao: Number(notaFinal),
+          categoria: 'Matemáticas',
+          crianca_id: Number(criancaId),
+          titulo: 'Desafio de Contagem',
+          descricao: 'Conte os objetos e selecione a quantidade correta',
+          observacoes: null,
+        });
+        if (res.ok) {
+          // Try to set atividade id from returned progresso
+          const r: any = res;
+          const atividadeIdFrom = r?.data?.atividade?.id ?? r?.data?.atividade_id ?? null;
+          if (atividadeIdFrom) setAtividadeId(atividadeIdFrom);
+        } else {
+          const r: any = res;
+          const message = r?.data?.error ?? r?.text ?? r?.error ?? `status ${r?.status}`;
+          Alert.alert('Erro', `Falha ao registrar mini-jogo automático: ${message}`);
+        }
+      }
+    })();
+  }, [modalVisible, minijogoRegistered, criancaId, notaFinal]);
 
   function gerarRodada() {
     const novo = objetos[Math.floor(Math.random() * objetos.length)];

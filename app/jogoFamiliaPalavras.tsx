@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { Colors } from '../constants/Colors';
 import { useAccessibility } from '../context/AccessibilityContext';
-import { ensureAtividadeExists, registrarProgresso } from '../services/api';
+import { ensureAtividadeExists, registrarProgresso, registrarMinijogo } from '../services/api';
 
 interface FamiliaPalavras {
     termino: string;
@@ -108,6 +108,33 @@ export default function JogoFamiliaPalavras() {
         };
         carregarDados();
     }, []);
+
+    // register minijogo automatically when modal opens
+    const [minijogoRegistered, setMinijogoRegistered] = useState(false);
+    useEffect(() => {
+        (async () => {
+            if (modalVisible && !minijogoRegistered && criancaId !== null) {
+                setMinijogoRegistered(true);
+                const res = await registrarMinijogo({
+                    pontuacao: Number(notaFinal),
+                    categoria: 'Português',
+                    crianca_id: Number(criancaId),
+                    titulo: 'Família de Palavras',
+                    descricao: 'Selecione palavras que pertencem à mesma família (mesma terminação).',
+                    observacoes: null,
+                });
+                if (res.ok) {
+                    const r: any = res;
+                    const atividadeIdFrom = r?.data?.atividade?.id ?? r?.data?.atividade_id ?? null;
+                    if (atividadeIdFrom) setAtividadeId(atividadeIdFrom);
+                } else {
+                    const r: any = res;
+                    const message = r?.data?.error ?? r?.text ?? r?.error ?? `status ${r?.status}`;
+                    Alert.alert('Erro', `Falha ao registrar mini-jogo automático: ${message}`);
+                }
+            }
+        })();
+    }, [modalVisible, minijogoRegistered, criancaId]);
 
     // Util: normalizar e checar terminação (ignora acentos)
     const normalize = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');

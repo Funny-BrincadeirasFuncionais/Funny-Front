@@ -16,7 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { Colors } from '../constants/Colors';
-import { ensureAtividadeExists, registrarProgresso } from '../services/api';
+import { ensureAtividadeExists, registrarProgresso, registrarMinijogo } from '../services/api';
 import { useAccessibility } from '../context/AccessibilityContext';
 
 interface Palavra {
@@ -66,12 +66,39 @@ export default function JogoMontaPalavra() {
             const aid = await ensureAtividadeExists(
                 'Montar Palavra',
                 'Arraste as letras para formar a palavra',
-                'Português',
+                    'Português',
                 1
             );
             setAtividadeId(aid);
         })();
     }, []);
+
+        // Register minijogo automatically when modal opens
+        const [minijogoRegistered, setMinijogoRegistered] = useState(false);
+        useEffect(() => {
+            (async () => {
+                if (modalVisible && !minijogoRegistered && criancaId !== null) {
+                    setMinijogoRegistered(true);
+                    const res = await registrarMinijogo({
+                        pontuacao: Number(pontuacao),
+                        categoria: 'Português',
+                        crianca_id: Number(criancaId),
+                        titulo: 'Montar Palavra',
+                        descricao: 'Arraste as letras para formar a palavra',
+                        observacoes: null,
+                    });
+                    if (res.ok) {
+                        const r: any = res;
+                        const atividadeIdFrom = r?.data?.atividade?.id ?? r?.data?.atividade_id ?? null;
+                        if (atividadeIdFrom) setAtividadeId(atividadeIdFrom);
+                    } else {
+                        const r: any = res;
+                        const message = r?.data?.error ?? r?.text ?? r?.error ?? `status ${r?.status}`;
+                        Alert.alert(transformText('Erro'), `${transformText('Falha ao registrar mini-jogo automático')}: ${message}`);
+                    }
+                }
+            })();
+        }, [modalVisible, minijogoRegistered, criancaId, pontuacao]);
 
     useEffect(() => {
         if (palavraAtual) {

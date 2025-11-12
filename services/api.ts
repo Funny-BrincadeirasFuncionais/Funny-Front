@@ -140,6 +140,49 @@ export async function registrarProgresso(payload: {
   }
 }
 
+export async function registrarMinijogo(payload: {
+  pontuacao: number;
+  categoria: string;
+  crianca_id: number;
+  titulo: string;
+  descricao: string;
+  observacoes?: string | null;
+}) {
+  try {
+    const res = await postJson('/progresso/registrar-minijogo', {
+      pontuacao: payload.pontuacao,
+      categoria: payload.categoria,
+      crianca_id: payload.crianca_id,
+      titulo: payload.titulo,
+      descricao: payload.descricao,
+      observacoes: payload.observacoes ?? null,
+    });
+
+    const result: {
+      ok: boolean;
+      status: number;
+      data?: any;
+      text?: string;
+      error?: string;
+    } = { ok: res.ok, status: res.status };
+
+    const ct = res.headers.get?.('content-type') || '';
+    if (ct.includes('application/json')) {
+      try {
+        result.data = await res.json();
+      } catch (e: any) {
+        result.text = await res.text().catch(() => undefined);
+      }
+    } else {
+      result.text = await res.text().catch(() => undefined);
+    }
+
+    return result;
+  } catch (e: any) {
+    return { ok: false, status: 0, error: e?.message ?? 'network error' };
+  }
+}
+
 // ---- Responsáveis ----
 export async function getResponsavel(responsavelId: number) {
   return getJson(`/responsaveis/${responsavelId}`);

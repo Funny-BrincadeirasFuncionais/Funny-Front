@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAccessibility } from '../context/AccessibilityContext';
-import { ensureAtividadeExists, registrarProgresso } from '../services/api';
+import { ensureAtividadeExists, registrarProgresso, registrarMinijogo } from '../services/api';
 import { Colors } from '../constants/Colors';
 
 const symbols = ['⭐', '🌙', '☀️', '🌸', '🍀', '🎵', '🦕', '🦖'];
@@ -64,6 +64,33 @@ export default function JogoMemoria() {
       setAtividadeId(aid);
     })();
   }, []);
+
+  // register a minijogo automatically when modal opens
+  const [minijogoRegistered, setMinijogoRegistered] = useState(false);
+  useEffect(() => {
+    (async () => {
+      if (modalVisible && !minijogoRegistered && criancaId !== null) {
+        setMinijogoRegistered(true);
+        const res = await registrarMinijogo({
+          pontuacao: Number(calcularPontuacao()),
+          categoria: 'Lógica',
+          crianca_id: Number(criancaId),
+          titulo: 'Jogo da Memória',
+          descricao: 'Encontre os pares de símbolos',
+          observacoes: null,
+        });
+        if (res.ok) {
+          const r: any = res;
+          const atividadeIdFrom = r?.data?.atividade?.id ?? r?.data?.atividade_id ?? null;
+          if (atividadeIdFrom) setAtividadeId(atividadeIdFrom);
+        } else {
+          const r: any = res;
+          const message = r?.data?.error ?? r?.text ?? r?.error ?? `status ${r?.status}`;
+          Alert.alert('Erro', `${transformText('Falha ao registrar mini-jogo automático')}: ${message}`);
+        }
+      }
+    })();
+  }, [modalVisible, minijogoRegistered, criancaId]);
 
   const initGame = () => {
     const duplicated = [...symbols, ...symbols];
