@@ -51,32 +51,39 @@ export default function LoginScreen() {
         await AsyncStorage.setItem('token', data.access_token);
       }
 
-      console.log('🔍 Buscando informações do responsável...');
-      const resp = await apiFetch('/responsaveis');
-      let lista;
-      try {
-        lista = await resp.json();
-        console.log('📋 Lista de responsáveis obtida:', lista.length, 'responsáveis encontrados');
-      } catch (e) {
-        console.error('❌ Erro ao processar resposta de /responsaveis:', e);
-        lista = [];
-      }
-
-      if (Array.isArray(lista)) {
-        console.log('🔍 Procurando responsável com email:', email);
-        const responsavel = lista.find((item: any) => item.email === email);
-        if (responsavel?.id) {
-          console.log('✅ Responsável encontrado! ID:', responsavel.id);
-          await AsyncStorage.setItem('userId', responsavel.id.toString());
-          console.log('💾 ID do responsável salvo no AsyncStorage');
-        } else {
-          console.warn('⚠️ Usuário logado mas não encontrado como responsável');
-          Alert.alert('Aviso', 'Usuário logado, mas não encontrado na lista de responsáveis.');
-        }
+      // Se o backend já retornou o id do responsável, salvamos direto
+      if (data.responsavel_id) {
+        console.log('🔍 Responsável retornado no login. Salvando ID:', data.responsavel_id);
+        await AsyncStorage.setItem('userId', data.responsavel_id.toString());
       } else {
-        console.error('❌ Formato inválido na resposta de responsáveis');
-        Alert.alert('Erro', 'Resposta inesperada do servidor ao buscar responsáveis.');
-        console.error('Resposta inesperada de /responsaveis:', lista);
+        console.log('🔍 Responsável não retornado no login. Fazendo fallback para /responsaveis');
+        console.log('🔍 Buscando informações do responsável...');
+        const resp = await apiFetch('/responsaveis');
+        let lista;
+        try {
+          lista = await resp.json();
+          console.log('📋 Lista de responsáveis obtida:', lista.length, 'responsáveis encontrados');
+        } catch (e) {
+          console.error('❌ Erro ao processar resposta de /responsaveis:', e);
+          lista = [];
+        }
+
+        if (Array.isArray(lista)) {
+          console.log('🔍 Procurando responsável com email:', email);
+          const responsavel = lista.find((item: any) => item.email === email);
+          if (responsavel?.id) {
+            console.log('✅ Responsável encontrado! ID:', responsavel.id);
+            await AsyncStorage.setItem('userId', responsavel.id.toString());
+            console.log('💾 ID do responsável salvo no AsyncStorage');
+          } else {
+            console.warn('⚠️ Usuário logado mas não encontrado como responsável');
+            Alert.alert('Aviso', 'Usuário logado, mas não encontrado na lista de responsáveis.');
+          }
+        } else {
+          console.error('❌ Formato inválido na resposta de responsáveis');
+          Alert.alert('Erro', 'Resposta inesperada do servidor ao buscar responsáveis.');
+          console.error('Resposta inesperada de /responsaveis:', lista);
+        }
       }
 
       console.log('🎉 Login finalizado com sucesso!');
