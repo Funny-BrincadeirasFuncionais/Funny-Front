@@ -69,10 +69,13 @@ export default function JogoMemoria() {
   const [minijogoRegistered, setMinijogoRegistered] = useState(false);
   useEffect(() => {
     (async () => {
-      if (modalVisible && !minijogoRegistered && criancaId !== null) {
+        if (modalVisible && !minijogoRegistered && criancaId !== null) {
         setMinijogoRegistered(true);
+        // calcularPontuacao retorna valor em escala 0-100; backend espera 0-10 for registrar-minijogo
+        const rawScore = Number(calcularPontuacao());
+        const scaledScore = Math.round(Math.max(0, Math.min(10, rawScore / 10)));
         const res = await registrarMinijogo({
-          pontuacao: Number(calcularPontuacao()),
+          pontuacao: scaledScore,
           categoria: 'Lógica',
           crianca_id: Number(criancaId),
           titulo: 'Jogo da Memória',
