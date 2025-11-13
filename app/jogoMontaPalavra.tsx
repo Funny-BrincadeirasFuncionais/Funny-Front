@@ -17,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import KeyboardSafeView from '@/components/KeyboardSafeView';
 import Svg, { Path } from 'react-native-svg';
 import { Colors } from '../constants/Colors';
-import { ensureAtividadeExists, registrarProgresso, registrarMinijogo } from '../services/api';
+import { ensureAtividadeExists, registrarProgresso } from '../services/api';
 import { useAccessibility } from '../context/AccessibilityContext';
 
 interface Palavra {
@@ -43,6 +43,8 @@ export default function JogoMontaPalavra() {
     const [mensagemFeedback, setMensagemFeedback] = useState<string>('');
     const [mostrarFeedback, setMostrarFeedback] = useState(false);
     const [palavraCorreta, setPalavraCorreta] = useState(false);
+    const [tentativaPronta, setTentativaPronta] = useState(false);
+    const [avaliacaoRealizada, setAvaliacaoRealizada] = useState(false);
     const [animacao] = useState(new Animated.Value(0));
     const [pontuacao, setPontuacao] = useState(0);
     const [criancaId, setCriancaId] = useState<string | null>(null);
@@ -74,32 +76,10 @@ export default function JogoMontaPalavra() {
         })();
     }, []);
 
-        // Register minijogo automatically when modal opens
-        const [minijogoRegistered, setMinijogoRegistered] = useState(false);
-        useEffect(() => {
-            (async () => {
-                if (modalVisible && !minijogoRegistered && criancaId !== null) {
-                    setMinijogoRegistered(true);
-                    const res = await registrarMinijogo({
-                        pontuacao: Number(pontuacao),
-                        categoria: 'Português',
-                        crianca_id: Number(criancaId),
-                        titulo: 'Montar Palavra',
-                        descricao: 'Arraste as letras para formar a palavra',
-                        observacoes: null,
-                    });
-                    if (res.ok) {
-                        const r: any = res;
-                        const atividadeIdFrom = r?.data?.atividade?.id ?? r?.data?.atividade_id ?? null;
-                        if (atividadeIdFrom) setAtividadeId(atividadeIdFrom);
-                    } else {
-                        const r: any = res;
-                        const message = r?.data?.error ?? r?.text ?? r?.error ?? `status ${r?.status}`;
-                        Alert.alert(transformText('Erro'), `${transformText('Falha ao registrar mini-jogo automático')}: ${message}`);
-                    }
-                }
-            })();
-        }, [modalVisible, minijogoRegistered, criancaId, pontuacao]);
+        // Previously we auto-registered the minijogo when the modal opened.
+        // That caused results to be recorded before the player confirmed. Remove that
+        // behavior so the result is only contabilizado when the player presses
+        // "Continuar" and finally when they press "Enviar" in the modal.
 
     useEffect(() => {
         if (palavraAtual) {
@@ -144,21 +124,18 @@ export default function JogoMontaPalavra() {
         const palavraEsperada = palavraAtual.palavra;
         if (letrasSelecionadas.length === palavraEsperada.length) {
             const palavraFormada = letrasSelecionadas.join('');
-            
-            if (palavraFormada === palavraEsperada) {
-                setPalavraCorreta(true);
-                mostrarMensagemFeedback(true);
-                // pontuação simples: +2 por acerto
-                setPontuacao((p) => p + 2);
-            } else {
-                setPalavraCorreta(false);
-                mostrarMensagemFeedback(false);
-            }
+            setPalavraCorreta(palavraFormada === palavraEsperada);
+            // mark that the attempt is ready to be evaluated by pressing Continue
+            setTentativaPronta(true);
+            // reset previous evaluation so first Continue evaluates again
+            setAvaliacaoRealizada(false);
         } else {
             setPalavraCorreta(false);
             setMostrarFeedback(false);
+            setTentativaPronta(false);
+            setAvaliacaoRealizada(false);
         }
-    }, [letrasSelecionadas, palavraAtual, mostrarMensagemFeedback]);
+    }, [letrasSelecionadas, palavraAtual]);
 
     const selecionarLetra = (letra: string, index: number) => {
         if (indicesUsados[index]) {
@@ -197,13 +174,43 @@ export default function JogoMontaPalavra() {
     };
 
     const continuar = () => {
+        // Only allow evaluation when the attempt is ready (full length)
+        if (!tentativaPronta) return;
+
+        // First press: evaluate and show feedback only
+        if (!avaliacaoRealizada) {
+            if (palavraCorreta) {
+                // Award points once
+                setPontuacao((p) => p + 2);
+                mostrarMensagemFeedback(true);
+            } else {
+                setPontuacao((p) => Math.max(0, p - 1));
+                mostrarMensagemFeedback(false);
+            }
+            // mark that evaluation was done; user must press Continue again to proceed
+            setAvaliacaoRealizada(true);
+            return;
+        }
+
+        // Second press: advance or allow retry based on evaluation
         if (palavraCorreta) {
             if (faseAtual < palavras.length - 1) {
                 setFaseAtual(faseAtual + 1);
             } else {
-                // Jogo finalizado - abrir modal para enviar progresso
                 setModalVisible(true);
             }
+            // reset flags for next round
+            setTentativaPronta(false);
+            setAvaliacaoRealizada(false);
+            setMostrarFeedback(false);
+            setMensagemFeedback('');
+        } else {
+            // let player retry the same word
+            reiniciarPalavra();
+            setTentativaPronta(false);
+            setAvaliacaoRealizada(false);
+            setMostrarFeedback(false);
+            setMensagemFeedback('');
         }
     };
 
@@ -341,22 +348,11 @@ export default function JogoMontaPalavra() {
                 {/* Botão Continuar */}
                 <View style={styles.continuarButtonContainer}>
                     <TouchableOpacity
-                        style={[
-                            styles.continuarButton,
-                            !palavraCorreta && styles.continuarButtonDisabled,
-                        ]}
+                        style={styles.continuarButton}
                         onPress={continuar}
-                        disabled={!palavraCorreta}
                         activeOpacity={0.8}
                     >
-                        <Text
-                            style={[
-                                styles.continuarButtonText,
-                                !palavraCorreta && styles.continuarButtonTextDisabled,
-                            ]}
-                        >
-                            {transformText('Continuar')}
-                        </Text>
+                        <Text style={styles.continuarButtonText}>{transformText('Continuar')}</Text>
                     </TouchableOpacity>
                 </View>
 
