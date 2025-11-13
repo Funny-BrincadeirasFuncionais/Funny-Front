@@ -5,8 +5,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Checkbox from 'expo-checkbox';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Image, Pressable, StyleSheet, TextInput } from 'react-native';
-import apiFetch from '@/services/api';
+import { Alert, Image, Pressable, StyleSheet, TextInput, Modal, View } from 'react-native';
+import { WebView } from 'react-native-webview';
+import apiFetch, { BASE_URL } from '@/services/api';
+import Constants from 'expo-constants';
 import { useAccessibility } from '@/context/AccessibilityContext';
 import LoadingOverlay from '@/components/LoadingOverlay';
 import KeyboardSafeView from '@/components/KeyboardSafeView';
@@ -26,87 +28,95 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
   console.log('🔐 Iniciando processo de login...');
-  setIsLoading(true);
   // Validação cliente: não permitir login com campos vazios
   if (!email?.trim() || !senha?.trim()) {
     console.warn('⚠️ Tentativa de login com campos vazios');
     Alert.alert(transformText('Aviso'), transformText('Por favor preencha e-mail e senha antes de entrar.'));
     return;
   }
-  const payload = {
-    email,
-    senha,
-  };
 
-  try {
-    console.log('📡 Enviando requisição de autenticação...');
-    const response = await apiFetch('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    });
-
-    const data = await response.json();
-    console.log('📥 Resposta do servidor recebida');
-
-    if (response.ok) {
-      console.log('✅ Autenticação bem-sucedida!');
-      if (data.access_token) {
-        console.log('💾 Salvando token de acesso no AsyncStorage...');
-        await AsyncStorage.setItem('token', data.access_token);
-      }
-
-      // Se o backend já retornou o id do responsável, salvamos direto
-      if (data.responsavel_id) {
-        console.log('🔍 Responsável retornado no login. Salvando ID:', data.responsavel_id);
-        await AsyncStorage.setItem('userId', data.responsavel_id.toString());
-      } else {
-        console.log('🔍 Responsável não retornado no login. Fazendo fallback para /responsaveis');
-        console.log('🔍 Buscando informações do responsável...');
-        const resp = await apiFetch('/responsaveis');
-        let lista;
-        try {
-          lista = await resp.json();
-          console.log('📋 Lista de responsáveis obtida:', lista.length, 'responsáveis encontrados');
-        } catch (e) {
-          console.error('❌ Erro ao processar resposta de /responsaveis:', e);
-          lista = [];
-        }
-
-        if (Array.isArray(lista)) {
-          console.log('🔍 Procurando responsável com email:', email);
-          const responsavel = lista.find((item: any) => item.email === email);
-          if (responsavel?.id) {
-            console.log('✅ Responsável encontrado! ID:', responsavel.id);
-            await AsyncStorage.setItem('userId', responsavel.id.toString());
-            console.log('💾 ID do responsável salvo no AsyncStorage');
-          } else {
-            console.warn('⚠️ Usuário logado mas não encontrado como responsável');
-            Alert.alert('Aviso', 'Usuário logado, mas não encontrado na lista de responsáveis.');
-          }
-        } else {
-          console.error('❌ Formato inválido na resposta de responsáveis');
-          Alert.alert('Erro', 'Resposta inesperada do servidor ao buscar responsáveis.');
-          console.error('Resposta inesperada de /responsaveis:', lista);
-        }
-      }
-
-      console.log('🎉 Login finalizado com sucesso!');
-      setIsLoading(false);
-      Alert.alert('Sucesso', 'Login realizado com sucesso!');
-      console.log('🔄 Redirecionando para a tela inicial (tabs)...');
-      // usar replace para evitar voltar para a tela de login
-      router.replace('/(tabs)/home');
-    } else {
-      console.error('❌ Falha na autenticação:', data.message);
-      setIsLoading(false);
-      Alert.alert('Erro', data.message || 'Falha no login.');
-    }
-  } catch (error) {
-    console.error('❌ Erro na requisição:', error);
-    setIsLoading(false);
-    Alert.alert('Erro', 'Erro ao conectar com o servidor.');
-  }
+  // Show reCAPTCHA modal; the modal will post a token back to the WebView on success
+  setIsLoading(true);
+  setRecaptchaVisible(true);
 };
+
+  // UI state for recaptcha flow
+  const [recaptchaVisible, setRecaptchaVisible] = useState(false);
+  // Read site key from Expo config (app.json extra). Prefer this over hardcoding.
+  const RECAPTCHA_SITE_KEY = (Constants.expoConfig as any)?.extra?.RECAPTCHA_SITE_KEY || '';
+  if (!RECAPTCHA_SITE_KEY) {
+    console.warn('RECAPTCHA_SITE_KEY not set in expo config (app.json extra). Set extra.RECAPTCHA_SITE_KEY or replace the placeholder in login.tsx');
+  }
+  const recaptchaHtml = (siteKey: string) => `
+    <!doctype html>
+    <html>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script>
+          function onSuccess(token) {
+            window.ReactNativeWebView.postMessage(token);
+          }
+          function onLoadCallback() {
+            try {
+              var widgetId = grecaptcha.render('recaptcha', { 'sitekey': '${siteKey}', 'size': 'invisible', 'callback': onSuccess });
+              grecaptcha.execute(widgetId);
+            } catch (e) {
+              // fallback: try execute directly
+              try { grecaptcha.execute(); } catch (ee) { window.ReactNativeWebView.postMessage('ERROR:'+ee.message); }
+            }
+          }
+        </script>
+      </head>
+      <body>
+        <div id="recaptcha"></div>
+        <script src="https://www.google.com/recaptcha/api.js?onload=onLoadCallback&render=explicit" async defer></script>
+      </body>
+    </html>
+  `;
+
+  const onRecaptchaMessage = async (event: any) => {
+    const token = event.nativeEvent.data;
+    setRecaptchaVisible(false);
+    setIsLoading(true);
+    if (!token || token.startsWith('ERROR:')) {
+      setIsLoading(false);
+      Alert.alert('Erro', 'Falha na verificação reCAPTCHA. Tente novamente.');
+      return;
+    }
+
+    // perform the original login now including recaptcha_token
+    const payload = { email, senha, recaptcha_token: token };
+    try {
+      const response = await apiFetch('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json();
+      setIsLoading(false);
+      if (response.ok) {
+        if (data.access_token) await AsyncStorage.setItem('token', data.access_token);
+        if (data.responsavel_id) {
+          await AsyncStorage.setItem('userId', data.responsavel_id.toString());
+        } else {
+          // fallback behavior unchanged
+          const resp = await apiFetch('/responsaveis');
+          let lista;
+          try { lista = await resp.json(); } catch { lista = []; }
+          if (Array.isArray(lista)) {
+            const responsavel = lista.find((item: any) => item.email === email);
+            if (responsavel?.id) await AsyncStorage.setItem('userId', responsavel.id.toString());
+          }
+        }
+        Alert.alert('Sucesso', 'Login realizado com sucesso!');
+        router.replace('/(tabs)/home');
+      } else {
+        Alert.alert('Erro', data.message || 'Falha no login.');
+      }
+    } catch (e) {
+      setIsLoading(false);
+      Alert.alert('Erro', 'Erro ao conectar com o servidor.');
+    }
+  };
 
 
   return (
@@ -167,6 +177,21 @@ export default function LoginScreen() {
         </Pressable>
 
         </ThemedView>
+        {/* reCAPTCHA modal (invisible widget runs and posts token back) */}
+        <Modal visible={recaptchaVisible} animationType="slide" transparent>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center' }}>
+            <View style={{ height: 400, marginHorizontal: 20, backgroundColor: '#fff', borderRadius: 12, overflow: 'hidden' }}>
+                  <WebView
+                    originWhitelist={["*"]}
+                    // Prefer using a hosted page on the backend domain to avoid "Invalid domain" errors.
+                    source={ BASE_URL ? { uri: `${BASE_URL}/recaptcha` } : { html: recaptchaHtml(RECAPTCHA_SITE_KEY) } }
+                    onMessage={onRecaptchaMessage}
+                    javaScriptEnabled
+                    domStorageEnabled
+                  />
+            </View>
+          </View>
+        </Modal>
       </ThemedView>
     </KeyboardSafeView>
   );
