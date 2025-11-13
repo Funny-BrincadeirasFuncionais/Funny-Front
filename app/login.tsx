@@ -9,6 +9,7 @@ import { Alert, Image, Pressable, StyleSheet, TextInput } from 'react-native';
 import apiFetch from '@/services/api';
 import { useAccessibility } from '@/context/AccessibilityContext';
 import LoadingOverlay from '@/components/LoadingOverlay';
+import KeyboardSafeView from '@/components/KeyboardSafeView';
 
 
 
@@ -109,13 +110,14 @@ export default function LoginScreen() {
 
 
   return (
-    <ThemedView style={styles.container}>
-      <LoadingOverlay visible={isLoading} message={isLoading ? 'Conectando...' : undefined} />
-      <Image style={styles.image}
-        source={require('../assets/images/funny.png')}
-        resizeMode="contain"
-      />
-      <ThemedView style={styles.card}>
+    <KeyboardSafeView>
+      <ThemedView style={styles.container}>
+        <LoadingOverlay visible={isLoading} message={isLoading ? 'Conectando...' : undefined} />
+        <Image style={styles.image}
+          source={require('../assets/images/funny.png')}
+          resizeMode="contain"
+        />
+        <ThemedView style={styles.card}>
         <ThemedText type="title" style={styles.title}>Login</ThemedText>
 
         <ThemedView style={styles.centeredRow}>
@@ -164,8 +166,9 @@ export default function LoginScreen() {
           <ThemedText style={styles.loginButtonText}>Entrar</ThemedText>
         </Pressable>
 
+        </ThemedView>
       </ThemedView>
-    </ThemedView>
+    </KeyboardSafeView>
   );
 }
 

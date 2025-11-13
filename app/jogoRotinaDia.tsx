@@ -15,6 +15,7 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import KeyboardSafeView from '@/components/KeyboardSafeView';
 import Svg, { Path } from 'react-native-svg';
 import { Colors } from '../constants/Colors';
 import { useAccessibility } from '../context/AccessibilityContext';
@@ -394,7 +395,8 @@ export default function JogoRotinaDia() {
 
     if (jogoFinalizado) {
         return (
-            <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+                <KeyboardSafeView>
+                    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
                 <StatusBar barStyle="light-content" backgroundColor="#F78F3F" />
                 
                 <View style={styles.backgroundShapes}>
@@ -473,12 +475,13 @@ export default function JogoRotinaDia() {
                         </View>
                     </View>
                 </Modal>
-            </SafeAreaView>
+                </SafeAreaView>
+            </KeyboardSafeView>
         );
     }
 
     return (
-        <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+            <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
             <StatusBar barStyle="light-content" backgroundColor="#F78F3F" />
             
             {/* Background Blob Shapes */}

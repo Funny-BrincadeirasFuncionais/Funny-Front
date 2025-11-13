@@ -7,6 +7,7 @@ import { Alert, Pressable, StyleSheet, TextInput } from 'react-native';
 import apiFetch from '@/services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LoadingOverlay from '@/components/LoadingOverlay';
+import KeyboardSafeView from '@/components/KeyboardSafeView';
 
 export default function CadastroScreen() {
   const [nome, setNome] = useState('');
@@ -137,9 +138,10 @@ export default function CadastroScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
-      <LoadingOverlay visible={isLoading} message={isLoading ? 'Enviando...' : undefined} />
-      <ThemedView style={styles.card}>
+    <KeyboardSafeView>
+      <ThemedView style={styles.container}>
+        <LoadingOverlay visible={isLoading} message={isLoading ? 'Enviando...' : undefined} />
+        <ThemedView style={styles.card}>
         <Pressable onPress={() => router.back()} style={styles.backArrow}>
           <Ionicons name="arrow-back" size={24} color="black" />
         </Pressable>
@@ -194,8 +196,9 @@ export default function CadastroScreen() {
         <Pressable style={styles.registerButton} onPress={handleRegister}>
           <ThemedText style={styles.registerButtonText}>Registre-se</ThemedText>
         </Pressable>
+        </ThemedView>
       </ThemedView>
-    </ThemedView>
+    </KeyboardSafeView>
   );
 }
 

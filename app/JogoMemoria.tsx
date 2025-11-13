@@ -11,6 +11,7 @@ import {
   TextInput
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import KeyboardSafeView from '@/components/KeyboardSafeView';
 import Svg, { Path } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -212,7 +213,8 @@ export default function JogoMemoria() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <KeyboardSafeView>
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <StatusBar barStyle="light-content" backgroundColor="#F78F3F" />
 
       {/* Fundo decorativo simples */}
@@ -293,7 +295,8 @@ export default function JogoMemoria() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+      </SafeAreaView>
+    </KeyboardSafeView>
   );
 }
 

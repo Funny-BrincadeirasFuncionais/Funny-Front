@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Alert, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View, StatusBar } from 'react-native';
 import { ensureAtividadeExists, registrarProgresso, registrarMinijogo } from '../services/api';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import KeyboardSafeView from '@/components/KeyboardSafeView';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Path } from 'react-native-svg';
 import { Colors } from '../constants/Colors';
@@ -156,7 +157,8 @@ export default function JogoContagem() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top','bottom']}>
+    <KeyboardSafeView>
+      <SafeAreaView style={styles.container} edges={['top','bottom']}>
   <StatusBar barStyle="light-content" backgroundColor={applyColor(Colors.light.primary)} />
 
       {/* Background blobs */}
@@ -233,7 +235,8 @@ export default function JogoContagem() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+      </SafeAreaView>
+    </KeyboardSafeView>
   );
 }
 

@@ -14,6 +14,7 @@ import {
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import KeyboardSafeView from '@/components/KeyboardSafeView';
 import Svg, { Path } from 'react-native-svg';
 import { Colors } from '../constants/Colors';
 import { ensureAtividadeExists, registrarProgresso, registrarMinijogo } from '../services/api';
@@ -220,7 +221,8 @@ export default function JogoMontaPalavra() {
     });
 
     return (
-        <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+            <KeyboardSafeView>
+                <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
             <StatusBar barStyle="light-content" backgroundColor="#F78F3F" />
             
             {/* Background Blob Shapes */}
@@ -416,8 +418,9 @@ export default function JogoMontaPalavra() {
                     </View>
                 </View>
             </Modal>
-        </SafeAreaView>
-    );
+                </SafeAreaView>
+            </KeyboardSafeView>
+        );
 }
 
 const styles = StyleSheet.create({
