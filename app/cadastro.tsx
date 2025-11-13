@@ -3,9 +3,10 @@ import { ThemedView } from '@/components/ThemedView';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, TextInput, ActivityIndicator } from 'react-native';
+import { Alert, Pressable, StyleSheet, TextInput } from 'react-native';
 import apiFetch from '@/services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import LoadingOverlay from '@/components/LoadingOverlay';
 
 export default function CadastroScreen() {
   const [nome, setNome] = useState('');
@@ -137,6 +138,7 @@ export default function CadastroScreen() {
 
   return (
     <ThemedView style={styles.container}>
+      <LoadingOverlay visible={isLoading} message={isLoading ? 'Enviando...' : undefined} />
       <ThemedView style={styles.card}>
         <Pressable onPress={() => router.back()} style={styles.backArrow}>
           <Ionicons name="arrow-back" size={24} color="black" />

@@ -8,10 +8,12 @@ import { useState } from 'react';
 import { Alert, Image, Pressable, StyleSheet, TextInput } from 'react-native';
 import apiFetch from '@/services/api';
 import { useAccessibility } from '@/context/AccessibilityContext';
+import LoadingOverlay from '@/components/LoadingOverlay';
 
 
 
 export default function LoginScreen() {
+  const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [emailFocused, setEmailFocused] = useState(false);
@@ -23,6 +25,7 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
   console.log('🔐 Iniciando processo de login...');
+  setIsLoading(true);
   // Validação cliente: não permitir login com campos vazios
   if (!email?.trim() || !senha?.trim()) {
     console.warn('⚠️ Tentativa de login com campos vazios');
@@ -87,16 +90,19 @@ export default function LoginScreen() {
       }
 
       console.log('🎉 Login finalizado com sucesso!');
+      setIsLoading(false);
       Alert.alert('Sucesso', 'Login realizado com sucesso!');
       console.log('🔄 Redirecionando para a tela inicial (tabs)...');
       // usar replace para evitar voltar para a tela de login
       router.replace('/(tabs)/home');
     } else {
       console.error('❌ Falha na autenticação:', data.message);
+      setIsLoading(false);
       Alert.alert('Erro', data.message || 'Falha no login.');
     }
   } catch (error) {
     console.error('❌ Erro na requisição:', error);
+    setIsLoading(false);
     Alert.alert('Erro', 'Erro ao conectar com o servidor.');
   }
 };
@@ -104,6 +110,7 @@ export default function LoginScreen() {
 
   return (
     <ThemedView style={styles.container}>
+      <LoadingOverlay visible={isLoading} message={isLoading ? 'Conectando...' : undefined} />
       <Image style={styles.image}
         source={require('../assets/images/funny.png')}
         resizeMode="contain"
