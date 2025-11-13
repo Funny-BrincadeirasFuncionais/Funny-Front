@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
@@ -11,15 +12,17 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
+import { useAccessibility } from '../context/AccessibilityContext';
 
 export default function JogosMatematicaScreen() {
   const router = useRouter();
+  const { transformText } = useAccessibility();
 
   const jogos = [
     {
       id: '1',
       nome: 'Desafio de Contagem',
-      descricao: 'Placeholder de matemática',
+      descricao: 'Conte objetos e selecione o número correto',
       icone: 'calculator-outline',
     },
   ];
@@ -32,28 +35,32 @@ export default function JogosMatematicaScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={Colors.light.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Jogos de Matemática</Text>
+        <Text style={styles.headerTitle}>{transformText('Jogos de Matemática')}</Text>
         <View style={styles.placeholder} />
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.contentContainer}>
-        <Text style={styles.sectionTitle}>Escolha um jogo para começar:</Text>
+        <Text style={styles.sectionTitle}>{transformText('Escolha um jogo para começar:')}</Text>
 
         {jogos.map((jogo) => (
           <TouchableOpacity
             key={jogo.id}
             style={styles.gameCard}
-            onPress={() => {
-              // Navegação futura para o jogo específico
-              console.log(`Navegar para jogo: ${jogo.nome}`);
+            onPress={async () => {
+              const cid = await AsyncStorage.getItem('criancaSelecionada');
+              if (!cid) {
+                alert(transformText('Selecione uma criança na Home antes de iniciar um jogo.'));
+                return;
+              }
+              router.push('/jogoContagem');
             }}
           >
             <View style={styles.gameIconContainer}>
               <Ionicons name={jogo.icone as any} size={48} color={Colors.light.primary} />
             </View>
             <View style={styles.gameInfo}>
-              <Text style={styles.gameName}>{jogo.nome}</Text>
-              <Text style={styles.gameDescription}>{jogo.descricao}</Text>
+              <Text style={styles.gameName}>{transformText(jogo.nome)}</Text>
+              <Text style={styles.gameDescription}>{transformText(jogo.descricao)}</Text>
             </View>
             <Ionicons name="chevron-forward" size={24} color={Colors.light.textSecondary} />
           </TouchableOpacity>

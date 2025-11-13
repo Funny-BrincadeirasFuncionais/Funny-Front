@@ -56,7 +56,7 @@ export default function TabsLayout() {
           }}
         />
         <Tabs.Screen
-          name="CriancaProfileScreen"
+          name="minhasTurmasTab"
           options={{
             title: '',
             tabBarIcon: ({ color, size }) => (
@@ -75,6 +75,7 @@ export default function TabsLayout() {
         />
 
         {/* Outras telas ocultas */}
+        <Tabs.Screen name="CriancaProfileScreen" options={{ href: null }} />
         <Tabs.Screen name="configuracoes" options={{ href: null }} />
         <Tabs.Screen name="sobre" options={{ href: null }} />
         <Tabs.Screen name="acessibilidade" options={{ href: null }} />

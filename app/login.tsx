@@ -1,14 +1,20 @@
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { FontAwesome } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Checkbox from 'expo-checkbox';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Image, Pressable, StyleSheet, TextInput } from 'react-native';
+import apiFetch from '@/services/api';
+import { useAccessibility } from '@/context/AccessibilityContext';
+import LoadingOverlay from '@/components/LoadingOverlay';
+import KeyboardSafeView from '@/components/KeyboardSafeView';
 
 
 
 export default function LoginScreen() {
+  const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [emailFocused, setEmailFocused] = useState(false);
@@ -16,58 +22,102 @@ export default function LoginScreen() {
   const [rememberMe, setRememberMe] = useState(false);
 
   const router = useRouter();
+  const { transformText } = useAccessibility();
 
   const handleLogin = async () => {
-    const payload = {
-      email,
-      senha,
-    };
-
-    try {
-      const response = await fetch('https://funny-back-fq78skku2-lianas-projects-1c0ab9bd.vercel.app/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        if (rememberMe && data.token) {
-          await AsyncStorage.setItem('token', data.token);
-        }
-
-        // Busca todos os responsáveis para identificar o ID do usuário logado
-        const resp = await fetch('https://funny-back-fq78skku2-lianas-projects-1c0ab9bd.vercel.app/responsaveis');
-        const lista = await resp.json();
-
-        const responsavel = lista.find((item: any) => item.email === email);
-
-        if (responsavel?.id) {
-          await AsyncStorage.setItem('userId', responsavel.id.toString());
-        } else {
-          Alert.alert('Aviso', 'Usuário logado, mas não encontrado na lista de responsáveis.');
-        }
-
-        Alert.alert('Sucesso', 'Login realizado com sucesso!');
-        router.push('/home');
-      } else {
-        Alert.alert('Erro', data.message || 'Falha no login.');
-      }
-    } catch (error) {
-      console.error('Erro ao fazer login:', error);
-      Alert.alert('Erro', 'Erro ao conectar com o servidor.');
-    }
+  console.log('🔐 Iniciando processo de login...');
+  setIsLoading(true);
+  // Validação cliente: não permitir login com campos vazios
+  if (!email?.trim() || !senha?.trim()) {
+    console.warn('⚠️ Tentativa de login com campos vazios');
+    Alert.alert(transformText('Aviso'), transformText('Por favor preencha e-mail e senha antes de entrar.'));
+    return;
+  }
+  const payload = {
+    email,
+    senha,
   };
+
+  try {
+    console.log('📡 Enviando requisição de autenticação...');
+    const response = await apiFetch('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+    console.log('📥 Resposta do servidor recebida');
+
+    if (response.ok) {
+      console.log('✅ Autenticação bem-sucedida!');
+      if (data.access_token) {
+        console.log('💾 Salvando token de acesso no AsyncStorage...');
+        await AsyncStorage.setItem('token', data.access_token);
+      }
+
+      // Se o backend já retornou o id do responsável, salvamos direto
+      if (data.responsavel_id) {
+        console.log('🔍 Responsável retornado no login. Salvando ID:', data.responsavel_id);
+        await AsyncStorage.setItem('userId', data.responsavel_id.toString());
+      } else {
+        console.log('🔍 Responsável não retornado no login. Fazendo fallback para /responsaveis');
+        console.log('🔍 Buscando informações do responsável...');
+        const resp = await apiFetch('/responsaveis');
+        let lista;
+        try {
+          lista = await resp.json();
+          console.log('📋 Lista de responsáveis obtida:', lista.length, 'responsáveis encontrados');
+        } catch (e) {
+          console.error('❌ Erro ao processar resposta de /responsaveis:', e);
+          lista = [];
+        }
+
+        if (Array.isArray(lista)) {
+          console.log('🔍 Procurando responsável com email:', email);
+          const responsavel = lista.find((item: any) => item.email === email);
+          if (responsavel?.id) {
+            console.log('✅ Responsável encontrado! ID:', responsavel.id);
+            await AsyncStorage.setItem('userId', responsavel.id.toString());
+            console.log('💾 ID do responsável salvo no AsyncStorage');
+          } else {
+            console.warn('⚠️ Usuário logado mas não encontrado como responsável');
+            Alert.alert('Aviso', 'Usuário logado, mas não encontrado na lista de responsáveis.');
+          }
+        } else {
+          console.error('❌ Formato inválido na resposta de responsáveis');
+          Alert.alert('Erro', 'Resposta inesperada do servidor ao buscar responsáveis.');
+          console.error('Resposta inesperada de /responsaveis:', lista);
+        }
+      }
+
+      console.log('🎉 Login finalizado com sucesso!');
+      setIsLoading(false);
+      Alert.alert('Sucesso', 'Login realizado com sucesso!');
+      console.log('🔄 Redirecionando para a tela inicial (tabs)...');
+      // usar replace para evitar voltar para a tela de login
+      router.replace('/(tabs)/home');
+    } else {
+      console.error('❌ Falha na autenticação:', data.message);
+      setIsLoading(false);
+      Alert.alert('Erro', data.message || 'Falha no login.');
+    }
+  } catch (error) {
+    console.error('❌ Erro na requisição:', error);
+    setIsLoading(false);
+    Alert.alert('Erro', 'Erro ao conectar com o servidor.');
+  }
+};
 
 
   return (
-    <ThemedView style={styles.container}>
-      <Image style={styles.image}
-        source={require('../assets/images/funny.png')}
-        resizeMode="contain"
-      />
-      <ThemedView style={styles.card}>
+    <KeyboardSafeView>
+      <ThemedView style={styles.container}>
+        <LoadingOverlay visible={isLoading} message={isLoading ? 'Conectando...' : undefined} />
+        <Image style={styles.image}
+          source={require('../assets/images/funny.png')}
+          resizeMode="contain"
+        />
+        <ThemedView style={styles.card}>
         <ThemedText type="title" style={styles.title}>Login</ThemedText>
 
         <ThemedView style={styles.centeredRow}>
@@ -111,24 +161,14 @@ export default function LoginScreen() {
           </Pressable>
         </ThemedView>
 
-        {/* Botão de login real (comentado por enquanto) */}
-        {/*<Pressable style={styles.loginButton} onPress={handleLogin}> 
-        <ThemedText style={styles.loginButtonText}>Entrar</ThemedText>
-        </Pressable>*/}
-
-        {/* Botão provisório: vai direto para home.tsx */}
-        <Pressable
-          style={styles.loginButton}
-          onPress={() => {
-            // Provisório: navega direto para a home dentro das tabs
-            router.replace('/(tabs)/home');
-          }}
-        >
+        {/* Botão de login real: chama o handler que valida/efetua autenticação */}
+        <Pressable style={styles.loginButton} onPress={handleLogin}>
           <ThemedText style={styles.loginButtonText}>Entrar</ThemedText>
         </Pressable>
 
+        </ThemedView>
       </ThemedView>
-    </ThemedView>
+    </KeyboardSafeView>
   );
 }
 

@@ -1,9 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getJson, putJson, deleteJson } from '../../services/api';
+import { getProgressoCrianca, listAtividades } from '../../services/api';
 import {
   FlatList,
-  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -13,58 +15,173 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
+import { useAccessibility } from '../../context/AccessibilityContext';
 
 export default function CriancaProfileScreen() {
-  const [diagnostico] = useState<string>('Não especificado');
-  const [notaContar] = useState<string>('Ainda não fez');
-  const [notaPalavras] = useState<string>('Ainda não fez');
-  const [popup, setPopup] = useState<'contar' | 'palavras' | null>(null);
-  const [totalAtividades] = useState<number>(0);
   const [modalDiagnostico, setModalDiagnostico] = useState(false);
   const [diagnosticoSelecionado, setDiagnosticoSelecionado] = useState<number | null>(null);
-  const [anotacoes, setAnotacoes] = useState<string>('');
-  const [modalAnotacoes, setModalAnotacoes] = useState(false);
-  const [anotacoesTemp, setAnotacoesTemp] = useState<string>('');
   const router = useRouter();
+  const params = useLocalSearchParams();
+  const criancaId = params.id ? Number(params.id) : null;
+  const { transformText } = useAccessibility();
+
+  const [diagList, setDiagList] = useState<any[]>([]);
+  const [turmas, setTurmas] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // editable fields
+  const [nome, setNome] = useState<string>('');
+  const [idade, setIdade] = useState<string>('');
+  const [diagnosticoId, setDiagnosticoId] = useState<number | null>(null);
+  const [turmaId, setTurmaId] = useState<number | null>(null);
+  const [diagnosticoNome, setDiagnosticoNome] = useState<string>('Não especificado');
+  const [turmaNome, setTurmaNome] = useState<string>('Sem turma');
+  const [progressos, setProgressos] = useState<any[]>([]);
+  const [atividadesMap, setAtividadesMap] = useState<Record<number, any>>({});
+
+  useEffect(() => {
+    const carregar = async () => {
+      if (!criancaId) return;
+      setLoading(true);
+      try {
+        const c = await getJson(`/criancas/${criancaId}`);
+        setNome(c.nome ?? '');
+        setIdade(String(c.idade ?? ''));
+        setDiagnosticoId(c.diagnostico_id ?? null);
+        setTurmaId(c.turma_id ?? null);
+
+        // Buscar nome do diagnóstico
+        const diag = await getJson('/diagnosticos');
+        setDiagList(Array.isArray(diag) ? diag : []);
+        if (c.diagnostico_id) {
+          const d = diag.find((item: any) => item.id === c.diagnostico_id);
+          setDiagnosticoNome(d?.tipo ?? 'Não especificado');
+        }
+
+        // Buscar nome da turma
+        if (c.turma_id) {
+          try {
+            const t = await getJson(`/turmas/${c.turma_id}`);
+            setTurmaNome(t.nome ?? 'Sem turma');
+          } catch {
+            setTurmaNome('Sem turma');
+          }
+        }
+
+        const allTurmas = await getJson('/turmas');
+        setTurmas(Array.isArray(allTurmas) ? allTurmas : []);
+
+        // Carregar progresso e atividades
+        try {
+          const [progs, atividades] = await Promise.all([
+            getProgressoCrianca(criancaId),
+            listAtividades(),
+          ]);
+          setProgressos(progs);
+          const map: Record<number, any> = {};
+          (Array.isArray(atividades) ? atividades : []).forEach((a: any) => {
+            map[a.id] = a;
+          });
+          setAtividadesMap(map);
+        } catch (e) {
+          console.warn('Falha ao carregar progresso/atividades', e);
+        }
+      } catch (e) {
+        console.error('Erro ao carregar criança:', e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    carregar();
+  }, [criancaId]);
 
   // Dados estáticos para exibição visual
   const crianca = {
-    nome: 'Nome da Criança',
-    idade: 8,
+    nome: nome || 'Nome da Criança',
+    idade: Number(idade) || 0,
   };
 
   // Diagnosticos estáticos para o modal visual
-  const diagnosticos = [
+  const diagnosticos = diagList.length ? diagList : [
     { id: 1, tipo: 'Autismo de Nível 1' },
     { id: 2, tipo: 'Autismo de Nível 2' },
     { id: 3, tipo: 'Autismo de Nível 3' },
     { id: 4, tipo: 'Não especificado' },
   ];
 
-  const atividades = [
-    { id: 'contar', nome: 'Jogo de Contar', nota: notaContar },
-  ];
+  const concluidasCount = progressos.filter((p) => p.concluida).length;
 
-  const acessarJogo = (tipo: 'contar' | 'palavras') => {
-    setPopup(null);
-    router.push(tipo === 'contar' ? '/jogoContagem' : '/jogoPalavra');
+  // Jogos são acessados pelas telas de categorias (Matemática/Português)
+
+  const atualizarDiagnostico = async () => {
+    if (!criancaId || !diagnosticoSelecionado) {
+      setModalDiagnostico(false);
+      return;
+    }
+    try {
+      const res = await putJson(`/criancas/${criancaId}`, { diagnostico_id: diagnosticoSelecionado });
+      if (res.ok) {
+        const escolhido = diagList.find((d) => d.id === diagnosticoSelecionado);
+        setDiagnosticoId(diagnosticoSelecionado);
+        setDiagnosticoNome(escolhido?.tipo ?? 'Não especificado');
+        Alert.alert('Sucesso', 'Diagnóstico atualizado com sucesso.');
+      } else {
+        const txt = await res.text();
+        Alert.alert('Erro', `Falha ao atualizar: ${res.status} ${txt}`);
+      }
+    } catch (e) {
+      console.error('Erro ao atualizar diagnóstico', e);
+      Alert.alert('Erro', 'Falha ao atualizar diagnóstico');
+    } finally {
+      setModalDiagnostico(false);
+    }
   };
 
-  const atualizarDiagnostico = () => {
-    setModalDiagnostico(false);
+  const salvarCrianca = async () => {
+    if (!criancaId) return;
+    try {
+      const body: any = { nome, idade: Number(idade) };
+      if (diagnosticoId) body.diagnostico_id = diagnosticoId;
+      if (turmaId) body.turma_id = turmaId;
+      const res = await putJson(`/criancas/${criancaId}`, body);
+      if (res.ok) {
+        Alert.alert('Sucesso', 'Dados da criança atualizados');
+      } else {
+        const t = await res.text();
+        Alert.alert('Erro', `Falha ao atualizar: ${res.status} ${t}`);
+      }
+    } catch (e) {
+      console.error('Erro ao salvar criança:', e);
+      Alert.alert('Erro', 'Falha ao salvar criança');
+    }
   };
 
-  const abrirModalAnotacoes = () => {
-    setAnotacoesTemp(anotacoes);
-    setModalAnotacoes(true);
-  };
-
-  const salvarAnotacoes = () => {
-    setAnotacoes(anotacoesTemp);
-    setModalAnotacoes(false);
+  const deletarCrianca = async () => {
+    if (!criancaId) return;
+    Alert.alert('Confirmar', 'Deseja deletar esta criança?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Deletar', style: 'destructive', onPress: () => {
+        void (async () => {
+          try {
+            const res = await deleteJson(`/criancas/${criancaId}`);
+            if (res.ok || res.status === 204) {
+              Alert.alert('Removido', 'Criança removida');
+              router.back();
+            } else {
+              const txt = await res.text();
+              Alert.alert('Erro', `Falha ao remover: ${res.status} ${txt}`);
+            }
+          } catch (e) {
+            console.error('Erro ao deletar criança:', e);
+            Alert.alert('Erro', 'Falha ao deletar criança');
+          }
+        })();
+      } }
+    ]);
   };
 
   return (
@@ -74,7 +191,7 @@ export default function CriancaProfileScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.push('/TeacherProfileScreen')}>
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Perfil da Criança</Text>
+        <Text style={styles.headerTitle}>{transformText('Perfil da Criança')}</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -82,80 +199,77 @@ export default function CriancaProfileScreen() {
         {/* Perfil */}
         <View style={styles.profileContainer}>
           <View style={styles.avatarWrapper}>
-            <Image source={{ uri: 'https://images.unsplash.com/photo-1560785496-3c9d27877182?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=80&w=1074' }} style={styles.avatar} />
+            <Ionicons name="person-circle" size={120} color={Colors.light.primary} />
           </View>
-          <Text style={styles.name}>{crianca.nome}</Text>
-          <Text style={styles.age}>Idade: {crianca.idade} anos</Text>
+          <Text style={styles.name}>{transformText(crianca.nome)}</Text>
+          <Text style={styles.age}>{transformText('Idade')}: {crianca.idade} {transformText('anos')}</Text>
 
           <View style={styles.buttonRow}>
             <TouchableOpacity
               style={styles.editButton}
               onPress={() => setModalDiagnostico(true)}
             >
-              <Text style={styles.editText}>Editar Diagnóstico</Text>
+              <Text style={styles.editText}>{transformText('Editar Diagnóstico')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.deleteButtonTop}
-              onPress={() => {
-                router.push('/TeacherProfileScreen');
-              }}
+              onPress={deletarCrianca}
             >
               <Ionicons name="trash" size={18} color="#fff" />
-              <Text style={styles.deleteButtonTextTop}>Deletar</Text>
+              <Text style={styles.deleteButtonTextTop}>{transformText('Deletar')}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Painel de controle */}
         <View style={styles.panelContainer}>
-          <Text style={styles.sectionTitle}>Progresso:</Text>
+          <Text style={styles.sectionTitle}>{transformText('Informações:')}</Text>
           <View style={styles.statsRow}>
             <View style={styles.statBox}>
-              <Text style={styles.statValue}>{totalAtividades}</Text>
-              <Text style={styles.statLabel}>Atividades Concluídas</Text>
+              <Text style={styles.statValue}>{concluidasCount}</Text>
+              <Text style={styles.statLabel}>{transformText('Atividades Concluídas')}</Text>
             </View>
             <View style={styles.statBox}>
-              <Text style={styles.statValue}>{diagnostico}</Text>
-              <Text style={styles.statLabel}>Diagnóstico</Text>
+              <Text style={styles.statValue}>{transformText(diagnosticoNome)}</Text>
+              <Text style={styles.statLabel}>{transformText('Diagnóstico')}</Text>
             </View>
+          </View>
+          <View style={[styles.statBox, { marginTop: 12 }]}>
+            <Text style={styles.statValue}>{transformText(turmaNome)}</Text>
+            <Text style={styles.statLabel}>{transformText('Turma')}</Text>
           </View>
         </View>
 
-        {/* Anotações */}
-        <View style={styles.infoContainer}>
-          <Text style={styles.sectionTitle}>Anotações:</Text>
-          <TouchableOpacity style={styles.infoItem} onPress={abrirModalAnotacoes}>
-            <Ionicons name="document-text-outline" size={24} color="#E07612" />
-            <View style={styles.infoTextContainer}>
-              <Text style={styles.infoLabel}>Anotações sobre a criança</Text>
-              <Text style={styles.infoText} numberOfLines={2}>
-                {anotacoes || 'Clique para adicionar anotações...'}
-              </Text>
-            </View>
-            <Ionicons name="pencil" size={20} color="#E07612" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Atividades */}
+        {/* Atividades (Progresso) */}
         <View style={styles.activitiesContainer}>
-          <Text style={styles.sectionTitle}>Atividades:</Text>
-          {atividades.map((atividade) => (
-            <TouchableOpacity
-              key={atividade.id}
-              style={styles.activityItem}
-              onPress={() => setPopup(atividade.id as 'contar' | 'palavras')}
-            >
-              <View style={styles.activityContent}>
-                <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
-                <View style={styles.activityInfo}>
-                  <Text style={styles.activityTitle}>{atividade.nome}</Text>
-                  <Text style={styles.activityNote}>Nota: {atividade.nota}</Text>
+          <Text style={styles.sectionTitle}>{transformText('Atividades (histórico):')}</Text>
+          {progressos.length === 0 ? (
+            <Text style={{ color: '#666' }}>{transformText('Nenhuma atividade registrada ainda.')}</Text>
+          ) : (
+            progressos.map((p) => {
+              const atividade = p.atividade || atividadesMap[p.atividade_id] || null;
+              const titulo = atividade?.titulo || `Atividade #${p.atividade_id}`;
+              return (
+                <View key={p.id} style={styles.activityItem}>
+                  <View style={styles.activityContent}>
+                    <Ionicons
+                      name={p.concluida ? 'checkmark-circle' : 'ellipse-outline'}
+                      size={24}
+                      color={p.concluida ? '#4CAF50' : '#999'}
+                    />
+                    <View style={styles.activityInfo}>
+                      <Text style={styles.activityTitle}>{transformText(titulo)}</Text>
+                      <Text style={styles.activityNote}>{transformText('Pontuação')}: {p.pontuacao}</Text>
+                      {p.observacoes ? (
+                        <Text style={[styles.activityNote, { marginTop: 2 }]}>{transformText('Obs.')}: {p.observacoes}</Text>
+                      ) : null}
+                    </View>
+                  </View>
                 </View>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#000" />
-            </TouchableOpacity>
-          ))}
+              );
+            })
+          )}
         </View>
       </ScrollView>
 
@@ -163,7 +277,7 @@ export default function CriancaProfileScreen() {
       <Modal visible={modalDiagnostico} transparent animationType="fade" onRequestClose={() => setModalDiagnostico(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Selecione o Diagnóstico</Text>
+            <Text style={styles.modalTitle}>{transformText('Selecione o Diagnóstico')}</Text>
             <FlatList
               data={diagnosticos}
               keyExtractor={(item) => item.id.toString()}
@@ -175,7 +289,7 @@ export default function CriancaProfileScreen() {
                     diagnosticoSelecionado === item.id && { backgroundColor: '#FBE8D4' },
                   ]}
                 >
-                  <Text style={styles.optionText}>{item.tipo}</Text>
+                  <Text style={styles.optionText}>{transformText(item.tipo)}</Text>
                 </Pressable>
               )}
             />
@@ -184,83 +298,20 @@ export default function CriancaProfileScreen() {
                 style={[styles.modalButton, styles.cancelButton]}
                 onPress={() => setModalDiagnostico(false)}
               >
-                <Text style={[styles.modalButtonText, { color: '#E07612' }]}>Cancelar</Text>
+                <Text style={[styles.modalButtonText, { color: '#E07612' }]}>{transformText('Cancelar')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalButton, styles.confirmButton]}
                 onPress={atualizarDiagnostico}
               >
-                <Text style={[styles.modalButtonText, { color: 'white' }]}>Confirmar</Text>
+                <Text style={[styles.modalButtonText, { color: 'white' }]}>{transformText('Confirmar')}</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
 
-      {/* Modal de Anotações */}
-      <Modal visible={modalAnotacoes} transparent animationType="fade" onRequestClose={() => setModalAnotacoes(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Anotações sobre a criança</Text>
-            <Text style={styles.modalSubtitle}>
-              Escreva suas observações, notas ou comentários sobre a criança aqui.
-            </Text>
-            <TextInput
-              style={styles.textInput}
-              multiline
-              numberOfLines={8}
-              placeholder="Digite suas anotações aqui..."
-              value={anotacoesTemp}
-              onChangeText={setAnotacoesTemp}
-              textAlignVertical="top"
-            />
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => setModalAnotacoes(false)}
-              >
-                <Text style={[styles.modalButtonText, { color: '#E07612' }]}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.confirmButton]}
-                onPress={salvarAnotacoes}
-              >
-                <Text style={[styles.modalButtonText, { color: 'white' }]}>Salvar</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Modal de Jogo */}
-      <Modal visible={popup !== null} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>
-              {popup === 'contar' ? 'Jogo de Contar' : 'Jogo das Palavras'}
-            </Text>
-            <Text style={styles.modalSubtitle}>
-              {popup === 'contar'
-                ? 'Nesse jogo a criança deverá contar os elementos na tela e escolher a resposta correta.'
-                : 'Nesse jogo a criança deverá adivinhar palavras com base em dicas visuais.'}
-            </Text>
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => setPopup(null)}
-              >
-                <Text style={[styles.modalButtonText, { color: '#E07612' }]}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.confirmButton]}
-                onPress={() => acessarJogo(popup!)}
-              >
-                <Text style={[styles.modalButtonText, { color: 'white' }]}>Acessar o jogo</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      {/* Modal de Jogo removido (perfil mostra histórico, jogos acessados pelas telas de categorias) */}
     </SafeAreaView>
   );
 }

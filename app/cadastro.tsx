@@ -4,6 +4,10 @@ import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, TextInput } from 'react-native';
+import apiFetch from '@/services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import LoadingOverlay from '@/components/LoadingOverlay';
+import KeyboardSafeView from '@/components/KeyboardSafeView';
 
 export default function CadastroScreen() {
   const [nome, setNome] = useState('');
@@ -15,46 +19,129 @@ export default function CadastroScreen() {
   const [emailFocused, setEmailFocused] = useState(false);
   const [telFocused, setTelFocused] = useState(false);
   const [senhaFocused, setSenhaFocused] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const router = useRouter();
 
   const handleRegister = async () => {
+    console.log('📝 Iniciando processo de cadastro...');
+    setIsLoading(true);
     const payload = {
       nome,
       email,
       senha,
       telefone,
     };
+    console.log('📋 Dados do formulário preparados');
 
     try {
-      const res1 = await fetch('https://funny-back-fq78skku2-lianas-projects-1c0ab9bd.vercel.app/auth/register', {
+      console.log('1️⃣ Registrando novo usuário...');
+      const res1 = await apiFetch('/auth/register', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
-      const res2 = await fetch('https://funny-back-fq78skku2-lianas-projects-1c0ab9bd.vercel.app/responsaveis', {
+      if (!res1.ok) {
+        const errorText = await res1.text();
+        console.error('❌ Erro no registro:', errorText);
+        console.error('Status:', res1.status);
+        Alert.alert('Erro', 'Falha no cadastro. Verifique os dados e tente novamente.');
+        setIsLoading(false);
+        return;
+      }
+      console.log('✅ Usuário registrado com sucesso!');
+
+      // 2. Fazer login para obter token
+      console.log('2️⃣ Iniciando autenticação automática...');
+      const loginRes = await apiFetch('/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, senha }),
+      });
+
+      const responseText = await loginRes.text();
+      console.log('📥 Resposta do servidor recebida');
+
+      if (!loginRes.ok) {
+        console.error('❌ Falha na autenticação automática');
+        console.error('Status:', loginRes.status);
+        console.error('Resposta:', responseText);
+        Alert.alert('Erro', 'Cadastro realizado, mas falha ao fazer login automático.');
+        setIsLoading(false);
+        router.push('/login');
+        return;
+      }
+
+      // Tenta converter a resposta em JSON
+      let responseData;
+      try {
+        console.log('🔄 Processando resposta do servidor...');
+        responseData = JSON.parse(responseText);
+        console.log('✅ Resposta processada com sucesso');
+      } catch (jsonError) {
+        console.error('❌ Erro ao processar resposta JSON:', jsonError);
+        Alert.alert('Erro', 'Resposta inválida do servidor.');
+        setIsLoading(false);
+        router.push('/login');
+        return;
+      }
+
+      if (!responseData?.access_token) {
+        console.error('❌ Token ausente na resposta do servidor');
+        Alert.alert('Erro', 'Erro ao obter token de autenticação.');
+        setIsLoading(false);
+        router.push('/login');
+        return;
+      }
+
+      try {
+        console.log('💾 Salvando token de acesso...');
+        await AsyncStorage.setItem('token', responseData.access_token);
+        console.log('✅ Token salvo com sucesso no AsyncStorage');
+      } catch (storageError) {
+        console.error('❌ Erro ao salvar token:', storageError);
+        Alert.alert('Erro', 'Erro ao salvar dados de autenticação.');
+        setIsLoading(false);
+        router.push('/login');
+        return;
+      }
+
+      // 3. Criar responsável (com token de autenticação)
+      console.log('3️⃣ Criando perfil de responsável...');
+      const res2 = await apiFetch('/responsaveis', {
+        method: 'POST',
         body: JSON.stringify(payload),
       });
 
-      if (res1.ok && res2.ok) {
+      if (res2.ok) {
+        console.log('✅ Perfil de responsável criado com sucesso');
+        setIsLoading(false);
+        console.log('🎉 Processo de cadastro finalizado com sucesso!');
         Alert.alert('Sucesso', 'Cadastro realizado com sucesso!');
+        console.log('🔄 Redirecionando para a tela de login...');
         router.push('/login');
       } else {
-        Alert.alert('Erro', 'Falha no cadastro. Verifique os dados e tente novamente.');
-        console.error('Erro:', await res1.text(), await res2.text());
+        console.error('❌ Erro ao criar perfil de responsável');
+        const errorText = await res2.text();
+        console.error('Detalhes do erro:', errorText);
+        setIsLoading(false);
+        Alert.alert('Erro', 'Falha ao criar perfil de responsável. Por favor, tente fazer login.');
+        router.push('/login');
       }
     } catch (error) {
-      console.error('Erro ao cadastrar:', error);
+      console.error('❌ Erro inesperado durante o cadastro:', error);
+      setIsLoading(false);
       Alert.alert('Erro', 'Não foi possível conectar ao servidor.');
     }
   };
 
   return (
-    <ThemedView style={styles.container}>
-      <ThemedView style={styles.card}>
+    <KeyboardSafeView>
+      <ThemedView style={styles.container}>
+        <LoadingOverlay visible={isLoading} message={isLoading ? 'Enviando...' : undefined} />
+        <ThemedView style={styles.card}>
         <Pressable onPress={() => router.back()} style={styles.backArrow}>
           <Ionicons name="arrow-back" size={24} color="black" />
         </Pressable>
@@ -109,8 +196,9 @@ export default function CadastroScreen() {
         <Pressable style={styles.registerButton} onPress={handleRegister}>
           <ThemedText style={styles.registerButtonText}>Registre-se</ThemedText>
         </Pressable>
+        </ThemedView>
       </ThemedView>
-    </ThemedView>
+    </KeyboardSafeView>
   );
 }
 

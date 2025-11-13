@@ -11,17 +11,19 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
+import { useAccessibility } from '../context/AccessibilityContext';
 
 const LOGOFF_COLOR = '#ff4444';
 
 export default function ConfiguracoesScreen() {
   const [searchText, setSearchText] = useState('');
   const router = useRouter();
+  const { transformText } = useAccessibility();
 
   const configuracoes = [
     {
       id: 'conta',
-      title: 'Conta',
+      title: transformText('Conta'),
       icon: 'person',
       onPress: () => {
         router.push('/TeacherProfileScreen');
@@ -29,23 +31,15 @@ export default function ConfiguracoesScreen() {
     },
     {
       id: 'acessibilidade',
-      title: 'Acessibilidade',
+      title: transformText('Acessibilidade'),
       icon: 'accessibility',
       onPress: () => {
         router.push('/acessibilidade');
       }
     },
     {
-      id: 'alunos',
-      title: 'Alunos',
-      icon: 'school',
-      onPress: () => {
-        router.push('/CriancaProfileScreen');
-      }
-    },
-    {
       id: 'sobre',
-      title: 'Sobre',
+      title: transformText('Sobre'),
       icon: 'information-circle',
       onPress: () => {
         router.push('/sobre');
@@ -53,7 +47,7 @@ export default function ConfiguracoesScreen() {
     },
     {
       id: 'logoff',
-      title: 'Sair',
+      title: transformText('Sair'),
       icon: 'log-out',
       onPress: () => {
         router.push('/login');
@@ -76,7 +70,7 @@ export default function ConfiguracoesScreen() {
         >
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Configurações</Text>
+        <Text style={styles.headerTitle}>{transformText('Configurações')}</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -84,7 +78,7 @@ export default function ConfiguracoesScreen() {
         <Ionicons name="search" size={20} color={Colors.light.textSecondary} style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Procurar..."
+          placeholder={transformText('Procurar...')}
           placeholderTextColor={Colors.light.textSecondary}
           value={searchText}
           onChangeText={setSearchText}

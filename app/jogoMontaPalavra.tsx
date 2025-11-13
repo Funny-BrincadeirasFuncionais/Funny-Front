@@ -1,8 +1,11 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
     Alert,
+    Modal,
+    TextInput,
     Animated,
     StatusBar,
     StyleSheet,
@@ -11,8 +14,11 @@ import {
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import KeyboardSafeView from '@/components/KeyboardSafeView';
 import Svg, { Path } from 'react-native-svg';
 import { Colors } from '../constants/Colors';
+import { ensureAtividadeExists, registrarProgresso } from '../services/api';
+import { useAccessibility } from '../context/AccessibilityContext';
 
 interface Palavra {
     palavra: string;
@@ -29,6 +35,7 @@ const palavras: Palavra[] = [
 
 export default function JogoMontaPalavra() {
     const router = useRouter();
+    const { transformText } = useAccessibility();
     const [faseAtual, setFaseAtual] = useState(0);
     const [letrasEmbaralhadas, setLetrasEmbaralhadas] = useState<string[]>([]);
     const [letrasSelecionadas, setLetrasSelecionadas] = useState<string[]>([]);
@@ -36,10 +43,43 @@ export default function JogoMontaPalavra() {
     const [mensagemFeedback, setMensagemFeedback] = useState<string>('');
     const [mostrarFeedback, setMostrarFeedback] = useState(false);
     const [palavraCorreta, setPalavraCorreta] = useState(false);
+    const [tentativaPronta, setTentativaPronta] = useState(false);
+    const [avaliacaoRealizada, setAvaliacaoRealizada] = useState(false);
     const [animacao] = useState(new Animated.Value(0));
+    const [pontuacao, setPontuacao] = useState(0);
+    const [criancaId, setCriancaId] = useState<string | null>(null);
+    const [atividadeId, setAtividadeId] = useState<number | null>(null);
+    const [modalVisible, setModalVisible] = useState(false);
+    const [observacao, setObservacao] = useState('');
 
     const palavraAtual = palavras[faseAtual];
     const palavraCorretaArray = palavraAtual.palavra.split('');
+
+    useEffect(() => {
+        // Garantir criança selecionada e atividade existente
+        (async () => {
+            const id = await AsyncStorage.getItem('criancaSelecionada');
+            setCriancaId(id);
+            if (!id) {
+                Alert.alert(transformText('Selecione uma criança'), transformText('Você precisa selecionar uma criança na Home antes de iniciar o jogo.'), [
+                    { text: transformText('OK'), onPress: () => router.back() },
+                ]);
+                return;
+            }
+            const aid = await ensureAtividadeExists(
+                'Montar Palavra',
+                'Arraste as letras para formar a palavra',
+                    'Português',
+                1
+            );
+            setAtividadeId(aid);
+        })();
+    }, []);
+
+        // Previously we auto-registered the minijogo when the modal opened.
+        // That caused results to be recorded before the player confirmed. Remove that
+        // behavior so the result is only contabilizado when the player presses
+        // "Continuar" and finally when they press "Enviar" in the modal.
 
     useEffect(() => {
         if (palavraAtual) {
@@ -58,9 +98,9 @@ export default function JogoMontaPalavra() {
 
     const mostrarMensagemFeedback = useCallback((correto: boolean) => {
         if (correto) {
-            setMensagemFeedback('Parabéns! Você acertou! 🌟');
+            setMensagemFeedback(transformText('Parabéns! Você acertou! 🌟'));
         } else {
-            setMensagemFeedback('Quase lá! Tente novamente! 😊');
+            setMensagemFeedback(transformText('Quase lá! Tente novamente! 😊'));
         }
         setMostrarFeedback(true);
         
@@ -84,19 +124,18 @@ export default function JogoMontaPalavra() {
         const palavraEsperada = palavraAtual.palavra;
         if (letrasSelecionadas.length === palavraEsperada.length) {
             const palavraFormada = letrasSelecionadas.join('');
-            
-            if (palavraFormada === palavraEsperada) {
-                setPalavraCorreta(true);
-                mostrarMensagemFeedback(true);
-            } else {
-                setPalavraCorreta(false);
-                mostrarMensagemFeedback(false);
-            }
+            setPalavraCorreta(palavraFormada === palavraEsperada);
+            // mark that the attempt is ready to be evaluated by pressing Continue
+            setTentativaPronta(true);
+            // reset previous evaluation so first Continue evaluates again
+            setAvaliacaoRealizada(false);
         } else {
             setPalavraCorreta(false);
             setMostrarFeedback(false);
+            setTentativaPronta(false);
+            setAvaliacaoRealizada(false);
         }
-    }, [letrasSelecionadas, palavraAtual, mostrarMensagemFeedback]);
+    }, [letrasSelecionadas, palavraAtual]);
 
     const selecionarLetra = (letra: string, index: number) => {
         if (indicesUsados[index]) {
@@ -135,22 +174,43 @@ export default function JogoMontaPalavra() {
     };
 
     const continuar = () => {
+        // Only allow evaluation when the attempt is ready (full length)
+        if (!tentativaPronta) return;
+
+        // First press: evaluate and show feedback only
+        if (!avaliacaoRealizada) {
+            if (palavraCorreta) {
+                // Award points once
+                setPontuacao((p) => p + 2);
+                mostrarMensagemFeedback(true);
+            } else {
+                setPontuacao((p) => Math.max(0, p - 1));
+                mostrarMensagemFeedback(false);
+            }
+            // mark that evaluation was done; user must press Continue again to proceed
+            setAvaliacaoRealizada(true);
+            return;
+        }
+
+        // Second press: advance or allow retry based on evaluation
         if (palavraCorreta) {
             if (faseAtual < palavras.length - 1) {
                 setFaseAtual(faseAtual + 1);
             } else {
-                // Jogo finalizado
-                Alert.alert(
-                    'Parabéns! 🎉',
-                    'Você completou todas as fases!',
-                    [
-                        {
-                            text: 'Voltar',
-                            onPress: () => router.back(),
-                        },
-                    ]
-                );
+                setModalVisible(true);
             }
+            // reset flags for next round
+            setTentativaPronta(false);
+            setAvaliacaoRealizada(false);
+            setMostrarFeedback(false);
+            setMensagemFeedback('');
+        } else {
+            // let player retry the same word
+            reiniciarPalavra();
+            setTentativaPronta(false);
+            setAvaliacaoRealizada(false);
+            setMostrarFeedback(false);
+            setMensagemFeedback('');
         }
     };
 
@@ -168,7 +228,8 @@ export default function JogoMontaPalavra() {
     });
 
     return (
-        <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+            <KeyboardSafeView>
+                <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
             <StatusBar barStyle="light-content" backgroundColor="#F78F3F" />
             
             {/* Background Blob Shapes */}
@@ -212,7 +273,7 @@ export default function JogoMontaPalavra() {
                 <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
                     <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Descubra a figura</Text>
+                <Text style={styles.headerTitle}>{transformText('Descubra a figura')}</Text>
                 <TouchableOpacity style={styles.headerButton}>
                     <View style={styles.helpButton}>
                         <Text style={styles.helpButtonText}>?</Text>
@@ -287,34 +348,75 @@ export default function JogoMontaPalavra() {
                 {/* Botão Continuar */}
                 <View style={styles.continuarButtonContainer}>
                     <TouchableOpacity
-                        style={[
-                            styles.continuarButton,
-                            !palavraCorreta && styles.continuarButtonDisabled,
-                        ]}
+                        style={styles.continuarButton}
                         onPress={continuar}
-                        disabled={!palavraCorreta}
                         activeOpacity={0.8}
                     >
-                        <Text
-                            style={[
-                                styles.continuarButtonText,
-                                !palavraCorreta && styles.continuarButtonTextDisabled,
-                            ]}
-                        >
-                            Continuar
-                        </Text>
+                        <Text style={styles.continuarButtonText}>{transformText('Continuar')}</Text>
                     </TouchableOpacity>
                 </View>
 
                 {/* Botão Reiniciar */}
                 {letrasSelecionadas.length > 0 && (
                     <TouchableOpacity style={styles.reiniciarButton} onPress={reiniciarPalavra}>
-                        <Text style={styles.reiniciarButtonText}>Tentar novamente</Text>
+                        <Text style={styles.reiniciarButtonText}>{transformText('Tentar novamente')}</Text>
                     </TouchableOpacity>
                 )}
             </View>
-        </SafeAreaView>
-    );
+            {/* Modal de finalização */}
+            <Modal visible={modalVisible} animationType="slide" transparent>
+                <View style={styles.modalContainer}>
+                    <View style={styles.modalBox}>
+                        <Text style={styles.modalTitle}>{transformText('🎉 Parabéns!')}</Text>
+                        <Text style={styles.modalText}>
+                          {transformText('Pontuação')}: {pontuacao}
+                        </Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder={transformText('Observação (opcional)')}
+                            value={observacao}
+                            onChangeText={setObservacao}
+                        />
+                        <TouchableOpacity
+                            style={styles.submitButton}
+                            onPress={async () => {
+                                if (!criancaId || !atividadeId) {
+                                    Alert.alert(transformText('Erro'), transformText('Faltam informações para registrar o progresso.'));
+                                    return;
+                                }
+                                try {
+                                    const res = await registrarProgresso({
+                                        crianca_id: Number(criancaId),
+                                        atividade_id: Number(atividadeId),
+                                        pontuacao: Number(pontuacao),
+                                        observacoes: observacao || undefined,
+                                        concluida: true,
+                                    });
+                                    if (res.ok) {
+                                        Alert.alert(transformText('Sucesso'), transformText('Progresso registrado.'));
+                                        setModalVisible(false);
+                                        router.push('/(tabs)/home');
+                                    } else {
+                                        const r: any = res;
+                                        const message = r?.data?.error ?? r?.text ?? r?.error ?? `status ${r?.status}`;
+                                        Alert.alert(transformText('Erro'), `${transformText('Falha ao registrar')}: ${message}`);
+                                    }
+                                } catch (e) {
+                                    Alert.alert(transformText('Erro'), transformText('Falha de conexão ao registrar.'));
+                                }
+                            }}
+                        >
+                            <Text style={styles.submitButtonText}>{transformText('Enviar')}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.voltarButton} onPress={() => router.push('/(tabs)/home')}>
+                            <Text style={styles.voltarButtonText}>{transformText('Voltar para Home')}</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+                </SafeAreaView>
+            </KeyboardSafeView>
+        );
 }
 
 const styles = StyleSheet.create({
@@ -532,6 +634,51 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         fontFamily: 'Lexend_400Regular',
         textDecorationLine: 'underline',
+    },
+    // Modal styles (reutilizados do jogo de contagem)
+    modalContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        paddingHorizontal: 30,
+    },
+    modalBox: {
+        backgroundColor: '#fff',
+        borderRadius: 15,
+        padding: 20,
+    },
+    modalTitle: {
+        fontSize: 22,
+        fontWeight: 'bold',
+        marginBottom: 10,
+    },
+    modalText: {
+        fontSize: 18,
+        marginBottom: 10,
+    },
+    input: {
+        backgroundColor: '#eee',
+        borderRadius: 8,
+        padding: 10,
+        marginBottom: 15,
+    },
+    submitButton: {
+        backgroundColor: '#E07612',
+        padding: 10,
+        borderRadius: 8,
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+    submitButtonText: {
+        color: '#fff',
+        fontSize: 16,
+    },
+    voltarButton: {
+        alignItems: 'center',
+    },
+    voltarButtonText: {
+        color: '#E07612',
+        fontSize: 16,
     },
 });
 

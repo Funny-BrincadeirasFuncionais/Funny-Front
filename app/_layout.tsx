@@ -2,6 +2,7 @@ import { Lexend_400Regular, Lexend_700Bold, useFonts } from '@expo-google-fonts/
 import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
+import { AccessibilityProvider } from '../context/AccessibilityContext';
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -19,6 +20,7 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
+      <AccessibilityProvider>
       <Stack screenOptions={{ headerShown: false }}>
         {/* Onboarding vem primeiro */}
         <Stack.Screen name="onboarding" />
@@ -30,6 +32,10 @@ export default function RootLayout() {
         {/* Grupo de tabs (aparece só depois do login) */}
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 
+        {/* Telas de gerenciamento */}
+        <Stack.Screen name="minhasTurmas" />
+        <Stack.Screen name="minhasAtividades" />
+
         {/* Telas de jogos */}
         <Stack.Screen name="jogosMatematica" />
         <Stack.Screen name="jogosPortugues" />
@@ -38,7 +44,10 @@ export default function RootLayout() {
         <Stack.Screen name="jogoContagem" />
         <Stack.Screen name="jogoPalavra" />
         <Stack.Screen name="jogoMontaPalavra" />
+        <Stack.Screen name="jogoFamiliaPalavras" />
+        <Stack.Screen name="jogoRotinaDia" />
       </Stack>
+      </AccessibilityProvider>
     </SafeAreaProvider>
   );
 }
