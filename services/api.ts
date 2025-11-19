@@ -1,46 +1,31 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 
-// Detectar se está em desenvolvimento local
-// Em desenvolvimento, o Expo usa localhost ou o IP da máquina
-const isDevelopment = typeof __DEV__ !== 'undefined' ? __DEV__ : process.env.NODE_ENV !== 'production';
-
 // URL do backend - prioridade:
-// 1. Variável de ambiente EXPO_PUBLIC_API_URL
+// 1. Variável de ambiente EXPO_PUBLIC_API_URL (maior prioridade - permite override)
 // 2. Configuração no app.json (extra.API_URL)
-// 3. Localhost em desenvolvimento (http://localhost:8000)
-// 4. URL de produção como fallback
+// 3. URL de produção como padrão (Render)
 const getBaseUrl = (): string => {
   // Variável de ambiente (pode ser definida no .env ou no sistema)
+  // Útil para desenvolvimento local: EXPO_PUBLIC_API_URL=http://localhost:8000
   if (process.env.EXPO_PUBLIC_API_URL) {
     return process.env.EXPO_PUBLIC_API_URL;
   }
 
-  // Configuração no app.json
+  // Configuração no app.json (padrão: produção no Render)
   const configUrl = (Constants.expoConfig as any)?.extra?.API_URL;
   if (configUrl) {
     return configUrl;
   }
 
-  // Em desenvolvimento, usar localhost
-  if (isDevelopment) {
-    // Para Android emulador, usar 10.0.2.2
-    // Para iOS simulador, usar localhost
-    // Para dispositivo físico, usar o IP da máquina
-    // Por padrão, vamos usar localhost e o usuário pode ajustar se necessário
-    return 'http://localhost:8000';
-  }
-
-  // Produção: URL padrão
+  // Fallback: URL de produção no Render
   return 'https://funny-back-py.onrender.com';
 };
 
 export const BASE_URL = getBaseUrl();
 
-// Log da URL configurada (apenas em desenvolvimento)
-if (isDevelopment) {
-  console.log('🔗 Backend URL configurada:', BASE_URL);
-}
+// Log da URL configurada (sempre, para debug)
+console.log('🔗 Backend URL configurada:', BASE_URL);
 
 async function getAuthHeader(): Promise<Record<string, string>> {
   try {
