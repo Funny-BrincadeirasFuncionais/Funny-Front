@@ -1,6 +1,46 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 
-export const BASE_URL = 'https://funny-back-py.onrender.com';
+// Detectar se está em desenvolvimento local
+// Em desenvolvimento, o Expo usa localhost ou o IP da máquina
+const isDevelopment = typeof __DEV__ !== 'undefined' ? __DEV__ : process.env.NODE_ENV !== 'production';
+
+// URL do backend - prioridade:
+// 1. Variável de ambiente EXPO_PUBLIC_API_URL
+// 2. Configuração no app.json (extra.API_URL)
+// 3. Localhost em desenvolvimento (http://localhost:8000)
+// 4. URL de produção como fallback
+const getBaseUrl = (): string => {
+  // Variável de ambiente (pode ser definida no .env ou no sistema)
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+
+  // Configuração no app.json
+  const configUrl = (Constants.expoConfig as any)?.extra?.API_URL;
+  if (configUrl) {
+    return configUrl;
+  }
+
+  // Em desenvolvimento, usar localhost
+  if (isDevelopment) {
+    // Para Android emulador, usar 10.0.2.2
+    // Para iOS simulador, usar localhost
+    // Para dispositivo físico, usar o IP da máquina
+    // Por padrão, vamos usar localhost e o usuário pode ajustar se necessário
+    return 'http://localhost:8000';
+  }
+
+  // Produção: URL padrão
+  return 'https://funny-back-py.onrender.com';
+};
+
+export const BASE_URL = getBaseUrl();
+
+// Log da URL configurada (apenas em desenvolvimento)
+if (isDevelopment) {
+  console.log('🔗 Backend URL configurada:', BASE_URL);
+}
 
 async function getAuthHeader(): Promise<Record<string, string>> {
   try {
@@ -190,4 +230,46 @@ export async function getResponsavel(responsavelId: number) {
 
 export async function updateResponsavel(responsavelId: number, body: Partial<{ nome: string; email: string; telefone: string }>) {
   return putJson(`/responsaveis/${responsavelId}`, body);
+}
+
+// ---- Relatórios IA ----
+export interface RelatorioCriancaRequest {
+  crianca_id: number;
+  incluir_progresso?: boolean;
+  incluir_atividades?: boolean;
+  periodo_dias?: number;
+}
+
+export interface RelatorioTurmaRequest {
+  incluir_progresso?: boolean;
+  incluir_atividades?: boolean;
+  periodo_dias?: number;
+}
+
+export async function gerarRelatorioCrianca(request: RelatorioCriancaRequest) {
+  try {
+    const res = await postJson('/relatorios-ia/crianca', request);
+    if (!res.ok) {
+      const errorText = await res.text().catch(() => 'Erro desconhecido');
+      throw new Error(`Erro ao gerar relatório: ${res.status} - ${errorText}`);
+    }
+    return await res.json();
+  } catch (e: any) {
+    console.error('Erro ao gerar relatório de criança:', e);
+    throw e;
+  }
+}
+
+export async function gerarRelatorioTurma(request: RelatorioTurmaRequest = {}) {
+  try {
+    const res = await postJson('/relatorios-ia/turma', request);
+    if (!res.ok) {
+      const errorText = await res.text().catch(() => 'Erro desconhecido');
+      throw new Error(`Erro ao gerar relatório: ${res.status} - ${errorText}`);
+    }
+    return await res.json();
+  } catch (e: any) {
+    console.error('Erro ao gerar relatório de turma:', e);
+    throw e;
+  }
 }
