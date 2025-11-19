@@ -39,6 +39,7 @@
     },
     "extra": {
       "router": {},
+      "API_URL": "https://funny-back-py.onrender.com",
       "RECAPTCHA_SITE_KEY": "6LetwAssAAAAAGX0k7r9WZnrsFeqp9J1Gp5qPwwX",
       "eas": {
         "projectId": "ca5a55bc-dd64-4438-9907-5a383aaca213"
