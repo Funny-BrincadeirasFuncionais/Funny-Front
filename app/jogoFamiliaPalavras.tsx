@@ -9,6 +9,7 @@ import {
     StatusBar,
     StyleSheet,
     Text,
+    TextInput,
     TouchableOpacity,
     View
 } from 'react-native';
@@ -16,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { Colors } from '../constants/Colors';
 import { useAccessibility } from '../context/AccessibilityContext';
-import { ensureAtividadeExists, registrarProgresso, registrarMinijogo } from '../services/api';
+import { ensureAtividadeExists, registrarMinijogo, registrarProgresso } from '../services/api';
 
 interface FamiliaPalavras {
     termino: string;
@@ -80,7 +81,7 @@ export default function JogoFamiliaPalavras() {
     const [jogoFinalizado, setJogoFinalizado] = useState(false);
     const [notaFinal, setNotaFinal] = useState(0);
     const [criancaId, setCriancaId] = useState<string | null>(null);
-    const [faseAcertada, setFaseAcertada] = useState<boolean[]>([]); // Rastrear quais fases já foram acertadas
+    const [faseAcertada, setFaseAcertada] = useState<boolean[]>(new Array(familiasPalavras.length).fill(false)); // Rastrear quais fases já foram acertadas
     const [mostrarAjuda, setMostrarAjuda] = useState(false);
     const [atividadeId, setAtividadeId] = useState<number | null>(null);
     const [observacao, setObservacao] = useState('');
@@ -113,7 +114,7 @@ export default function JogoFamiliaPalavras() {
     const [minijogoRegistered, setMinijogoRegistered] = useState(false);
     useEffect(() => {
         (async () => {
-            if (modalVisible && !minijogoRegistered && criancaId !== null) {
+            if (modalVisible && !minijogoRegistered && criancaId !== null && notaFinal > 0) {
                 setMinijogoRegistered(true);
                 const res = await registrarMinijogo({
                     pontuacao: Number(notaFinal),
@@ -130,11 +131,11 @@ export default function JogoFamiliaPalavras() {
                 } else {
                     const r: any = res;
                     const message = r?.data?.error ?? r?.text ?? r?.error ?? `status ${r?.status}`;
-                    Alert.alert('Erro', `Falha ao registrar mini-jogo automático: ${message}`);
+                    console.warn('Falha ao registrar mini-jogo automático:', message);
                 }
             }
         })();
-    }, [modalVisible, minijogoRegistered, criancaId]);
+    }, [modalVisible, minijogoRegistered, criancaId, notaFinal]);
 
     // Util: normalizar e checar terminação (ignora acentos)
     const normalize = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -193,14 +194,15 @@ export default function JogoFamiliaPalavras() {
                 });
             }
             mostrarMensagemFeedback(true);
-        } else if (palavrasNaFamilia.length > 0) {
-            // Só contar tentativa se ainda não acertou esta fase
-            if (!jaAcertouEstaFase) {
+        } else if (palavrasNaFamilia.length > 0 && !familiaCompleta) {
+            // Só contar tentativa se ainda não acertou esta fase e não está completa
+            // Evitar contar múltiplas tentativas para a mesma configuração
+            if (!jaAcertouEstaFase && palavrasCorretasNaFamilia < totalCorretas) {
                 setTentativas(prev => prev + 1);
             }
             mostrarMensagemFeedback(false);
         }
-    }, [palavrasNaFamilia, familiaAtual, faseAtual, faseAcertada]);
+    }, [palavrasNaFamilia, familiaAtual, faseAtual, faseAcertada, familiaCompleta]);
 
     useEffect(() => {
         if (palavrasNaFamilia.length > 0) {
@@ -234,6 +236,7 @@ export default function JogoFamiliaPalavras() {
         const nota = calcularNotaFinal();
         setNotaFinal(nota);
         setJogoFinalizado(true);
+        setModalVisible(true); // Abrir modal quando jogo finalizar
     }, [calcularNotaFinal]);
 
     const avancarFase = useCallback(() => {
@@ -341,8 +344,6 @@ export default function JogoFamiliaPalavras() {
         inputRange: [0, 1],
         outputRange: [1, 1.1],
     });
-
-    // Removido o popup de "Jogo Finalizado" para evitar sobreposição; usaremos apenas o modal.
 
     return (
         <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -543,6 +544,59 @@ export default function JogoFamiliaPalavras() {
                             onPress={() => setMostrarAjuda(false)}
                         >
                             <Text style={styles.modalButtonText}>Entendi!</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Modal de Resultado Final */}
+            <Modal
+                visible={modalVisible && jogoFinalizado}
+                transparent
+                animationType="fade"
+                onRequestClose={() => {}}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Jogo Finalizado!</Text>
+                        </View>
+                        
+                        <View style={styles.modalBody}>
+                            <Text style={styles.modalTextEnvio}>
+                                {transformText(`Você formou ${acertos} de ${familiasPalavras.length} famílias corretamente!`)}
+                            </Text>
+                            
+                            <View style={styles.notaContainer}>
+                                <Text style={styles.notaLabel}>{transformText('Sua nota:')}</Text>
+                                <Text style={styles.notaValor}>{notaFinal.toFixed(1)}</Text>
+                            </View>
+
+                            <Text style={styles.modalText}>
+                                {transformText('Observações (opcional):')}
+                            </Text>
+                            <TextInput
+                                style={styles.input}
+                                value={observacao}
+                                onChangeText={setObservacao}
+                                placeholder={transformText('Adicione uma observação...')}
+                                multiline
+                                numberOfLines={3}
+                            />
+                        </View>
+                        
+                        <TouchableOpacity
+                            style={styles.submitButton}
+                            onPress={enviarResultado}
+                        >
+                            <Text style={styles.submitButtonText}>{transformText('Enviar Resultado')}</Text>
+                        </TouchableOpacity>
+                        
+                        <TouchableOpacity
+                            style={styles.voltarButton}
+                            onPress={() => router.push('/(tabs)/home')}
+                        >
+                            <Text style={styles.voltarButtonText}>{transformText('Voltar para Home')}</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
