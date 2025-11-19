@@ -1,16 +1,17 @@
-import KeyboardSafeView from '@/components/KeyboardSafeView';
-import LoadingOverlay from '@/components/LoadingOverlay';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { useAccessibility } from '@/context/AccessibilityContext';
-import apiFetch, { BASE_URL } from '@/services/api';
+import { FontAwesome } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Checkbox from 'expo-checkbox';
-import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Image, Modal, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Alert, Image, Pressable, StyleSheet, TextInput, Modal, View } from 'react-native';
 import { WebView } from 'react-native-webview';
+import apiFetch, { BASE_URL } from '@/services/api';
+import Constants from 'expo-constants';
+import { useAccessibility } from '@/context/AccessibilityContext';
+import LoadingOverlay from '@/components/LoadingOverlay';
+import KeyboardSafeView from '@/components/KeyboardSafeView';
 
 
 
