@@ -1,19 +1,19 @@
+import { gerarRelatorioTurma, getJson } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import React, { useState, useEffect } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  StyleSheet,
-  Dimensions,
   ActivityIndicator,
   Alert,
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { BarChart } from 'react-native-chart-kit';
-import { gerarRelatorioTurma, getJson } from '@/services/api';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function RelatorioTurmaScreen() {
   const router = useRouter();

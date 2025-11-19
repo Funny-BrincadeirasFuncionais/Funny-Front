@@ -1,19 +1,19 @@
+import { gerarRelatorioCrianca, getJson } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import React, { useState, useEffect } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
+    Alert,
     Dimensions,
     ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
-    ActivityIndicator,
-    Alert,
 } from 'react-native';
 import { BarChart } from 'react-native-chart-kit';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { gerarRelatorioCrianca, getJson } from '@/services/api';
 
 export default function RelatorioAlunoScreen() {
     const router = useRouter();
