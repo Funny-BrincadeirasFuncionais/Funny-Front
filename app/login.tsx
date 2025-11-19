@@ -35,7 +35,57 @@ export default function LoginScreen() {
     return;
   }
 
-  // Show reCAPTCHA modal; the modal will post a token back to the WebView on success
+  // Em desenvolvimento local, tentar login direto primeiro (sem reCAPTCHA)
+  // Se o backend requer reCAPTCHA, ele retornará erro e então mostramos o modal
+  const isDevelopment = (typeof __DEV__ !== 'undefined' && __DEV__) || BASE_URL.includes('localhost') || BASE_URL.includes('127.0.0.1');
+  
+  if (isDevelopment) {
+    // Tentar login direto primeiro (sem reCAPTCHA)
+    setIsLoading(true);
+    try {
+      const payload = { email, senha };
+      const response = await apiFetch('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json();
+      setIsLoading(false);
+      
+      if (response.ok) {
+        if (data.access_token) await AsyncStorage.setItem('token', data.access_token);
+        if (data.responsavel_id) {
+          await AsyncStorage.setItem('userId', data.responsavel_id.toString());
+        } else {
+          const resp = await apiFetch('/responsaveis');
+          let lista;
+          try { lista = await resp.json(); } catch { lista = []; }
+          if (Array.isArray(lista)) {
+            const responsavel = lista.find((item: any) => item.email === email);
+            if (responsavel?.id) await AsyncStorage.setItem('userId', responsavel.id.toString());
+          }
+        }
+        Alert.alert('Sucesso', 'Login realizado com sucesso!');
+        router.replace('/(tabs)/home');
+        return;
+      } else if (data.detail && data.detail.includes('reCAPTCHA')) {
+        // Backend requer reCAPTCHA, mostrar modal
+        setRecaptchaVisible(true);
+        return;
+      } else {
+        Alert.alert('Erro', data.message || data.detail || 'Falha no login.');
+        return;
+      }
+    } catch (e: any) {
+      setIsLoading(false);
+      // Se erro de conexão, pode ser que o backend não esteja rodando
+      // Ou pode ser que requeira reCAPTCHA, então tentar com reCAPTCHA
+      console.warn('Erro no login direto, tentando com reCAPTCHA:', e);
+      setRecaptchaVisible(true);
+      return;
+    }
+  }
+
+  // Produção ou se desenvolvimento falhou: mostrar reCAPTCHA
   setIsLoading(true);
   setRecaptchaVisible(true);
 };
