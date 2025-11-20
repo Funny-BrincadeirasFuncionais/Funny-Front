@@ -1,10 +1,9 @@
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { FontAwesome } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Checkbox from 'expo-checkbox';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Alert, Image, Pressable, StyleSheet, TextInput, Modal, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 import apiFetch, { BASE_URL } from '@/services/api';
@@ -25,6 +24,8 @@ export default function LoginScreen() {
 
   const router = useRouter();
   const { transformText } = useAccessibility();
+
+  // No social login: removed Expo Google auth flow.
 
   const handleLogin = async () => {
   console.log('🔐 Iniciando processo de login...');
@@ -47,6 +48,8 @@ export default function LoginScreen() {
   if (!RECAPTCHA_SITE_KEY) {
     console.warn('RECAPTCHA_SITE_KEY not set in expo config (app.json extra). Set extra.RECAPTCHA_SITE_KEY or replace the placeholder in login.tsx');
   }
+
+  // No social login: removed Expo Google auth flow.
   const recaptchaHtml = (siteKey: string) => `
     <!doctype html>
     <html>
@@ -56,23 +59,8 @@ export default function LoginScreen() {
           function onSuccess(token) {
             window.ReactNativeWebView.postMessage(token);
           }
-          function onLoadCallback() {
-            try {
-              var widgetId = grecaptcha.render('recaptcha', { 'sitekey': '${siteKey}', 'size': 'invisible', 'callback': onSuccess });
-              grecaptcha.execute(widgetId);
-            } catch (e) {
-              // fallback: try execute directly
-              try { grecaptcha.execute(); } catch (ee) { window.ReactNativeWebView.postMessage('ERROR:'+ee.message); }
-            }
-          }
-        </script>
-      </head>
-      <body>
-        <div id="recaptcha"></div>
-        <script src="https://www.google.com/recaptcha/api.js?onload=onLoadCallback&render=explicit" async defer></script>
-      </body>
-    </html>
   `;
+
 
   const onRecaptchaMessage = async (event: any) => {
     const token = event.nativeEvent.data;
@@ -110,7 +98,8 @@ export default function LoginScreen() {
         Alert.alert('Sucesso', 'Login realizado com sucesso!');
         router.replace('/(tabs)/home');
       } else {
-        Alert.alert('Erro', data.message || 'Falha no login.');
+        // Show detailed error if backend returned detail (FastAPI uses `detail`)
+        Alert.alert('Erro', data.detail || data.message || 'Falha no login.');
       }
     } catch (e) {
       setIsLoading(false);
@@ -181,6 +170,13 @@ export default function LoginScreen() {
         <Modal visible={recaptchaVisible} animationType="slide" transparent>
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center' }}>
             <View style={{ height: 400, marginHorizontal: 20, backgroundColor: '#fff', borderRadius: 12, overflow: 'hidden' }}>
+                  {/* Close button so user can always cancel/retry */}
+                  <Pressable
+                    onPress={() => { setRecaptchaVisible(false); setIsLoading(false); }}
+                    style={{ position: 'absolute', right: 8, top: 8, zIndex: 10, padding: 6 }}
+                  >
+                    <ThemedText style={{ color: '#6B7280' }}>Cancelar</ThemedText>
+                  </Pressable>
                   <WebView
                     originWhitelist={["*"]}
                     // Prefer using a hosted page on the backend domain to avoid "Invalid domain" errors.
@@ -188,10 +184,22 @@ export default function LoginScreen() {
                     onMessage={onRecaptchaMessage}
                     javaScriptEnabled
                     domStorageEnabled
+                    onError={(syntheticEvent) => {
+                      const { nativeEvent } = syntheticEvent;
+                      setRecaptchaVisible(false);
+                      setIsLoading(false);
+                      Alert.alert('Erro', 'Falha ao carregar reCAPTCHA. Tente novamente.');
+                    }}
+                    onLoadEnd={() => {
+                      // hide loading spinner only when the WebView has finished loading
+                      // keep recaptchaVisible true; user will wait for token or cancel
+                    }}
                   />
             </View>
           </View>
         </Modal>
+
+        {/* Social login removed */}
       </ThemedView>
     </KeyboardSafeView>
   );
@@ -305,20 +313,6 @@ const styles = StyleSheet.create({
     color: '#59626E',
     fontSize: 14,
   },
-  googleButton: {
-    borderColor: '#E07612',
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  googleButtonText: {
-    color: '#E07612',
-    fontFamily: 'Inter_700Bold',
-    fontSize: 16,
-    marginLeft: 8,
-  },
+  
 });
+

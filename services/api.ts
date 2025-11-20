@@ -18,7 +18,10 @@ const getBaseUrl = (): string => {
     return configUrl;
   }
 
-  // Fallback: URL de produção no Render
+  // Em desenvolvimento, usar localhost
+  // Se não houver configuração explícita, usar a URL do backend hospedado no Render.
+  // Isso evita que o app tente se conectar a http://localhost:8000 quando o backend
+  // está realmente em https://funny-back-py.onrender.com.
   return 'https://funny-back-py.onrender.com';
 };
 
@@ -54,6 +57,10 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
   };
 
   const res = await fetch(url, { ...options, headers: headers as any });
+  // Debug: log the actual request URL and status for troubleshooting
+  try {
+    console.log('➡️ apiFetch', options?.method || 'GET', url);
+  } catch (e) {}
   return res;
 }
 

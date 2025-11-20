@@ -1,6 +1,6 @@
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { FontAwesome, Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, TextInput } from 'react-native';
@@ -289,19 +289,6 @@ const styles = StyleSheet.create({
         fontFamily: 'Inter_700Bold',
         fontSize: 16,
     },
-    googleButton: {
-        borderColor: '#E07612',
-        borderWidth: 1,
-        borderRadius: 8,
-        padding: 14,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8
-    },
-    googleButtonText: {
-        color: '#E07612',
-        fontFamily: 'Inter_700Bold',
-        fontSize: 16,
-    },
 });
+
+
