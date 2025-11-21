@@ -78,8 +78,9 @@ export default function RelatorioTurmaScreen() {
         }
       }
 
-      // Gerar relatório com IA
+      // Gerar relatório com IA - passar turma_id se disponível
       const relatorioData = await gerarRelatorioTurma({
+        turma_id: turmaId || undefined,
         incluir_progresso: true,
         incluir_atividades: true,
       });
@@ -190,7 +191,17 @@ export default function RelatorioTurmaScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.title}>Relatório da Turma</Text>
-        <Text style={styles.subtitle}>Visão geral de dados agregados (todas as crianças)</Text>
+        <Text style={styles.subtitle}>
+          {turmaId ? `Visão geral de dados agregados da turma` : 'Visão geral de dados agregados (todas as crianças)'}
+        </Text>
+
+        {/* RESUMO */}
+        {relatorio?.resumo && (
+          <View style={styles.resumoContainer}>
+            <Text style={styles.resumoTitle}>Resumo</Text>
+            <Text style={styles.resumoText}>{relatorio.resumo}</Text>
+          </View>
+        )}
 
         {/* MÉTRICAS */}
         <View style={styles.metricsContainer}>
@@ -318,6 +329,25 @@ const styles = StyleSheet.create({
 
   title: { fontSize: 16, fontWeight: 'bold', marginTop: 24 },
   subtitle: { color: '#555', marginTop: 4, marginBottom: 24 },
+  resumoContainer: {
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+    borderLeftWidth: 4,
+    borderLeftColor: '#E07612',
+  },
+  resumoTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#000',
+    marginBottom: 12,
+  },
+  resumoText: {
+    fontSize: 14,
+    color: '#333',
+    lineHeight: 22,
+  },
 
   metricsContainer: {
     flexDirection: 'row',

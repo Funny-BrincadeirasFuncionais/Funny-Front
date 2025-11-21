@@ -226,6 +226,7 @@ export interface RelatorioCriancaRequest {
 }
 
 export interface RelatorioTurmaRequest {
+  turma_id?: number;
   incluir_progresso?: boolean;
   incluir_atividades?: boolean;
   periodo_dias?: number;

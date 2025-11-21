@@ -8,6 +8,7 @@ import {
   Image,
   Modal,
   Pressable,
+  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -174,7 +175,11 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      <View style={styles.content}>
+      <ScrollView 
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Grid Principal 2x2 */}
         <View style={styles.mainGrid}>
           {/* Primeira linha */}
@@ -217,7 +222,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </ScrollView>
 
       {/* Modal Selecionar Turma */}
       <Modal visible={showTurmaModal} transparent animationType="fade">
@@ -446,7 +451,10 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  contentContainer: {
     paddingHorizontal: 24,
+    paddingBottom: 20,
   },
   mainGrid: {
     marginTop: 15,

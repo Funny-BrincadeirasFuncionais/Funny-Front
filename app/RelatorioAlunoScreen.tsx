@@ -107,8 +107,8 @@ export default function RelatorioAlunoScreen() {
             'Cotidiano': { nome: 'Percepção', cor: '#7B61FF' },
         };
 
-        // Usar desempenho_por_categoria se disponível, senão usar areas_desenvolvimento
-        const categoriasData = relatorio.desempenho_por_categoria || relatorio.areas_desenvolvimento || {};
+        // Usar desempenho_por_categoria
+        const categoriasData = relatorio.desempenho_por_categoria || {};
         const categorias = Object.entries(categoriasData).map(([key, value]) => {
             const mapped = categoriasMap[key] || { nome: key, cor: '#7B61FF' };
             // Tentar extrair valor numérico do texto se possível, senão usar média do resumo
@@ -203,6 +203,14 @@ export default function RelatorioAlunoScreen() {
                 <Text style={styles.subtitle}>
                     Acompanhamento individual, dados e recomendações
                 </Text>
+
+                {/* RESUMO */}
+                {relatorio?.resumo && (
+                    <View style={styles.resumoContainer}>
+                        <Text style={styles.resumoTitle}>Resumo</Text>
+                        <Text style={styles.resumoText}>{relatorio.resumo}</Text>
+                    </View>
+                )}
 
                 {/* Perfil do aluno */}
                 <View style={styles.box}>
@@ -333,6 +341,25 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     subtitle: { color: '#555', marginBottom: 24 },
+    resumoContainer: {
+        backgroundColor: '#F5F5F5',
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 24,
+        borderLeftWidth: 4,
+        borderLeftColor: '#E07612',
+    },
+    resumoTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#000',
+        marginBottom: 12,
+    },
+    resumoText: {
+        fontSize: 14,
+        color: '#333',
+        lineHeight: 22,
+    },
 
     box: {
         borderWidth: 1,
