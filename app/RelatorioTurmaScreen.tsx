@@ -1,22 +1,34 @@
+import { gerarRelatorioTurma, getJson } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import React from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  Dimensions,
   ScrollView,
   StyleSheet,
-  Dimensions,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { BarChart } from 'react-native-chart-kit';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function RelatorioTurmaScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
+  const turmaId = params.turmaId ? Number(params.turmaId) : null;
   const screenWidth = Dimensions.get('window').width - 48;
 
-  const turma = {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [relatorio, setRelatorio] = useState<any>(null);
+  const [turmaNome, setTurmaNome] = useState<string>('Turma');
+  const [criancas, setCriancas] = useState<any[]>([]);
+
+  // Dados mockados como fallback
+  const turmaMock = {
     nome: 'Turma 2',
     totalCriancas: 5,
     performanceMedia: 72.9,
@@ -40,6 +52,110 @@ export default function RelatorioTurmaScreen() {
     ],
   };
 
+  useEffect(() => {
+    carregarRelatorio();
+  }, []);
+
+  const carregarRelatorio = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Buscar nome da turma se turmaId fornecido
+      if (turmaId) {
+        try {
+          const turmaData = await getJson(`/turmas/${turmaId}`);
+          setTurmaNome(turmaData.nome || 'Turma');
+          
+          // Buscar crianças da turma
+          const todasCriancas = await getJson('/criancas');
+          const criancasTurma = Array.isArray(todasCriancas)
+            ? todasCriancas.filter((c: any) => Number(c.turma_id) === Number(turmaId))
+            : [];
+          setCriancas(criancasTurma);
+        } catch (e) {
+          console.warn('Erro ao carregar dados da turma:', e);
+        }
+      }
+
+      // Gerar relatório com IA - passar turma_id se disponível
+      const relatorioData = await gerarRelatorioTurma({
+        turma_id: turmaId || undefined,
+        incluir_progresso: true,
+        incluir_atividades: true,
+      });
+
+      setRelatorio(relatorioData);
+    } catch (e: any) {
+      console.error('Erro ao carregar relatório:', e);
+      setError(e.message || 'Erro ao carregar relatório');
+      Alert.alert('Erro', 'Não foi possível gerar o relatório. Verifique sua conexão e tente novamente.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Mapear dados do relatório para estrutura visual
+  const getTurmaData = () => {
+    if (!relatorio) return turmaMock;
+
+    // Mapear distribuição de diagnósticos
+    const diagnosticos = Object.entries(relatorio.distribuicao_diagnosticos || {}).map(([name, count], index) => {
+      const colors = ['#FF9BDB', '#B49EFF', '#9CE7FF', '#FFD93D', '#6BCB77'];
+      return {
+        name,
+        count: Number(count),
+        color: colors[index % colors.length],
+      };
+    });
+
+    // Mapear atividades mais efetivas
+    const atividades = (relatorio.atividades_mais_efetivas || []).slice(0, 4).map((a: any) => ({
+      nome: a.titulo || 'Atividade',
+      categoria: a.categoria || 'Geral',
+      execucoes: Math.round(a.media_pontuacao || 0),
+    }));
+
+    // Mapear crianças se disponível
+    // Nota: A API retorna apenas diagnostico_id, não o objeto diagnóstico completo
+    // Por enquanto, usamos um placeholder. Para obter o nome do diagnóstico,
+    // seria necessário buscar separadamente ou modificar o backend para incluir no response
+    const criancasMapeadas = criancas.length > 0
+      ? criancas.map((c: any) => {
+          // Se o backend retornar o objeto diagnostico (via relacionamento), usar
+          // Caso contrário, usar placeholder baseado no ID ou 'Não especificado'
+          const diagNome = c.diagnostico?.tipo || (c.diagnostico_id ? `Diagnóstico #${c.diagnostico_id}` : 'Não especificado');
+          const tagColors: { [key: string]: { bg: string; text: string } } = {
+            'TEA': { bg: '#FFEAF6', text: '#C63CCF' },
+            'TDAH': { bg: '#F0EAFE', text: '#6A0DAD' },
+            'T21': { bg: '#E6F6FF', text: '#00A3FF' },
+          };
+          // Tentar extrair o nome do diagnóstico se estiver no formato "Diagnóstico #ID"
+          const diagKey = diagNome.replace(/Diagnóstico #\d+/, '').trim() || diagNome;
+          const colors = tagColors[diagKey] || { bg: '#E0E0E0', text: '#555' };
+          return {
+            nome: c.nome,
+            idade: c.idade,
+            diagnostico: diagNome,
+            tagBg: colors.bg,
+            tagColor: colors.text,
+          };
+        })
+      : turmaMock.criancas;
+
+    return {
+      nome: turmaNome,
+      totalCriancas: relatorio.total_criancas || turmaMock.totalCriancas,
+      performanceMedia: Math.round((relatorio.performance_media?.pontuacao_media || 0) * 10) / 10,
+      taxaConclusao: Math.round(relatorio.performance_media?.taxa_conclusao || 0),
+      atividadesCadastradas: relatorio.resumo_geral_turma?.total_atividades || turmaMock.atividadesCadastradas,
+      diagnosticos: diagnosticos.length > 0 ? diagnosticos : turmaMock.diagnosticos,
+      atividades: atividades.length > 0 ? atividades : turmaMock.atividades,
+      criancas: criancasMapeadas,
+    };
+  };
+
+  const turma = getTurmaData();
   const totalDiagnosticos = turma.diagnosticos.reduce((acc, d) => acc + d.count, 0);
 
   return (
@@ -53,12 +169,39 @@ export default function RelatorioTurmaScreen() {
         <View style={styles.headerSpacer} />
       </View>
 
+      {loading ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 48 }}>
+          <ActivityIndicator size="large" color="#E07612" />
+          <Text style={{ marginTop: 16, color: '#555' }}>Gerando relatório com IA...</Text>
+        </View>
+      ) : error ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 48 }}>
+          <Ionicons name="alert-circle" size={48} color="#E07612" />
+          <Text style={{ marginTop: 16, color: '#555', textAlign: 'center' }}>{error}</Text>
+          <TouchableOpacity
+            style={{ marginTop: 16, padding: 12, backgroundColor: '#E07612', borderRadius: 8 }}
+            onPress={carregarRelatorio}
+          >
+            <Text style={{ color: 'white', fontWeight: 'bold' }}>Tentar novamente</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 48 }}
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.title}>Relatório da Turma</Text>
-        <Text style={styles.subtitle}>Visão geral de dados agregados (todas as crianças)</Text>
+        <Text style={styles.subtitle}>
+          {turmaId ? `Visão geral de dados agregados da turma` : 'Visão geral de dados agregados (todas as crianças)'}
+        </Text>
+
+        {/* RESUMO */}
+        {relatorio?.resumo && (
+          <View style={styles.resumoContainer}>
+            <Text style={styles.resumoTitle}>Resumo</Text>
+            <Text style={styles.resumoText}>{relatorio.resumo}</Text>
+          </View>
+        )}
 
         {/* MÉTRICAS */}
         <View style={styles.metricsContainer}>
@@ -167,6 +310,7 @@ export default function RelatorioTurmaScreen() {
           ))}
         </View>
       </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
@@ -185,6 +329,25 @@ const styles = StyleSheet.create({
 
   title: { fontSize: 16, fontWeight: 'bold', marginTop: 24 },
   subtitle: { color: '#555', marginTop: 4, marginBottom: 24 },
+  resumoContainer: {
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+    borderLeftWidth: 4,
+    borderLeftColor: '#E07612',
+  },
+  resumoTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#000',
+    marginBottom: 12,
+  },
+  resumoText: {
+    fontSize: 14,
+    color: '#333',
+    lineHeight: 22,
+  },
 
   metricsContainer: {
     flexDirection: 'row',

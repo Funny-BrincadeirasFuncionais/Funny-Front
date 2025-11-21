@@ -1,12 +1,13 @@
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { FontAwesome } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Checkbox from 'expo-checkbox';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { Alert, Image, Pressable, StyleSheet, TextInput } from 'react-native';
-import apiFetch from '@/services/api';
+import { useState, useEffect } from 'react';
+import { Alert, Image, Pressable, StyleSheet, TextInput, Modal, View } from 'react-native';
+import { WebView } from 'react-native-webview';
+import apiFetch, { BASE_URL } from '@/services/api';
+import Constants from 'expo-constants';
 import { useAccessibility } from '@/context/AccessibilityContext';
 import LoadingOverlay from '@/components/LoadingOverlay';
 import KeyboardSafeView from '@/components/KeyboardSafeView';
@@ -24,89 +25,87 @@ export default function LoginScreen() {
   const router = useRouter();
   const { transformText } = useAccessibility();
 
+  // No social login: removed Expo Google auth flow.
+
   const handleLogin = async () => {
   console.log('🔐 Iniciando processo de login...');
-  setIsLoading(true);
   // Validação cliente: não permitir login com campos vazios
   if (!email?.trim() || !senha?.trim()) {
     console.warn('⚠️ Tentativa de login com campos vazios');
     Alert.alert(transformText('Aviso'), transformText('Por favor preencha e-mail e senha antes de entrar.'));
     return;
   }
-  const payload = {
-    email,
-    senha,
-  };
 
-  try {
-    console.log('📡 Enviando requisição de autenticação...');
-    const response = await apiFetch('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    });
-
-    const data = await response.json();
-    console.log('📥 Resposta do servidor recebida');
-
-    if (response.ok) {
-      console.log('✅ Autenticação bem-sucedida!');
-      if (data.access_token) {
-        console.log('💾 Salvando token de acesso no AsyncStorage...');
-        await AsyncStorage.setItem('token', data.access_token);
-      }
-
-      // Se o backend já retornou o id do responsável, salvamos direto
-      if (data.responsavel_id) {
-        console.log('🔍 Responsável retornado no login. Salvando ID:', data.responsavel_id);
-        await AsyncStorage.setItem('userId', data.responsavel_id.toString());
-      } else {
-        console.log('🔍 Responsável não retornado no login. Fazendo fallback para /responsaveis');
-        console.log('🔍 Buscando informações do responsável...');
-        const resp = await apiFetch('/responsaveis');
-        let lista;
-        try {
-          lista = await resp.json();
-          console.log('📋 Lista de responsáveis obtida:', lista.length, 'responsáveis encontrados');
-        } catch (e) {
-          console.error('❌ Erro ao processar resposta de /responsaveis:', e);
-          lista = [];
-        }
-
-        if (Array.isArray(lista)) {
-          console.log('🔍 Procurando responsável com email:', email);
-          const responsavel = lista.find((item: any) => item.email === email);
-          if (responsavel?.id) {
-            console.log('✅ Responsável encontrado! ID:', responsavel.id);
-            await AsyncStorage.setItem('userId', responsavel.id.toString());
-            console.log('💾 ID do responsável salvo no AsyncStorage');
-          } else {
-            console.warn('⚠️ Usuário logado mas não encontrado como responsável');
-            Alert.alert('Aviso', 'Usuário logado, mas não encontrado na lista de responsáveis.');
-          }
-        } else {
-          console.error('❌ Formato inválido na resposta de responsáveis');
-          Alert.alert('Erro', 'Resposta inesperada do servidor ao buscar responsáveis.');
-          console.error('Resposta inesperada de /responsaveis:', lista);
-        }
-      }
-
-      console.log('🎉 Login finalizado com sucesso!');
-      setIsLoading(false);
-      Alert.alert('Sucesso', 'Login realizado com sucesso!');
-      console.log('🔄 Redirecionando para a tela inicial (tabs)...');
-      // usar replace para evitar voltar para a tela de login
-      router.replace('/(tabs)/home');
-    } else {
-      console.error('❌ Falha na autenticação:', data.message);
-      setIsLoading(false);
-      Alert.alert('Erro', data.message || 'Falha no login.');
-    }
-  } catch (error) {
-    console.error('❌ Erro na requisição:', error);
-    setIsLoading(false);
-    Alert.alert('Erro', 'Erro ao conectar com o servidor.');
-  }
+  // Show reCAPTCHA modal; the modal will post a token back to the WebView on success
+  setIsLoading(true);
+  setRecaptchaVisible(true);
 };
+
+  // UI state for recaptcha flow
+  const [recaptchaVisible, setRecaptchaVisible] = useState(false);
+  // Read site key from Expo config (app.json extra). Prefer this over hardcoding.
+  const RECAPTCHA_SITE_KEY = (Constants.expoConfig as any)?.extra?.RECAPTCHA_SITE_KEY || '';
+  if (!RECAPTCHA_SITE_KEY) {
+    console.warn('RECAPTCHA_SITE_KEY not set in expo config (app.json extra). Set extra.RECAPTCHA_SITE_KEY or replace the placeholder in login.tsx');
+  }
+
+  // No social login: removed Expo Google auth flow.
+  const recaptchaHtml = (siteKey: string) => `
+    <!doctype html>
+    <html>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script>
+          function onSuccess(token) {
+            window.ReactNativeWebView.postMessage(token);
+          }
+  `;
+
+
+  const onRecaptchaMessage = async (event: any) => {
+    const token = event.nativeEvent.data;
+    setRecaptchaVisible(false);
+    setIsLoading(true);
+    if (!token || token.startsWith('ERROR:')) {
+      setIsLoading(false);
+      Alert.alert('Erro', 'Falha na verificação reCAPTCHA. Tente novamente.');
+      return;
+    }
+
+    // perform the original login now including recaptcha_token
+    const payload = { email, senha, recaptcha_token: token };
+    try {
+      const response = await apiFetch('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json();
+      setIsLoading(false);
+      if (response.ok) {
+        if (data.access_token) await AsyncStorage.setItem('token', data.access_token);
+        if (data.responsavel_id) {
+          await AsyncStorage.setItem('userId', data.responsavel_id.toString());
+        } else {
+          // fallback behavior unchanged
+          const resp = await apiFetch('/responsaveis');
+          let lista;
+          try { lista = await resp.json(); } catch { lista = []; }
+          if (Array.isArray(lista)) {
+            const responsavel = lista.find((item: any) => item.email === email);
+            if (responsavel?.id) await AsyncStorage.setItem('userId', responsavel.id.toString());
+          }
+        }
+        Alert.alert('Sucesso', 'Login realizado com sucesso!');
+        router.replace('/(tabs)/home');
+      } else {
+        // Show detailed error if backend returned detail (FastAPI uses `detail`)
+        Alert.alert('Erro', data.detail || data.message || 'Falha no login.');
+      }
+    } catch (e) {
+      setIsLoading(false);
+      Alert.alert('Erro', 'Erro ao conectar com o servidor.');
+    }
+  };
 
 
   return (
@@ -148,7 +147,7 @@ export default function LoginScreen() {
           onBlur={() => setPasswordFocused(false)}
         />
 
-        <ThemedView style={styles.checkboxContainer}>
+        {/* <ThemedView style={styles.checkboxContainer}>
           <Checkbox
             value={rememberMe}
             onValueChange={setRememberMe}
@@ -159,7 +158,7 @@ export default function LoginScreen() {
           <Pressable style={{ marginLeft: 'auto' }}>
             <ThemedText style={styles.forgotPassword}>Esqueceu a senha?</ThemedText>
           </Pressable>
-        </ThemedView>
+        </ThemedView> */}
 
         {/* Botão de login real: chama o handler que valida/efetua autenticação */}
         <Pressable style={styles.loginButton} onPress={handleLogin}>
@@ -167,6 +166,40 @@ export default function LoginScreen() {
         </Pressable>
 
         </ThemedView>
+        {/* reCAPTCHA modal (invisible widget runs and posts token back) */}
+        <Modal visible={recaptchaVisible} animationType="slide" transparent>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center' }}>
+            <View style={{ height: 400, marginHorizontal: 20, backgroundColor: '#fff', borderRadius: 12, overflow: 'hidden' }}>
+                  {/* Close button so user can always cancel/retry */}
+                  <Pressable
+                    onPress={() => { setRecaptchaVisible(false); setIsLoading(false); }}
+                    style={{ position: 'absolute', right: 8, top: 8, zIndex: 10, padding: 6 }}
+                  >
+                    <ThemedText style={{ color: '#6B7280' }}>Cancelar</ThemedText>
+                  </Pressable>
+                  <WebView
+                    originWhitelist={["*"]}
+                    // Prefer using a hosted page on the backend domain to avoid "Invalid domain" errors.
+                    source={ BASE_URL ? { uri: `${BASE_URL}/recaptcha` } : { html: recaptchaHtml(RECAPTCHA_SITE_KEY) } }
+                    onMessage={onRecaptchaMessage}
+                    javaScriptEnabled
+                    domStorageEnabled
+                    onError={(syntheticEvent) => {
+                      const { nativeEvent } = syntheticEvent;
+                      setRecaptchaVisible(false);
+                      setIsLoading(false);
+                      Alert.alert('Erro', 'Falha ao carregar reCAPTCHA. Tente novamente.');
+                    }}
+                    onLoadEnd={() => {
+                      // hide loading spinner only when the WebView has finished loading
+                      // keep recaptchaVisible true; user will wait for token or cancel
+                    }}
+                  />
+            </View>
+          </View>
+        </Modal>
+
+        {/* Social login removed */}
       </ThemedView>
     </KeyboardSafeView>
   );
@@ -280,20 +313,6 @@ const styles = StyleSheet.create({
     color: '#59626E',
     fontSize: 14,
   },
-  googleButton: {
-    borderColor: '#E07612',
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  googleButtonText: {
-    color: '#E07612',
-    fontFamily: 'Inter_700Bold',
-    fontSize: 16,
-    marginLeft: 8,
-  },
+  
 });
+

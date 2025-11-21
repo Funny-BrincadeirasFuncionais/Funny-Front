@@ -8,9 +8,11 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.funny.brincadeiras.funnyfrontend"
     },
     "android": {
+      "package": "com.funny.brincadeiras.funnyfrontend",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon_funny.png",
         "backgroundColor": "#ffffff"
@@ -39,6 +41,12 @@
     },
     "extra": {
       "router": {},
+      "API_URL": "https://funny-back-py.onrender.com",
+      "RECAPTCHA_SITE_KEY": "6LetwAssAAAAAGX0k7r9WZnrsFeqp9J1Gp5qPwwX",
+      "GOOGLE_EXPO_CLIENT_ID": "<YOUR_EXPO_GOOGLE_CLIENT_ID>",
+      "GOOGLE_ANDROID_CLIENT_ID": "<YOUR_ANDROID_GOOGLE_CLIENT_ID>",
+      "GOOGLE_IOS_CLIENT_ID": "<YOUR_IOS_GOOGLE_CLIENT_ID>",
+      "GOOGLE_WEB_CLIENT_ID": "<YOUR_WEB_GOOGLE_CLIENT_ID>",
       "eas": {
         "projectId": "ca5a55bc-dd64-4438-9907-5a383aaca213"
       }
