@@ -18,10 +18,7 @@ const getBaseUrl = (): string => {
     return configUrl;
   }
 
-  // Em desenvolvimento, usar localhost
-  // Se não houver configuração explícita, usar a URL do backend hospedado no Render.
-  // Isso evita que o app tente se conectar a http://localhost:8000 quando o backend
-  // está realmente em https://funny-back-py.onrender.com.
+  // Fallback: URL de produção no Render
   return 'https://funny-back-py.onrender.com';
 };
 
@@ -240,6 +237,7 @@ export interface RelatorioCriancaRequest {
 }
 
 export interface RelatorioTurmaRequest {
+  turma_id?: number;
   incluir_progresso?: boolean;
   incluir_atividades?: boolean;
   periodo_dias?: number;
