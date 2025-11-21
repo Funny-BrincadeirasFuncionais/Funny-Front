@@ -2,12 +2,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
@@ -19,11 +19,11 @@ export default function JogosCotidianoScreen() {
 
   const jogos = [
     {
-      id: '1',
-      nome: 'A Rotina do Dia',
-      descricao: 'Organize uma sequência de ações do dia (acordar, escovar os dentes, café da manhã...)',
-      icone: 'time-outline',
-      rota: '/jogoRotinaDia',
+      id: '2',
+      nome: 'Jogo das Emoções',
+      descricao: 'Identifique as emoções representadas pelos emojis em diferentes níveis de dificuldade',
+      icone: 'happy-outline',
+      rota: '/jogoEmocoes',
     },
   ];
 

@@ -1,20 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  StatusBar,
+  Alert,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
-  Alert,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getResponsavel, updateResponsavel } from '../services/api';
 import { useAccessibility } from '../context/AccessibilityContext';
+import { getResponsavel, updateResponsavel } from '../services/api';
 
 export default function EditarPerfilScreen() {
   const router = useRouter();
