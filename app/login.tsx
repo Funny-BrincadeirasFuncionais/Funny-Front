@@ -147,7 +147,7 @@ export default function LoginScreen() {
           onBlur={() => setPasswordFocused(false)}
         />
 
-        <ThemedView style={styles.checkboxContainer}>
+        {/* <ThemedView style={styles.checkboxContainer}>
           <Checkbox
             value={rememberMe}
             onValueChange={setRememberMe}
@@ -158,7 +158,7 @@ export default function LoginScreen() {
           <Pressable style={{ marginLeft: 'auto' }}>
             <ThemedText style={styles.forgotPassword}>Esqueceu a senha?</ThemedText>
           </Pressable>
-        </ThemedView>
+        </ThemedView> */}
 
         {/* Botão de login real: chama o handler que valida/efetua autenticação */}
         <Pressable style={styles.loginButton} onPress={handleLogin}>
