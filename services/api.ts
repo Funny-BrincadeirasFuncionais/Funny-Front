@@ -54,6 +54,17 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
   };
 
   const res = await fetch(url, { ...options, headers: headers as any });
+  // Debug: log the actual request URL and status for troubleshooting
+  try {
+    console.log('➡️ apiFetch', options?.method || 'GET', url);
+    if (options?.body) {
+      try {
+        console.log('   body:', typeof options.body === 'string' ? options.body : JSON.stringify(options.body));
+      } catch (e) {
+        console.log('   body: [unserializable]');
+      }
+    }
+  } catch (e) {}
   return res;
 }
 

@@ -1,13 +1,15 @@
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { FontAwesome, Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, TextInput } from 'react-native';
-import apiFetch from '@/services/api';
+import { Alert, Pressable, StyleSheet, TextInput, Modal, View } from 'react-native';
+import apiFetch, { BASE_URL } from '@/services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LoadingOverlay from '@/components/LoadingOverlay';
 import KeyboardSafeView from '@/components/KeyboardSafeView';
+import { WebView } from 'react-native-webview';
+import Constants from 'expo-constants';
 
 export default function CadastroScreen() {
   const [nome, setNome] = useState('');
@@ -20,6 +22,111 @@ export default function CadastroScreen() {
   const [telFocused, setTelFocused] = useState(false);
   const [senhaFocused, setSenhaFocused] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  // reCAPTCHA modal state
+  const [recaptchaVisible, setRecaptchaVisible] = useState(false);
+  const RECAPTCHA_SITE_KEY = (Constants.expoConfig as any)?.extra?.RECAPTCHA_SITE_KEY || '';
+  if (!RECAPTCHA_SITE_KEY) {
+    console.warn('RECAPTCHA_SITE_KEY not set in expo config (app.json extra).');
+  }
+
+  const recaptchaHtml = (siteKey: string) => `
+    <!doctype html>
+    <html>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script>
+          function onSuccess(token) {
+            window.ReactNativeWebView.postMessage(token);
+          }
+          function onLoadCallback() {
+            try {
+              var widgetId = grecaptcha.render('recaptcha', { 'sitekey': '${siteKey}', 'size': 'invisible', 'callback': onSuccess });
+              grecaptcha.execute(widgetId);
+            } catch (e) {
+              try { grecaptcha.execute(); } catch (ee) { window.ReactNativeWebView.postMessage('ERROR:'+ee.message); }
+            }
+          }
+        </script>
+      </head>
+      <body>
+        <div id="recaptcha"></div>
+        <script src="https://www.google.com/recaptcha/api.js?onload=onLoadCallback&render=explicit" async defer></script>
+      </body>
+    </html>
+  `;
+
+  const onRecaptchaMessage = async (event: any) => {
+    const token = event?.nativeEvent?.data;
+    setRecaptchaVisible(false);
+    setIsLoading(true);
+    if (!token || token.startsWith('ERROR:')) {
+      setIsLoading(false);
+      Alert.alert('Erro', 'Falha na verificação reCAPTCHA. Tente novamente.');
+      return;
+    }
+
+    console.log('➡️ login payload will be sent:', JSON.stringify({ email, senha, recaptcha_token: token }));
+
+    try {
+      // Efetuar login com token reCAPTCHA
+      const loginRes = await apiFetch('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, senha, recaptcha_token: token }),
+      });
+
+      const ct = loginRes.headers.get?.('content-type') || '';
+      let loginData: any = undefined;
+      if (ct.includes('application/json')) {
+        loginData = await loginRes.json().catch(() => undefined);
+      } else {
+        const text = await loginRes.text().catch(() => '');
+        try { loginData = JSON.parse(text); } catch { loginData = { message: text }; }
+      }
+
+      if (!loginRes.ok) {
+        const detail = loginData?.detail || loginData?.message || 'Falha no login automático.';
+        setIsLoading(false);
+        Alert.alert('Erro', detail.toString());
+        return;
+      }
+
+      // Salvar token
+      if (loginData?.access_token) {
+        await AsyncStorage.setItem('token', loginData.access_token);
+      }
+
+      // Criar responsável (agora autenticado)
+      const res2 = await apiFetch('/responsaveis', {
+        method: 'POST',
+        body: JSON.stringify({ nome, email, telefone }),
+      });
+
+      if (res2.ok) {
+        let created: any = undefined;
+        try { created = await res2.json(); } catch { created = undefined; }
+        // Save responsavel id to AsyncStorage so the app loads the correct account
+        try {
+          if (created?.id) {
+            await AsyncStorage.setItem('userId', created.id.toString());
+          }
+        } catch (e) {
+          console.warn('Failed to save userId in AsyncStorage', e);
+        }
+        setIsLoading(false);
+        Alert.alert('Sucesso', 'Cadastro e login realizados com sucesso!');
+        // Ir para a home
+        router.replace('/(tabs)/home');
+      } else {
+        const text = await res2.text().catch(() => '');
+        setIsLoading(false);
+        Alert.alert('Atenção', 'Login realizado, mas falha ao criar perfil de responsável: ' + (text || res2.status));
+        router.replace('/(tabs)/home');
+      }
+    } catch (e) {
+      setIsLoading(false);
+      Alert.alert('Erro', 'Erro ao autenticar. Tente novamente.');
+    }
+  };
 
   const router = useRouter();
 
@@ -33,6 +140,7 @@ export default function CadastroScreen() {
       telefone,
     };
     console.log('📋 Dados do formulário preparados');
+    console.log('📋 Payload (registro):', JSON.stringify(payload));
 
     try {
       console.log('1️⃣ Registrando novo usuário...');
@@ -51,85 +159,9 @@ export default function CadastroScreen() {
       }
       console.log('✅ Usuário registrado com sucesso!');
 
-      // 2. Fazer login para obter token
-      console.log('2️⃣ Iniciando autenticação automática...');
-      const loginRes = await apiFetch('/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ email, senha }),
-      });
-
-      const responseText = await loginRes.text();
-      console.log('📥 Resposta do servidor recebida');
-
-      if (!loginRes.ok) {
-        console.error('❌ Falha na autenticação automática');
-        console.error('Status:', loginRes.status);
-        console.error('Resposta:', responseText);
-        Alert.alert('Erro', 'Cadastro realizado, mas falha ao fazer login automático.');
-        setIsLoading(false);
-        router.push('/login');
-        return;
-      }
-
-      // Tenta converter a resposta em JSON
-      let responseData;
-      try {
-        console.log('🔄 Processando resposta do servidor...');
-        responseData = JSON.parse(responseText);
-        console.log('✅ Resposta processada com sucesso');
-      } catch (jsonError) {
-        console.error('❌ Erro ao processar resposta JSON:', jsonError);
-        Alert.alert('Erro', 'Resposta inválida do servidor.');
-        setIsLoading(false);
-        router.push('/login');
-        return;
-      }
-
-      if (!responseData?.access_token) {
-        console.error('❌ Token ausente na resposta do servidor');
-        Alert.alert('Erro', 'Erro ao obter token de autenticação.');
-        setIsLoading(false);
-        router.push('/login');
-        return;
-      }
-
-      try {
-        console.log('💾 Salvando token de acesso...');
-        await AsyncStorage.setItem('token', responseData.access_token);
-        console.log('✅ Token salvo com sucesso no AsyncStorage');
-      } catch (storageError) {
-        console.error('❌ Erro ao salvar token:', storageError);
-        Alert.alert('Erro', 'Erro ao salvar dados de autenticação.');
-        setIsLoading(false);
-        router.push('/login');
-        return;
-      }
-
-      // 3. Criar responsável (com token de autenticação)
-      console.log('3️⃣ Criando perfil de responsável...');
-      const res2 = await apiFetch('/responsaveis', {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      });
-
-      if (res2.ok) {
-        console.log('✅ Perfil de responsável criado com sucesso');
-        setIsLoading(false);
-        console.log('🎉 Processo de cadastro finalizado com sucesso!');
-        Alert.alert('Sucesso', 'Cadastro realizado com sucesso!');
-        console.log('🔄 Redirecionando para a tela de login...');
-        router.push('/login');
-      } else {
-        console.error('❌ Erro ao criar perfil de responsável');
-        const errorText = await res2.text();
-        console.error('Detalhes do erro:', errorText);
-        setIsLoading(false);
-        Alert.alert('Erro', 'Falha ao criar perfil de responsável. Por favor, tente fazer login.');
-        router.push('/login');
-      }
+      // Após registro, abrir o modal reCAPTCHA para permitir login automático.
+      setIsLoading(true);
+      setRecaptchaVisible(true);
     } catch (error) {
       console.error('❌ Erro inesperado durante o cadastro:', error);
       setIsLoading(false);
@@ -196,6 +228,31 @@ export default function CadastroScreen() {
         <Pressable style={styles.registerButton} onPress={handleRegister}>
           <ThemedText style={styles.registerButtonText}>Registre-se</ThemedText>
         </Pressable>
+        {/* reCAPTCHA modal (runs invisible widget and posts token back) */}
+        <Modal visible={recaptchaVisible} animationType="slide" transparent>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center' }}>
+            <View style={{ height: 400, marginHorizontal: 20, backgroundColor: '#fff', borderRadius: 12, overflow: 'hidden' }}>
+              <Pressable
+                onPress={() => { setRecaptchaVisible(false); setIsLoading(false); }}
+                style={{ position: 'absolute', right: 8, top: 8, zIndex: 10, padding: 6 }}
+              >
+                <ThemedText style={{ color: '#6B7280' }}>Cancelar</ThemedText>
+              </Pressable>
+              <WebView
+                originWhitelist={["*"]}
+                source={ BASE_URL ? { uri: `${BASE_URL}/recaptcha` } : { html: recaptchaHtml(RECAPTCHA_SITE_KEY) } }
+                onMessage={onRecaptchaMessage}
+                javaScriptEnabled
+                domStorageEnabled
+                onError={() => {
+                  setRecaptchaVisible(false);
+                  setIsLoading(false);
+                  Alert.alert('Erro', 'Falha ao carregar reCAPTCHA. Tente novamente.');
+                }}
+              />
+            </View>
+          </View>
+        </Modal>
         </ThemedView>
       </ThemedView>
     </KeyboardSafeView>
@@ -289,19 +346,6 @@ const styles = StyleSheet.create({
         fontFamily: 'Inter_700Bold',
         fontSize: 16,
     },
-    googleButton: {
-        borderColor: '#E07612',
-        borderWidth: 1,
-        borderRadius: 8,
-        padding: 14,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8
-    },
-    googleButtonText: {
-        color: '#E07612',
-        fontFamily: 'Inter_700Bold',
-        fontSize: 16,
-    },
 });
+
+
