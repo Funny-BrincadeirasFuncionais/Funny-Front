@@ -41,6 +41,7 @@ export default function JogoContagem() {
   const [atividadeId, setAtividadeId] = useState<number | null>(null);
   const [feedbackErro, setFeedbackErro] = useState('');
   const [mostrarErro, setMostrarErro] = useState(false);
+  const [tempoInicio, setTempoInicio] = useState<number | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -61,6 +62,7 @@ export default function JogoContagem() {
         1
       );
       setAtividadeId(aid);
+      setTempoInicio(Date.now()); // Registrar início do jogo
       gerarRodada();
     };
     carregarDados();
@@ -72,6 +74,9 @@ export default function JogoContagem() {
     (async () => {
       if (modalVisible && !minijogoRegistered && criancaId !== null) {
         setMinijogoRegistered(true);
+        // Calcular tempo em segundos
+        const tempoSegundos = tempoInicio ? Math.floor((Date.now() - tempoInicio) / 1000) : undefined;
+        
         const res = await registrarMinijogo({
           pontuacao: Number(notaFinal),
           categoria: 'Matemáticas',
@@ -79,6 +84,7 @@ export default function JogoContagem() {
           titulo: 'Desafio de Contagem',
           descricao: 'Conte os objetos e selecione a quantidade correta',
           observacoes: null,
+          tempo_segundos: tempoSegundos,
         });
         if (res.ok) {
           // Try to set atividade id from returned progresso

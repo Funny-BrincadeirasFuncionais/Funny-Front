@@ -41,6 +41,7 @@ export default function JogoMemoria() {
   const [atividadeId, setAtividadeId] = useState<number | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [observacao, setObservacao] = useState('');
+  const [tempoInicio, setTempoInicio] = useState<number | null>(null);
   const animacao = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -63,6 +64,7 @@ export default function JogoMemoria() {
         1
       );
       setAtividadeId(aid);
+      setTempoInicio(Date.now()); // Registrar início do jogo
     })();
   }, []);
 
@@ -75,6 +77,9 @@ export default function JogoMemoria() {
         // calcularPontuacao retorna valor em escala 0-100; backend espera 0-10 for registrar-minijogo
         const rawScore = Number(calcularPontuacao());
         const scaledScore = Math.round(Math.max(0, Math.min(10, rawScore / 10)));
+        // Calcular tempo em segundos
+        const tempoSegundos = tempoInicio ? Math.floor((Date.now() - tempoInicio) / 1000) : undefined;
+        
         const res = await registrarMinijogo({
           pontuacao: scaledScore,
           categoria: 'Lógica',
@@ -82,6 +87,7 @@ export default function JogoMemoria() {
           titulo: 'Jogo da Memória',
           descricao: 'Encontre os pares de símbolos',
           observacoes: null,
+          tempo_segundos: tempoSegundos,
         });
         if (res.ok) {
           const r: any = res;
@@ -94,7 +100,7 @@ export default function JogoMemoria() {
         }
       }
     })();
-  }, [modalVisible, minijogoRegistered, criancaId]);
+  }, [modalVisible, minijogoRegistered, criancaId, tempoInicio]);
 
   const initGame = () => {
     const duplicated = [...symbols, ...symbols];

@@ -130,6 +130,7 @@ export default function JogoFamiliaPalavras() {
     const [atividadeId, setAtividadeId] = useState<number | null>(null);
     const [observacao, setObservacao] = useState('');
     const [modalVisible, setModalVisible] = useState(false);
+    const [tempoInicio, setTempoInicio] = useState<number | null>(null);
 
     const familiaAtual = familiasPalavras[faseAtual];
 
@@ -155,6 +156,7 @@ export default function JogoFamiliaPalavras() {
                 1
             );
             setAtividadeId(aid);
+            setTempoInicio(Date.now()); // Registrar início do jogo
         };
 
         carregarDados();
@@ -301,6 +303,9 @@ export default function JogoFamiliaPalavras() {
         setModalVisible(true);
 
         if (criancaId) {
+            // Calcular tempo em segundos
+            const tempoSegundos = tempoInicio ? Math.floor((Date.now() - tempoInicio) / 1000) : undefined;
+            
             try {
                 const res = await registrarMinijogo({
                     pontuacao: Number(nota),
@@ -309,6 +314,7 @@ export default function JogoFamiliaPalavras() {
                     titulo: 'Família de Palavras',
                     descricao: 'Selecione palavras que pertencem à mesma família (mesma terminação).',
                     observacoes: null,
+                    tempo_segundos: tempoSegundos,
                 });
 
                 if (res.ok) {
@@ -326,7 +332,7 @@ export default function JogoFamiliaPalavras() {
                 console.warn('Falha ao registrar mini-jogo automático:', e);
             }
         }
-    }, [calcularNotaFinal, criancaId]);
+    }, [calcularNotaFinal, criancaId, tempoInicio]);
 
     const avancarFase = useCallback(() => {
         setFamiliaCompleta(false);

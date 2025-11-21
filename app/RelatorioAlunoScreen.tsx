@@ -152,6 +152,7 @@ export default function RelatorioAlunoScreen() {
             } : alunoMock.responsavel,
             performance: Math.round((relatorio.resumo_geral?.media_pontuacao || 0) * 10) / 10,
             conclusao: Math.round(relatorio.resumo_geral?.taxa_sucesso || 0),
+            tempoMedio: relatorio.resumo_geral?.tempo_medio_minutos || null,
             categorias: categorias.length > 0 ? categorias : alunoMock.categorias,
             atividades: atividades,
         };
@@ -244,6 +245,12 @@ export default function RelatorioAlunoScreen() {
                         <Text style={styles.statValue}>{aluno.conclusao}%</Text>
                         <Text style={styles.statLabel}>Conclusão de atividades</Text>
                     </View>
+                    {aluno.tempoMedio !== null && aluno.tempoMedio !== undefined && (
+                        <View style={styles.statBox}>
+                            <Text style={styles.statValue}>{aluno.tempoMedio.toFixed(1)}</Text>
+                            <Text style={styles.statLabel}>Tempo médio (min)</Text>
+                        </View>
+                    )}
                 </View>
 
                 {/* Gráfico */}
@@ -389,6 +396,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         gap: 12,
+        flexWrap: 'wrap',
     },
     statBox: {
         flex: 1,

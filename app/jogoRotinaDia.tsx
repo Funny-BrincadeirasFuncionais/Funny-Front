@@ -107,6 +107,7 @@ export default function JogoRotinaDia() {
     const [atividadeId, setAtividadeId] = useState<number | null>(null);
     const [observacao, setObservacao] = useState('');
     const [modalVisible, setModalVisible] = useState(false);
+    const [tempoInicio, setTempoInicio] = useState<number | null>(null);
 
     const periodo = rotinasPeriodos[periodoAtual];
 
@@ -127,6 +128,7 @@ export default function JogoRotinaDia() {
                 1
             );
             setAtividadeId(aid);
+            setTempoInicio(Date.now()); // Registrar início do jogo
         };
         carregarDados();
     }, []);
@@ -137,6 +139,9 @@ export default function JogoRotinaDia() {
         (async () => {
             if (modalVisible && !minijogoRegistered && criancaId !== null) {
                 setMinijogoRegistered(true);
+                // Calcular tempo em segundos
+                const tempoSegundos = tempoInicio ? Math.floor((Date.now() - tempoInicio) / 1000) : undefined;
+                
                 const res = await registrarMinijogo({
                     pontuacao: Number(notaFinal),
                     categoria: 'Cotidiano',
@@ -144,6 +149,7 @@ export default function JogoRotinaDia() {
                     titulo: 'Rotina do Dia',
                     descricao: 'Organize as ações na sequência correta.',
                     observacoes: null,
+                    tempo_segundos: tempoSegundos,
                 });
                 if (res.ok) {
                     const r: any = res;
@@ -156,7 +162,7 @@ export default function JogoRotinaDia() {
                 }
             }
         })();
-    }, [modalVisible, minijogoRegistered, criancaId]);
+    }, [modalVisible, minijogoRegistered, criancaId, notaFinal, tempoInicio]);
 
     useEffect(() => {
         if (periodo) {
