@@ -1,3 +1,4 @@
+import KeyboardSafeView from '@/components/KeyboardSafeView';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
@@ -15,11 +16,10 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import KeyboardSafeView from '@/components/KeyboardSafeView';
 import Svg, { Path } from 'react-native-svg';
 import { Colors } from '../constants/Colors';
 import { useAccessibility } from '../context/AccessibilityContext';
-import { ensureAtividadeExists, registrarProgresso, registrarMinijogo } from '../services/api';
+import { ensureAtividadeExists, registrarMinijogo, registrarProgresso } from '../services/api';
 
 interface Acao {
     id: string;
