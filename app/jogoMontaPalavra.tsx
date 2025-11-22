@@ -51,6 +51,7 @@ export default function JogoMontaPalavra() {
     const [atividadeId, setAtividadeId] = useState<number | null>(null);
     const [modalVisible, setModalVisible] = useState(false);
     const [observacao, setObservacao] = useState('');
+    const [tempoInicio, setTempoInicio] = useState<number | null>(null);
 
     const palavraAtual = palavras[faseAtual];
     const palavraCorretaArray = palavraAtual.palavra.split('');
@@ -73,6 +74,7 @@ export default function JogoMontaPalavra() {
                 1
             );
             setAtividadeId(aid);
+            setTempoInicio(Date.now()); // Registrar início do jogo
         })();
     }, []);
 
@@ -385,12 +387,16 @@ export default function JogoMontaPalavra() {
                                     return;
                                 }
                                 try {
+                                    // Calcular tempo em segundos
+                                    const tempoSegundos = tempoInicio ? Math.floor((Date.now() - tempoInicio) / 1000) : undefined;
+                                    
                                     const res = await registrarProgresso({
                                         crianca_id: Number(criancaId),
                                         atividade_id: Number(atividadeId),
                                         pontuacao: Number(pontuacao),
                                         observacoes: observacao || undefined,
                                         concluida: true,
+                                        tempo_segundos: tempoSegundos,
                                     });
                                     if (res.ok) {
                                         Alert.alert(transformText('Sucesso'), transformText('Progresso registrado.'));

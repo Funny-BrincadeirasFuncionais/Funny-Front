@@ -148,6 +148,7 @@ export default function RelatorioTurmaScreen() {
       totalCriancas: relatorio.total_criancas || turmaMock.totalCriancas,
       performanceMedia: Math.round((relatorio.performance_media?.pontuacao_media || 0) * 10) / 10,
       taxaConclusao: Math.round(relatorio.performance_media?.taxa_conclusao || 0),
+      tempoMedio: relatorio.performance_media?.tempo_medio_minutos || null,
       atividadesCadastradas: relatorio.resumo_geral_turma?.total_atividades || turmaMock.atividadesCadastradas,
       diagnosticos: diagnosticos.length > 0 ? diagnosticos : turmaMock.diagnosticos,
       atividades: atividades.length > 0 ? atividades : turmaMock.atividades,
@@ -210,6 +211,9 @@ export default function RelatorioTurmaScreen() {
             { value: turma.performanceMedia, label: 'Performance Média' },
             { value: `${turma.taxaConclusao}%`, label: 'Taxa de conclusão' },
             { value: turma.atividadesCadastradas, label: 'Atividades Cadastradas' },
+            ...(turma.tempoMedio !== null && turma.tempoMedio !== undefined
+              ? [{ value: `${turma.tempoMedio.toFixed(1)}`, label: 'Tempo médio (min)' }]
+              : []),
           ].map((m, i) => (
             <View key={i} style={styles.metricBox}>
               <Text style={styles.metricValue}>{m.value}</Text>

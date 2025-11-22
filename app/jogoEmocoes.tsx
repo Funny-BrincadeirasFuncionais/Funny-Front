@@ -106,6 +106,8 @@ export default function JogoEmocoes() {
     const [totalTentativasPorNivel, setTotalTentativasPorNivel] = useState<number[]>(new Array(5).fill(0));
     // Rastrear emoções já usadas em cada nível para garantir ordem aleatória
     const [emoesUsadasPorNivel, setEmoesUsadasPorNivel] = useState<Set<string>[]>(new Array(5).fill(null).map(() => new Set()));
+    // Rastrear tempo de início do jogo
+    const [tempoInicio, setTempoInicio] = useState<number | null>(null);
 
     // Inicializar primeiro nível
     useEffect(() => {
@@ -120,6 +122,7 @@ export default function JogoEmocoes() {
             }
         };
         carregarDados();
+        setTempoInicio(Date.now()); // Registrar início do jogo
         startLevel(0);
     }, []);
 
@@ -309,6 +312,9 @@ export default function JogoEmocoes() {
         if (!criancaId) return;
         
         const notaFinal = calcularNotaFinal();
+        // Calcular tempo em segundos
+        const tempoSegundos = tempoInicio ? Math.floor((Date.now() - tempoInicio) / 1000) : undefined;
+        
         try {
             await registrarMinijogo({
                 pontuacao: notaFinal,
@@ -317,6 +323,7 @@ export default function JogoEmocoes() {
                 titulo: 'Jogo das Emoções',
                 descricao: 'Identifique as emoções representadas pelos emojis.',
                 observacoes: observacao || null,
+                tempo_segundos: tempoSegundos,
             });
         } catch (e) {
             console.warn('Erro ao registrar mini-jogo:', e);

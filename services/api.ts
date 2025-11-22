@@ -143,12 +143,14 @@ export async function registrarProgresso(payload: {
   pontuacao: number;
   observacoes?: string | null;
   concluida?: boolean;
+  tempo_segundos?: number;
 }) {
   try {
     const res = await postJson('/progresso/registrar', {
       ...payload,
       concluida: payload.concluida ?? true,
       observacoes: payload.observacoes ?? null,
+      tempo_segundos: payload.tempo_segundos ?? undefined,
     });
 
     const result: {
@@ -183,6 +185,7 @@ export async function registrarMinijogo(payload: {
   titulo: string;
   descricao: string;
   observacoes?: string | null;
+  tempo_segundos?: number;
 }) {
   try {
     const res = await postJson('/progresso/registrar-minijogo', {
@@ -192,6 +195,7 @@ export async function registrarMinijogo(payload: {
       titulo: payload.titulo,
       descricao: payload.descricao,
       observacoes: payload.observacoes ?? null,
+      tempo_segundos: payload.tempo_segundos ?? undefined,
     });
 
     const result: {
