@@ -1,10 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getJson, putJson, deleteJson } from '../../services/api';
-import { getProgressoCrianca, listAtividades } from '../../services/api';
 import {
+  Alert,
   FlatList,
   Modal,
   Pressable,
@@ -12,14 +10,13 @@ import {
   StatusBar,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
-  View,
-  Alert,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
 import { useAccessibility } from '../../context/AccessibilityContext';
+import { deleteJson, getJson, getProgressoCrianca, listAtividades, putJson } from '../../services/api';
 
 export default function CriancaProfileScreen() {
   const [modalDiagnostico, setModalDiagnostico] = useState(false);
@@ -114,6 +111,37 @@ export default function CriancaProfileScreen() {
   ];
 
   const concluidasCount = progressos.filter((p) => p.concluida).length;
+
+  // Funções auxiliares para formatação
+  const formatarData = (data: string | Date | null | undefined): string => {
+    if (!data) return '';
+    try {
+      const date = typeof data === 'string' ? new Date(data) : data;
+      if (isNaN(date.getTime())) return '';
+      const dia = String(date.getDate()).padStart(2, '0');
+      const mes = String(date.getMonth() + 1).padStart(2, '0');
+      const ano = date.getFullYear();
+      return `${dia}/${mes}/${ano}`;
+    } catch {
+      return '';
+    }
+  };
+
+  const formatarTempo = (segundos: number | null | undefined): string => {
+    if (segundos === null || segundos === undefined || segundos < 0) return '';
+    if (segundos === 0) return '0 seg';
+    
+    const minutos = Math.floor(segundos / 60);
+    const segundosRestantes = segundos % 60;
+    
+    if (minutos === 0) {
+      return `${segundosRestantes} seg`;
+    } else if (segundosRestantes === 0) {
+      return `${minutos} min`;
+    } else {
+      return `${minutos} min ${segundosRestantes} seg`;
+    }
+  };
 
   // Jogos são acessados pelas telas de categorias (Matemática/Português)
 
@@ -250,6 +278,9 @@ export default function CriancaProfileScreen() {
             progressos.map((p) => {
               const atividade = p.atividade || atividadesMap[p.atividade_id] || null;
               const titulo = atividade?.titulo || `Atividade #${p.atividade_id}`;
+              const dataFormatada = formatarData(p.created_at);
+              const tempoFormatado = formatarTempo(p.tempo_segundos);
+              
               return (
                 <View key={p.id} style={styles.activityItem}>
                   <View style={styles.activityContent}>
@@ -259,10 +290,22 @@ export default function CriancaProfileScreen() {
                       color={p.concluida ? '#4CAF50' : '#999'}
                     />
                     <View style={styles.activityInfo}>
-                      <Text style={styles.activityTitle}>{transformText(titulo)}</Text>
-                      <Text style={styles.activityNote}>{transformText('Pontuação')}: {p.pontuacao}</Text>
+                      <View style={styles.activityTitleRow}>
+                        <Text style={styles.activityTitle}>{transformText(titulo)}</Text>
+                        {dataFormatada ? (
+                          <Text style={styles.activityDate}>{dataFormatada}</Text>
+                        ) : null}
+                      </View>
+                      <View style={styles.activityStatsRow}>
+                        <Text style={styles.activityNote}>{transformText('Pontuação')}: {p.pontuacao}</Text>
+                        {tempoFormatado ? (
+                          <Text style={styles.activityTime}>
+                            {transformText('Tempo')}: {tempoFormatado}
+                          </Text>
+                        ) : null}
+                      </View>
                       {p.observacoes ? (
-                        <Text style={[styles.activityNote, { marginTop: 2 }]}>{transformText('Obs.')}: {p.observacoes}</Text>
+                        <Text style={[styles.activityNote, { marginTop: 4 }]}>{transformText('Obs.')}: {p.observacoes}</Text>
                       ) : null}
                     </View>
                   </View>
@@ -416,8 +459,35 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   activityInfo: { flex: 1 },
-  activityTitle: { fontSize: 16, fontWeight: '500', marginBottom: 4 },
+  activityTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 4,
+  },
+  activityTitle: { 
+    fontSize: 16, 
+    fontWeight: '500', 
+    flex: 1,
+    marginRight: 8,
+  },
+  activityDate: { 
+    fontSize: 13, 
+    color: '#777',
+    textAlign: 'right',
+  },
+  activityStatsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 2,
+  },
   activityNote: { fontSize: 14, color: '#555' },
+  activityTime: { 
+    fontSize: 14, 
+    color: '#555',
+    textAlign: 'right',
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.3)',

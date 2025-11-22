@@ -37,6 +37,7 @@ export default function RelatorioAlunoScreen() {
         },
         performance: 72.9,
         conclusao: 90,
+        tempoMedio: null as number | null,
         categorias: [
             { nome: 'Percepção', valor: 82, cor: '#7B61FF' },
             { nome: 'Cognição', valor: 74, cor: '#30C57B' },
@@ -152,7 +153,7 @@ export default function RelatorioAlunoScreen() {
             } : alunoMock.responsavel,
             performance: Math.round((relatorio.resumo_geral?.media_pontuacao || 0) * 10) / 10,
             conclusao: Math.round(relatorio.resumo_geral?.taxa_sucesso || 0),
-            tempoMedio: relatorio.resumo_geral?.tempo_medio_minutos || null,
+            tempoMedio: relatorio.resumo_geral?.tempo_medio_minutos ?? null,
             categorias: categorias.length > 0 ? categorias : alunoMock.categorias,
             atividades: atividades,
         };
@@ -236,12 +237,20 @@ export default function RelatorioAlunoScreen() {
                 </View>
 
                 {/* Indicadores */}
-                <View style={[styles.statsRow]}>
-                    <View style={styles.statBox}>
-                        <Text style={styles.statValue}>{aluno.performance}</Text>
-                        <Text style={styles.statLabel}>Performance Média</Text>
+                <View>
+                    <View style={[styles.statsRow]}>
+                        <View style={styles.statBox}>
+                            <Text style={styles.statValue}>{aluno.performance}</Text>
+                            <Text style={styles.statLabel}>Performance Média</Text>
+                        </View>
+                        {aluno.tempoMedio !== null && aluno.tempoMedio !== undefined && (
+                            <View style={styles.statBox}>
+                                <Text style={styles.statValue}>{aluno.tempoMedio.toFixed(1)}</Text>
+                                <Text style={styles.statLabel}>Tempo médio (min)</Text>
+                            </View>
+                        )}
                     </View>
-                    <View style={styles.statBox}>
+                    <View style={[styles.statBox, { marginTop: 12 }]}>
                         <Text style={styles.statValue}>{aluno.conclusao}%</Text>
                         <Text style={styles.statLabel}>Conclusão de atividades</Text>
                     </View>
