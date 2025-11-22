@@ -254,6 +254,12 @@ export default function RelatorioAlunoScreen() {
                         <Text style={styles.statValue}>{aluno.conclusao}%</Text>
                         <Text style={styles.statLabel}>Conclusão de atividades</Text>
                     </View>
+                    {aluno.tempoMedio !== null && aluno.tempoMedio !== undefined && (
+                        <View style={styles.statBox}>
+                            <Text style={styles.statValue}>{aluno.tempoMedio.toFixed(1)}</Text>
+                            <Text style={styles.statLabel}>Tempo médio (min)</Text>
+                        </View>
+                    )}
                 </View>
 
                 {/* Gráfico */}
