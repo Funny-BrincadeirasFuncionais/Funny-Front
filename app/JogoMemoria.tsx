@@ -74,14 +74,13 @@ export default function JogoMemoria() {
     (async () => {
         if (modalVisible && !minijogoRegistered && criancaId !== null) {
         setMinijogoRegistered(true);
-        // calcularPontuacao retorna valor em escala 0-100; backend espera 0-10 for registrar-minijogo
-        const rawScore = Number(calcularPontuacao());
-        const scaledScore = Math.round(Math.max(0, Math.min(10, rawScore / 10)));
+        // calcularPontuacao agora retorna a pontuação no formato 0-10 (float)
+        const effectiveScore = Number(calcularPontuacao());
         // Calcular tempo em segundos
         const tempoSegundos = tempoInicio ? Math.floor((Date.now() - tempoInicio) / 1000) : undefined;
-        
         const res = await registrarMinijogo({
-          pontuacao: scaledScore,
+          pontuacao: effectiveScore,
+          movimentos: moves,
           categoria: 'Lógica',
           crianca_id: Number(criancaId),
           titulo: 'Jogo da Memória',
@@ -180,11 +179,12 @@ export default function JogoMemoria() {
   };
 
   const calcularPontuacao = () => {
-    // Pontuação base: 100 pontos
-    // Deduzir pontos baseado no número de tentativas
-    const pontuacaoBase = 100;
-    const penalidade = Math.max(0, (moves - symbols.length) * 2); // Penaliza tentativas extras
-    return Math.max(0, pontuacaoBase - penalidade);
+    // Regra solicitada: pontuação máxima 10.0; reduzir 0.1 por movimento após o 8º movimento.
+    // `moves` conta tentativas de pares.
+    const extra = Math.max(0, moves - 8);
+    const score = Math.max(0, 10 - extra * 0.1);
+    // Retornar com uma casa decimal (e.g. 9.9)
+    return Math.round(score * 10) / 10;
   };
 
   const salvarProgresso = async () => {
@@ -193,6 +193,7 @@ export default function JogoMemoria() {
       return;
     }
 
+    // Calcula pontuação no intervalo 0-10 usando a regra canônica
     const pontuacao = calcularPontuacao();
 
     try {
@@ -200,6 +201,7 @@ export default function JogoMemoria() {
         crianca_id: Number(criancaId),
         atividade_id: Number(atividadeId),
         pontuacao: Number(pontuacao),
+        movimentos: moves,
         observacoes: observacao || undefined,
         concluida: true,
       });
