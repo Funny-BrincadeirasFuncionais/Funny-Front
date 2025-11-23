@@ -137,6 +137,16 @@ export async function getProgressoCrianca(criancaId: number): Promise<any[]> {
   }
 }
 
+export async function getProgressoTurma(turmaId: number): Promise<any[]> {
+  try {
+    const data = await getJson(`/progresso/turma/${turmaId}`);
+    return Array.isArray(data) ? data : [];
+  } catch (e) {
+    console.warn('getProgressoTurma error', e);
+    return [];
+  }
+}
+
 export async function registrarProgresso(payload: {
   crianca_id: number;
   atividade_id: number;
