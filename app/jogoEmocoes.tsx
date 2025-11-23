@@ -129,6 +129,7 @@ export default function JogoEmocoes() {
     // Quando o jogo termina, abrir modal
     useEffect(() => {
         if (gameFinished) {
+            try { (async () => { await (await import('./utils/playSfx')).playCorrect(); })(); } catch (e) {}
             setModalVisible(true);
         }
     }, [gameFinished]);
@@ -211,6 +212,8 @@ export default function JogoEmocoes() {
             });
             setFeedback('Muito bem! Você acertou! 🌟');
             mostrarFeedbackAnimacao(true);
+            // Play per-phase success SFX
+            try { (async () => { await (await import('./utils/playSfx')).playCorrect(); })(); } catch (e) {}
             goToNextLevel();
         } else {
             if (attemptInLevel === 1) {
@@ -256,10 +259,11 @@ export default function JogoEmocoes() {
                     return novo;
                 });
             } else {
-                // Segunda tentativa errada -> pula para próxima fase
-                setFeedback('Tudo bem, vamos para a próxima fase!');
-                mostrarFeedbackAnimacao(false);
-                goToNextLevel();
+                    // Segunda tentativa errada -> pula para próxima fase
+                    setFeedback('Tudo bem, vamos para a próxima fase!');
+                    mostrarFeedbackAnimacao(false);
+                    try { (async () => { await (await import('./utils/playSfx')).playCorrect(); })(); } catch (e) {}
+                    goToNextLevel();
             }
         }
     }

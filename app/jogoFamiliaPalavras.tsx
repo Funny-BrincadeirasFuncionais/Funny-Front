@@ -229,6 +229,9 @@ export default function JogoFamiliaPalavras() {
                             }),
                         ]).start();
 
+                        // Play per-phase success SFX
+                        try { (async () => { await (await import('./utils/playSfx')).playCorrect(); })(); } catch (e) {}
+
                         return novo;
                     }
                     return prevFases;
@@ -300,6 +303,7 @@ export default function JogoFamiliaPalavras() {
     const finalizarJogo = useCallback(async () => {
         const nota = calcularNotaFinal();
         setNotaFinal(nota);
+        try { await (await import('./utils/playSfx')).playCorrect(); } catch (e) {}
         setModalVisible(true);
 
         if (criancaId) {

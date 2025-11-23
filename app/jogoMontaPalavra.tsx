@@ -101,6 +101,8 @@ export default function JogoMontaPalavra() {
     const mostrarMensagemFeedback = useCallback((correto: boolean) => {
         if (correto) {
             setMensagemFeedback(transformText('Parabéns! Você acertou! 🌟'));
+            // Play SFX when the "Parabéns" feedback appears
+            try { import('./utils/playSfx').then((m) => m.playCorrect()).catch(() => {}); } catch (e) {}
         } else {
             setMensagemFeedback(transformText('Quase lá! Tente novamente! 😊'));
         }

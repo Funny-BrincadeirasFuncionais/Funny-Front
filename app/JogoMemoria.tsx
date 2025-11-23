@@ -18,6 +18,7 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAccessibility } from '../context/AccessibilityContext';
 import { ensureAtividadeExists, registrarProgresso, registrarMinijogo } from '../services/api';
+import { playCorrect } from './utils/playSfx';
 import { Colors } from '../constants/Colors';
 
 const symbols = ['⭐', '🌙', '☀️', '🌸', '🍀', '🎵', '🦕', '🦖'];
@@ -160,9 +161,12 @@ export default function JogoMemoria() {
             Animated.timing(animacao, { toValue: 1, duration: 300, useNativeDriver: true }),
             Animated.timing(animacao, { toValue: 0, duration: 300, useNativeDriver: true }),
           ]).start();
+          // Play a short per-pair success SFX
+          try { playCorrect(); } catch (e) {}
 
           if (matchedPairs + 1 === symbols.length) {
             setTimeout(() => {
+              // Final completion modal (keep a small delay so per-pair SFX doesn't collide)
               setModalVisible(true);
             }, 500);
           }
