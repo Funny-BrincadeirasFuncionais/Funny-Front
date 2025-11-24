@@ -117,9 +117,12 @@ export default function JogoContagem() {
       if (rodada < 5) {
         setRodada(r => r + 1);
         gerarRodada();
+        // Play per-round success SFX
+        import('./utils/playSfx').then((m) => m.playCorrect()).catch(() => {});
       } else {
         const pontuacao = Math.max(0, 10 - erros);
         setNotaFinal(pontuacao);
+        import('./utils/playSfx').then((m) => m.playCorrect()).catch(() => {});
         setModalVisible(true);
       }
     } else {

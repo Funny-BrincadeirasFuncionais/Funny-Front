@@ -22,6 +22,7 @@
     "@react-navigation/native": "^7.1.6",
     "@react-navigation/native-stack": "^7.3.10",
     "expo-auth-session": "~7.0.9",
+    "expo-av": "~16.0.7",
     "expo-blur": "~15.0.7",
     "expo-checkbox": "~5.0.7",
     "expo-constants": "~18.0.9",

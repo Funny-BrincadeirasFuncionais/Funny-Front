@@ -4,22 +4,21 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export interface AccessibilityState {
   uppercase: boolean;
   lowSaturation: boolean;
-  reduceMotion: boolean;
+  muteSfx: boolean;
 }
 
 interface AccessibilityContextValue extends AccessibilityState {
   setUppercase: (v: boolean) => void;
   setLowSaturation: (v: boolean) => void;
-  setReduceMotion: (v: boolean) => void;
+  setMuteSfx: (v: boolean) => void;
   transformText: (s: string) => string;
   applyColor: (hex: string) => string;
-  motionDuration: (ms: number) => number;
 }
 
 const defaultState: AccessibilityState = {
   uppercase: false,
   lowSaturation: false,
-  reduceMotion: false,
+  muteSfx: false,
 };
 
 const Ctx = createContext<AccessibilityContextValue | undefined>(undefined);
@@ -64,17 +63,17 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
     return `#${toHex(mix(base.r, gray.r))}${toHex(mix(base.g, gray.g))}${toHex(mix(base.b, gray.b))}`;
   };
 
-  const motionDuration = (ms: number) => (state.reduceMotion ? 0 : ms);
+  // Keep for backward compatibility with code that expects transformText/applyColor.
+  // The motion-duration helper was removed in favor of removing the "reduce motion" option.
 
   const value = useMemo<AccessibilityContextValue>(() => ({
     ...state,
     setUppercase: (v) => setState(s => ({ ...s, uppercase: v })),
     setLowSaturation: (v) => setState(s => ({ ...s, lowSaturation: v })),
-    setReduceMotion: (v) => setState(s => ({ ...s, reduceMotion: v })),
+    setMuteSfx: (v) => setState(s => ({ ...s, muteSfx: v })),
     transformText,
     applyColor,
-    motionDuration,
-  }), [state.uppercase, state.lowSaturation, state.reduceMotion]);
+  }), [state.uppercase, state.lowSaturation, state.muteSfx]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

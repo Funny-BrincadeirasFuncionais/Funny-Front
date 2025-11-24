@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { playCorrect } from './utils/playSfx';
 import { Dimensions, StyleSheet, Text, View } from 'react-native';
 import DraggableFlatList, { RenderItemParams } from 'react-native-draggable-flatlist';
 
@@ -54,10 +55,17 @@ export default function Jogo3() {
     }
   }, [rodadaAtual]);
 
+  useEffect(() => {
+    if (finalizado) {
+      try { playCorrect(); } catch (e) {}
+    }
+  }, [finalizado]);
+
   const verificarPalavra = (letrasAtualizadas: { letra: string }[]) => {
     const formada = letrasAtualizadas.map((l) => l.letra).join('');
     const correta = palavraAtual.join('');
     if (formada === correta) {
+      try { playCorrect(); } catch (e) {}
       setMovimentosPorRodada([...movimentosPorRodada, movimentosRodada]);
       setTimeout(() => {
         setRodadaAtual((prev) => prev + 1);

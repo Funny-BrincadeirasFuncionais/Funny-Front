@@ -331,8 +331,11 @@ export default function JogoRotinaDia() {
 
     const avancarPeriodo = () => {
         if (periodoAtual < rotinasPeriodos.length - 1) {
+            // Play per-period success SFX
+            try { (async () => { await (await import('./utils/playSfx')).playCorrect(); })(); } catch (e) {}
             setPeriodoAtual(prev => prev + 1);
         } else {
+            // Finalize (also play final SFX inside finalizarJogo)
             finalizarJogo();
         }
     };
@@ -365,6 +368,7 @@ export default function JogoRotinaDia() {
         const nota = calcularNotaFinal();
         setNotaFinal(nota);
         setJogoFinalizado(true);
+        try { (async () => { await (await import('./utils/playSfx')).playCorrect(); })(); } catch (e) {}
         setModalVisible(true);
     };
     const enviarResultado = async () => {
