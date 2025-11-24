@@ -42,6 +42,7 @@ export default function JogoMemoria() {
   const [atividadeId, setAtividadeId] = useState<number | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [observacao, setObservacao] = useState('');
+  const [mostrarAjuda, setMostrarAjuda] = useState(false);
   const [tempoInicio, setTempoInicio] = useState<number | null>(null);
   const animacao = useRef(new Animated.Value(0)).current;
 
@@ -243,9 +244,16 @@ export default function JogoMemoria() {
           <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{transformText('Jogo da Memória')}</Text>
-        <TouchableOpacity style={styles.headerButton} onPress={initGame}>
-          <Ionicons name="refresh" size={22} color="#FFFFFF" />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <TouchableOpacity style={styles.headerButton} onPress={initGame}>
+            <Ionicons name="refresh" size={22} color="#FFFFFF" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.headerButton} onPress={() => setMostrarAjuda(true)}>
+            <View style={styles.helpButton}>
+              <Text style={styles.helpButtonText}>?</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.stats}>
@@ -279,6 +287,28 @@ export default function JogoMemoria() {
       </View>
 
       {/* Modal de finalização */}
+      {/* Modal de Ajuda */}
+      <Modal visible={mostrarAjuda} transparent animationType="fade" onRequestClose={() => setMostrarAjuda(false)}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalBox}>
+            <View style={{flexDirection:'row', justifyContent:'space-between', alignItems:'center', width:'100%'}}>
+              <Text style={styles.modalTitle}>{transformText('Como Jogar')}</Text>
+              <TouchableOpacity onPress={() => setMostrarAjuda(false)} style={{padding:6}}>
+                <Ionicons name="close" size={22} color="#666666" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.modalText}>{transformText('Vire as cartas e encontre os pares iguais. Cada par encontrado aumenta sua pontuação.')}</Text>
+            <Text style={styles.modalText}>• {transformText('Toque em duas cartas para revelar os símbolos.')}</Text>
+            <Text style={styles.modalText}>• {transformText('Se as cartas forem iguais, elas permanecem reveladas.')}</Text>
+            <Text style={styles.modalText}>• {transformText('Tente completar o jogo com o menor número de movimentos possível.')}</Text>
+
+            <TouchableOpacity style={[styles.submitButton, {marginTop:12}]} onPress={() => setMostrarAjuda(false)}>
+              <Text style={styles.submitButtonText}>{transformText('Entendi!')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
       <Modal visible={modalVisible} animationType="slide" transparent>
         <View style={styles.modalContainer}>
           <View style={styles.modalBox}>
@@ -465,5 +495,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Lexend_600SemiBold',
     textAlign: 'center',
+  },
+  helpButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  helpButtonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#F78F3F',
   },
 });

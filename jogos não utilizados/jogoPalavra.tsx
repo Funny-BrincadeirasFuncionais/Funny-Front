@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { playCorrect } from './utils/playSfx';
+import { playCorrect } from '../app/utils/playSfx';
 import { Dimensions, StyleSheet, Text, View } from 'react-native';
 import DraggableFlatList, { RenderItemParams } from 'react-native-draggable-flatlist';
 

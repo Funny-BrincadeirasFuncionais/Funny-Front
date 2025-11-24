@@ -37,6 +37,7 @@ export default function JogoContagem() {
   const [emojisExibidos, setEmojisExibidos] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [observacao, setObservacao] = useState('');
+  const [mostrarAjuda, setMostrarAjuda] = useState(false);
   const [notaFinal, setNotaFinal] = useState(0);
   const [atividadeId, setAtividadeId] = useState<number | null>(null);
   const [feedbackErro, setFeedbackErro] = useState('');
@@ -184,7 +185,11 @@ export default function JogoContagem() {
           <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
   <Text style={styles.headerTitle}>{transformText('Desafio de Contagem')}</Text>
-        <View style={styles.headerButton} />
+        <TouchableOpacity style={styles.headerButton} onPress={() => setMostrarAjuda(true)}>
+          <View style={styles.helpButton}>
+            <Text style={styles.helpButtonText}>?</Text>
+          </View>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.content}>
@@ -219,6 +224,26 @@ export default function JogoContagem() {
       </View>
 
       {/* Modal salvar progresso */}
+      {/* Modal de Ajuda */}
+      <Modal visible={mostrarAjuda} transparent animationType="fade" onRequestClose={() => setMostrarAjuda(false)}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalBox}>
+            <View style={{flexDirection:'row', justifyContent:'space-between', alignItems:'center', width:'100%'}}>
+              <Text style={styles.modalTitle}>{transformText('Como Jogar')}</Text>
+              <TouchableOpacity onPress={() => setMostrarAjuda(false)} style={{padding:6}}>
+                <Ionicons name="close" size={22} color="#666666" />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.modalText}>{transformText('Conte os objetos exibidos e escolha a quantidade correta entre as opções apresentadas.')}</Text>
+            <Text style={styles.modalText}>• {transformText('Observe a imagem com os emojis e conte quantos existem.')}</Text>
+            <Text style={styles.modalText}>• {transformText('Toque na opção que representa a quantidade correta.')}</Text>
+            <Text style={styles.modalText}>• {transformText('Complete 5 rodadas para finalizar o jogo.')}</Text>
+            <TouchableOpacity style={[styles.submitButton, {marginTop:12}]} onPress={() => setMostrarAjuda(false)}>
+              <Text style={styles.submitButtonText}>{transformText('Entendi!')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
       <Modal visible={modalVisible} animationType="slide" transparent>
         <View style={styles.modalContainer}>
           <View style={styles.modalBox}>
@@ -408,6 +433,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Lexend_700Bold',
     textAlign: 'center',
+  },
+  helpButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  helpButtonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#F78F3F',
   },
   voltarButton: {
     width: '100%',
