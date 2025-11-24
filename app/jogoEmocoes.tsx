@@ -42,6 +42,8 @@ const LEVELS: Level[] = [
             { id: 'feliz', label: 'Feliz', emoji: '😊' },
             { id: 'triste', label: 'Triste', emoji: '😢' },
             { id: 'bravo', label: 'Bravo', emoji: '😡' },
+            { id: 'cansado', label: 'Cansado', emoji: '🥱' },
+            { id: 'rir', label: 'Rindo muito', emoji: '🤣' },
         ],
     },
     {
@@ -51,6 +53,7 @@ const LEVELS: Level[] = [
             { id: 'assustado', label: 'Assustado', emoji: '😱' },
             { id: 'chorando', label: 'Chorando', emoji: '😭' },
             { id: 'surpreso', label: 'Surpreso', emoji: '😲' },
+            { id: 'chateado', label: 'Chateado', emoji: '😒' },
         ],
     },
     {
@@ -59,6 +62,7 @@ const LEVELS: Level[] = [
         emotions: [
             { id: 'apaixonado', label: 'Apaixonado', emoji: '😍' },
             { id: 'pensativo', label: 'Pensativo', emoji: '🤔' },
+            { id: 'carente', label: 'Carente', emoji: '🥺' },
         ],
     },
     {
@@ -66,7 +70,8 @@ const LEVELS: Level[] = [
         name: 'Nível 4',
         emotions: [
             { id: 'indiferente', label: 'Indiferente', emoji: '😐' },
-            { id: 'cansado', label: 'Cansado', emoji: '😴' },
+            { id: 'dormindo', label: 'Dormindo', emoji: '😴' },
+            { id: 'emocionado', label: 'Emocionado', emoji: '🥹' },
         ],
     },
     {
@@ -74,6 +79,8 @@ const LEVELS: Level[] = [
         name: 'Nível 5',
         emotions: [
             { id: 'confiante', label: 'Confiante', emoji: '😎' },
+            { id: 'preocupado', label: 'Preocupado', emoji: '😟' },
+            { id: 'ansioso', label: 'Ansioso', emoji: '😰' },
         ],
     },
 ];
@@ -136,27 +143,20 @@ export default function JogoEmocoes() {
     function startLevel(levelIndex: number) {
         const level = LEVELS[levelIndex];
         if (!level) return;
-
-        // Resetar emoções usadas quando inicia um novo nível
-        setEmoesUsadasPorNivel(prev => {
-            const novo = [...prev];
-            novo[levelIndex] = new Set();
-            return novo;
-        });
-
-        // Embaralhar emoções do nível e pegar a primeira
-        const emoesEmbaralhadas = shuffle([...level.emotions]);
+    
+        // Embaralha as emoções do nível e escolhe uma aleatória
+        const emoesEmbaralhadas = shuffle(level.emotions);
         const emotion = emoesEmbaralhadas[0];
-        
-        // Marcar como usada
-        setEmoesUsadasPorNivel(prev => {
+    
+        // Marca essa emoção como usada no nível
+        setEmoesUsadasPorNivel((prev) => {
             const novo = [...prev];
-            novo[levelIndex].add(emotion.id);
+            novo[levelIndex] = new Set([emotion.id]);
             return novo;
         });
-
+    
         const opts = buildOptionsForEmotion(levelIndex, emotion);
-
+    
         setCurrentLevelIndex(levelIndex);
         setCurrentEmotion(emotion);
         setOptions(opts);
@@ -214,53 +214,53 @@ export default function JogoEmocoes() {
             goToNextLevel();
         } else {
             if (attemptInLevel === 1) {
-                // Primeira tentativa errada -> nova expressão do mesmo nível (aleatória entre as não usadas)
+                // Primeira tentativa errada -> nova expressão do mesmo nível (entre as não usadas)
                 setFeedback('Quase! Vamos tentar outra carinha desse mesmo tipo.');
                 mostrarFeedbackAnimacao(false);
-
+            
                 const currentLevel = LEVELS[currentLevelIndex];
-                
-                // Calcular próxima emoção baseada nas já usadas
-                setEmoesUsadasPorNivel(prev => {
-                    const emoesUsadas = prev[currentLevelIndex] || new Set();
-                    // Filtrar emoções que ainda não foram usadas
-                    const naoUsadas = currentLevel.emotions.filter(
-                        (e) => !emoesUsadas.has(e.id)
+            
+                // Usa o estado atual de emoções usadas
+                const usadas = emoesUsadasPorNivel[currentLevelIndex] || new Set<string>();
+            
+                // Filtra emoções ainda não usadas no nível atual
+                const naoUsadas = currentLevel.emotions.filter((e) => !usadas.has(e.id));
+            
+                let nextEmotion: Emotion;
+            
+                if (naoUsadas.length > 0) {
+                    const embaralhadas = shuffle(naoUsadas);
+                    nextEmotion = embaralhadas[0];
+                } else {
+                    // Se já usou todas, pega qualquer uma diferente da atual
+                    const remaining = currentLevel.emotions.filter(
+                        (e) => e.id !== currentEmotion.id
                     );
-                    
-                    let nextEmotion: Emotion;
-                    
-                    // Se ainda há emoções não usadas, escolher uma aleatória
-                    if (naoUsadas.length > 0) {
-                        const emoesEmbaralhadas = shuffle([...naoUsadas]);
-                        nextEmotion = emoesEmbaralhadas[0];
-                    } else {
-                        // Se todas foram usadas, escolher qualquer uma (exceto a atual)
-                        const remaining = currentLevel.emotions.filter(
-                            (e) => e.id !== currentEmotion.id
-                        );
-                        nextEmotion = remaining.length > 0 ? getRandomEmotion(remaining) : currentEmotion;
-                    }
-                    
-                    // Atualizar estados
-                    const newOptions = buildOptionsForEmotion(currentLevelIndex, nextEmotion);
-                    setCurrentEmotion(nextEmotion);
-                    setOptions(newOptions);
-                    setAttemptInLevel(2);
-                    
-                    // Marcar como usada
+                    nextEmotion = remaining.length > 0 ? getRandomEmotion(remaining) : currentEmotion;
+                }
+            
+                // Atualiza estado de emoções usadas
+                const novoSet = new Set(usadas);
+                novoSet.add(nextEmotion.id);
+            
+                setEmoesUsadasPorNivel((prev) => {
                     const novo = [...prev];
-                    novo[currentLevelIndex] = new Set(novo[currentLevelIndex] || new Set());
-                    novo[currentLevelIndex].add(nextEmotion.id);
-                    
+                    novo[currentLevelIndex] = novoSet;
                     return novo;
                 });
+            
+                // Atualiza emoção e opções
+                const newOptions = buildOptionsForEmotion(currentLevelIndex, nextEmotion);
+                setCurrentEmotion(nextEmotion);
+                setOptions(newOptions);
+                setAttemptInLevel(2);
             } else {
                 // Segunda tentativa errada -> pula para próxima fase
                 setFeedback('Tudo bem, vamos para a próxima fase!');
                 mostrarFeedbackAnimacao(false);
                 goToNextLevel();
             }
+            
         }
     }
 
@@ -287,7 +287,7 @@ export default function JogoEmocoes() {
         let somaPesos = 0;
 
         for (let i = 0; i < LEVELS.length; i++) {
-            const peso = i + 1; // Nível 1 = peso 1, nível 5 = peso 5
+            const peso = i + 0.1; // Nível 1 = peso 0.1, nível 5 = peso 0.5
             const acertos = acertosPorNivel[i];
             const tentativas = totalTentativasPorNivel[i];
 
