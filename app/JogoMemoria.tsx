@@ -18,6 +18,7 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAccessibility } from '../context/AccessibilityContext';
 import { ensureAtividadeExists, registrarProgresso, registrarMinijogo } from '../services/api';
+import { playCorrect } from './utils/playSfx';
 import { Colors } from '../constants/Colors';
 
 const symbols = ['⭐', '🌙', '☀️', '🌸', '🍀', '🎵', '🦕', '🦖'];
@@ -41,6 +42,8 @@ export default function JogoMemoria() {
   const [atividadeId, setAtividadeId] = useState<number | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [observacao, setObservacao] = useState('');
+  const [mostrarAjuda, setMostrarAjuda] = useState(false);
+  const [tempoInicio, setTempoInicio] = useState<number | null>(null);
   const animacao = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -63,6 +66,7 @@ export default function JogoMemoria() {
         1
       );
       setAtividadeId(aid);
+      setTempoInicio(Date.now()); // Registrar início do jogo
     })();
   }, []);
 
@@ -72,16 +76,19 @@ export default function JogoMemoria() {
     (async () => {
         if (modalVisible && !minijogoRegistered && criancaId !== null) {
         setMinijogoRegistered(true);
-        // calcularPontuacao retorna valor em escala 0-100; backend espera 0-10 for registrar-minijogo
-        const rawScore = Number(calcularPontuacao());
-        const scaledScore = Math.round(Math.max(0, Math.min(10, rawScore / 10)));
+        // calcularPontuacao agora retorna a pontuação no formato 0-10 (float)
+        const effectiveScore = Number(calcularPontuacao());
+        // Calcular tempo em segundos
+        const tempoSegundos = tempoInicio ? Math.floor((Date.now() - tempoInicio) / 1000) : undefined;
         const res = await registrarMinijogo({
-          pontuacao: scaledScore,
+          pontuacao: effectiveScore,
+          movimentos: moves,
           categoria: 'Lógica',
           crianca_id: Number(criancaId),
           titulo: 'Jogo da Memória',
           descricao: 'Encontre os pares de símbolos',
           observacoes: null,
+          tempo_segundos: tempoSegundos,
         });
         if (res.ok) {
           const r: any = res;
@@ -94,7 +101,7 @@ export default function JogoMemoria() {
         }
       }
     })();
-  }, [modalVisible, minijogoRegistered, criancaId]);
+  }, [modalVisible, minijogoRegistered, criancaId, tempoInicio]);
 
   const initGame = () => {
     const duplicated = [...symbols, ...symbols];
@@ -155,9 +162,12 @@ export default function JogoMemoria() {
             Animated.timing(animacao, { toValue: 1, duration: 300, useNativeDriver: true }),
             Animated.timing(animacao, { toValue: 0, duration: 300, useNativeDriver: true }),
           ]).start();
+          // Play a short per-pair success SFX
+          try { playCorrect(); } catch (e) {}
 
           if (matchedPairs + 1 === symbols.length) {
             setTimeout(() => {
+              // Final completion modal (keep a small delay so per-pair SFX doesn't collide)
               setModalVisible(true);
             }, 500);
           }
@@ -174,11 +184,12 @@ export default function JogoMemoria() {
   };
 
   const calcularPontuacao = () => {
-    // Pontuação base: 100 pontos
-    // Deduzir pontos baseado no número de tentativas
-    const pontuacaoBase = 100;
-    const penalidade = Math.max(0, (moves - symbols.length) * 2); // Penaliza tentativas extras
-    return Math.max(0, pontuacaoBase - penalidade);
+    // Regra solicitada: pontuação máxima 10.0; reduzir 0.1 por movimento após o 8º movimento.
+    // `moves` conta tentativas de pares.
+    const extra = Math.max(0, moves - 8);
+    const score = Math.max(0, 10 - extra * 0.1);
+    // Retornar com uma casa decimal (e.g. 9.9)
+    return Math.round(score * 10) / 10;
   };
 
   const salvarProgresso = async () => {
@@ -187,6 +198,7 @@ export default function JogoMemoria() {
       return;
     }
 
+    // Calcula pontuação no intervalo 0-10 usando a regra canônica
     const pontuacao = calcularPontuacao();
 
     try {
@@ -194,6 +206,7 @@ export default function JogoMemoria() {
         crianca_id: Number(criancaId),
         atividade_id: Number(atividadeId),
         pontuacao: Number(pontuacao),
+        movimentos: moves,
         observacoes: observacao || undefined,
         concluida: true,
       });
@@ -231,9 +244,16 @@ export default function JogoMemoria() {
           <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{transformText('Jogo da Memória')}</Text>
-        <TouchableOpacity style={styles.headerButton} onPress={initGame}>
-          <Ionicons name="refresh" size={22} color="#FFFFFF" />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <TouchableOpacity style={styles.headerButton} onPress={initGame}>
+            <Ionicons name="refresh" size={22} color="#FFFFFF" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.headerButton} onPress={() => setMostrarAjuda(true)}>
+            <View style={styles.helpButton}>
+              <Text style={styles.helpButtonText}>?</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.stats}>
@@ -267,6 +287,28 @@ export default function JogoMemoria() {
       </View>
 
       {/* Modal de finalização */}
+      {/* Modal de Ajuda */}
+      <Modal visible={mostrarAjuda} transparent animationType="fade" onRequestClose={() => setMostrarAjuda(false)}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalBox}>
+            <View style={{flexDirection:'row', justifyContent:'space-between', alignItems:'center', width:'100%'}}>
+              <Text style={styles.modalTitle}>{transformText('Como Jogar')}</Text>
+              <TouchableOpacity onPress={() => setMostrarAjuda(false)} style={{padding:6}}>
+                <Ionicons name="close" size={22} color="#666666" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.modalText}>{transformText('Vire as cartas e encontre os pares iguais. Cada par encontrado aumenta sua pontuação.')}</Text>
+            <Text style={styles.modalText}>• {transformText('Toque em duas cartas para revelar os símbolos.')}</Text>
+            <Text style={styles.modalText}>• {transformText('Se as cartas forem iguais, elas permanecem reveladas.')}</Text>
+            <Text style={styles.modalText}>• {transformText('Tente completar o jogo com o menor número de movimentos possível.')}</Text>
+
+            <TouchableOpacity style={[styles.submitButton, {marginTop:12}]} onPress={() => setMostrarAjuda(false)}>
+              <Text style={styles.submitButtonText}>{transformText('Entendi!')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
       <Modal visible={modalVisible} animationType="slide" transparent>
         <View style={styles.modalContainer}>
           <View style={styles.modalBox}>
@@ -453,5 +495,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Lexend_600SemiBold',
     textAlign: 'center',
+  },
+  helpButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  helpButtonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#F78F3F',
   },
 });

@@ -107,6 +107,7 @@ export default function JogoRotinaDia() {
     const [atividadeId, setAtividadeId] = useState<number | null>(null);
     const [observacao, setObservacao] = useState('');
     const [modalVisible, setModalVisible] = useState(false);
+    const [tempoInicio, setTempoInicio] = useState<number | null>(null);
 
     const periodo = rotinasPeriodos[periodoAtual];
 
@@ -127,6 +128,7 @@ export default function JogoRotinaDia() {
                 1
             );
             setAtividadeId(aid);
+            setTempoInicio(Date.now()); // Registrar início do jogo
         };
         carregarDados();
     }, []);
@@ -137,6 +139,9 @@ export default function JogoRotinaDia() {
         (async () => {
             if (modalVisible && !minijogoRegistered && criancaId !== null) {
                 setMinijogoRegistered(true);
+                // Calcular tempo em segundos
+                const tempoSegundos = tempoInicio ? Math.floor((Date.now() - tempoInicio) / 1000) : undefined;
+                
                 const res = await registrarMinijogo({
                     pontuacao: Number(notaFinal),
                     categoria: 'Cotidiano',
@@ -144,6 +149,7 @@ export default function JogoRotinaDia() {
                     titulo: 'Rotina do Dia',
                     descricao: 'Organize as ações na sequência correta.',
                     observacoes: null,
+                    tempo_segundos: tempoSegundos,
                 });
                 if (res.ok) {
                     const r: any = res;
@@ -156,7 +162,7 @@ export default function JogoRotinaDia() {
                 }
             }
         })();
-    }, [modalVisible, minijogoRegistered, criancaId]);
+    }, [modalVisible, minijogoRegistered, criancaId, notaFinal, tempoInicio]);
 
     useEffect(() => {
         if (periodo) {
@@ -325,8 +331,11 @@ export default function JogoRotinaDia() {
 
     const avancarPeriodo = () => {
         if (periodoAtual < rotinasPeriodos.length - 1) {
+            // Play per-period success SFX
+            try { (async () => { await (await import('./utils/playSfx')).playCorrect(); })(); } catch (e) {}
             setPeriodoAtual(prev => prev + 1);
         } else {
+            // Finalize (also play final SFX inside finalizarJogo)
             finalizarJogo();
         }
     };
@@ -359,6 +368,7 @@ export default function JogoRotinaDia() {
         const nota = calcularNotaFinal();
         setNotaFinal(nota);
         setJogoFinalizado(true);
+        try { (async () => { await (await import('./utils/playSfx')).playCorrect(); })(); } catch (e) {}
         setModalVisible(true);
     };
     const enviarResultado = async () => {

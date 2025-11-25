@@ -1,4 +1,4 @@
-import { gerarRelatorioCrianca, getJson } from '@/services/api';
+import { gerarRelatorioCrianca, getJson, getProgressoCrianca } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -12,7 +12,6 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { BarChart } from 'react-native-chart-kit';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function RelatorioAlunoScreen() {
@@ -24,6 +23,8 @@ export default function RelatorioAlunoScreen() {
     const [error, setError] = useState<string | null>(null);
     const [relatorio, setRelatorio] = useState<any>(null);
     const [responsavel, setResponsavel] = useState<any>(null);
+    const [activeTab, setActiveTab] = useState<'notas' | 'atividades' | 'relatorios'>('notas');
+    const [progressEntries, setProgressEntries] = useState<any[]>([]);
 
     // Dados mockados como fallback
     const alunoMock = {
@@ -37,6 +38,7 @@ export default function RelatorioAlunoScreen() {
         },
         performance: 72.9,
         conclusao: 90,
+        tempoMedio: null as number | null,
         categorias: [
             { nome: 'Percepção', valor: 82, cor: '#7B61FF' },
             { nome: 'Cognição', valor: 74, cor: '#30C57B' },
@@ -52,6 +54,7 @@ export default function RelatorioAlunoScreen() {
     useEffect(() => {
         if (alunoId) {
             carregarRelatorio();
+            carregarProgressos();
         }
     }, [alunoId]);
 
@@ -92,6 +95,17 @@ export default function RelatorioAlunoScreen() {
             Alert.alert('Erro', 'Não foi possível gerar o relatório. Verifique sua conexão e tente novamente.');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const carregarProgressos = async () => {
+        if (!alunoId) return;
+        try {
+            const res = await getProgressoCrianca(alunoId);
+            setProgressEntries(Array.isArray(res) ? res : []);
+        } catch (e) {
+            console.warn('Erro ao carregar progressos da criança', e);
+            setProgressEntries([]);
         }
     };
 
@@ -152,6 +166,7 @@ export default function RelatorioAlunoScreen() {
             } : alunoMock.responsavel,
             performance: Math.round((relatorio.resumo_geral?.media_pontuacao || 0) * 10) / 10,
             conclusao: Math.round(relatorio.resumo_geral?.taxa_sucesso || 0),
+            tempoMedio: relatorio.resumo_geral?.tempo_medio_minutos ?? null,
             categorias: categorias.length > 0 ? categorias : alunoMock.categorias,
             atividades: atividades,
         };
@@ -160,6 +175,72 @@ export default function RelatorioAlunoScreen() {
     const aluno = getAlunoData();
 
     const screenWidth = Dimensions.get('window').width - 48;
+
+    // Helpers for notes tab
+    const overallMean = () => {
+        if (relatorio?.resumo_geral?.media_pontuacao) return Math.round(relatorio.resumo_geral.media_pontuacao * 10) / 10;
+        if (progressEntries && progressEntries.length > 0) {
+            const vals = progressEntries.map((p) => Number(p.pontuacao ?? 0));
+            const mean = vals.reduce((s, v) => s + v, 0) / vals.length;
+            return Math.round(mean * 10) / 10;
+        }
+        return 0;
+    };
+
+    const meanByCategory = () => {
+        // Prefer relatorio.desempenho_por_categoria
+        if (relatorio?.desempenho_por_categoria) {
+            const raw = relatorio.desempenho_por_categoria;
+            return Object.entries(raw).map(([k, v]) => {
+                // Normalize numeric value from possible shapes
+                let valorNum = relatorio.resumo_geral?.media_pontuacao || 0;
+                if (typeof v === 'number') {
+                    valorNum = Math.round(v * 10) / 10;
+                } else if (typeof v === 'string') {
+                    const m = String(v).match(/(\d+\.?\d*)/);
+                    if (m) valorNum = Math.round(parseFloat(m[1]) * 10) / 10;
+                } else if (typeof v === 'object' && v !== null) {
+                    // common object shapes: { media_pontuacao: x } or { pontuacao_media: x }
+                    const cand = (v as any).media_pontuacao ?? (v as any).pontuacao_media ?? (v as any).media ?? (v as any).valor ?? null;
+                    if (typeof cand === 'number') valorNum = Math.round(cand * 10) / 10;
+                    else if (typeof cand === 'string') {
+                        const m2 = String(cand).match(/(\d+\.?\d*)/);
+                        if (m2) valorNum = Math.round(parseFloat(m2[1]) * 10) / 10;
+                    }
+                }
+                return { categoria: k, valor: valorNum };
+            });
+        }
+        // Compute from progressEntries grouping by atividade.categoria
+        const map: Record<string, { sum: number; count: number }> = {};
+        progressEntries.forEach((p) => {
+            const cat = p.atividade?.categoria || p.categoria || 'Geral';
+            const score = Number(p.pontuacao ?? 0);
+            if (!map[cat]) map[cat] = { sum: 0, count: 0 };
+            map[cat].sum += score;
+            map[cat].count += 1;
+        });
+        return Object.entries(map).map(([k, v]) => ({ categoria: k, valor: v.count ? Math.round((v.sum / v.count) * 10) / 10 : 0 }));
+    };
+
+    const activitiesCount = () => {
+        if (relatorio?.resumo_geral?.total_mini_jogos) return relatorio.resumo_geral.total_mini_jogos;
+        if (progressEntries && progressEntries.length > 0) return progressEntries.length;
+        return 0;
+    };
+
+    const correctnessLevel = () => {
+        // percent of concluidas / total
+        let pct = 0;
+        if (relatorio?.resumo_geral?.taxa_sucesso) pct = relatorio.resumo_geral.taxa_sucesso;
+        else if (progressEntries && progressEntries.length > 0) {
+            const concluidas = progressEntries.filter((p) => Boolean(p.concluida ?? p.finalizado ?? p.completed)).length;
+            pct = (concluidas / progressEntries.length) * 100;
+        }
+        if (pct >= 80) return 'Acerta muito';
+        if (pct >= 50) return 'Acerta moderadamente';
+        return 'Erra muito';
+    };
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }} edges={['top']}>
@@ -172,7 +253,6 @@ export default function RelatorioAlunoScreen() {
                 <View style={styles.headerSpacer} />
             </View>
 
-            {/* Conteúdo principal */}
             {loading ? (
                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 48 }}>
                     <ActivityIndicator size="large" color="#E07612" />
@@ -190,127 +270,107 @@ export default function RelatorioAlunoScreen() {
                     </TouchableOpacity>
                 </View>
             ) : (
-            <ScrollView
-                contentContainerStyle={{
-                    paddingHorizontal: 24,
-                    paddingBottom: 48,
-                    paddingTop: 8,
-                }}
-                showsVerticalScrollIndicator={false}
-            >
-                {/* Título principal */}
-                <Text style={styles.title}>Relatório de Aluno</Text>
-                <Text style={styles.subtitle}>
-                    Acompanhamento individual, dados e recomendações
-                </Text>
+                <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 48, paddingTop: 8 }} showsVerticalScrollIndicator={false}>
+                    <Text style={styles.title}>Relatório de Aluno</Text>
+                    <Text style={styles.subtitle}>Acompanhamento individual, dados e recomendações</Text>
 
-                {/* RESUMO */}
-                {relatorio?.resumo && (
-                    <View style={styles.resumoContainer}>
-                        <Text style={styles.resumoTitle}>Resumo</Text>
-                        <Text style={styles.resumoText}>{relatorio.resumo}</Text>
-                    </View>
-                )}
-
-                {/* Perfil do aluno */}
-                <View style={styles.box}>
-                    <View style={styles.rowBetween}>
-                        <Text style={styles.boxTitle}>{aluno.nome}</Text>
-                        <Text style={styles.tag}>{aluno.tipo}</Text>
-                    </View>
-                    <Text style={[styles.infoText, { marginTop: 8 }]}>
-                        Idade: {aluno.idade} anos
-                    </Text>
-                </View>
-
-                {/* Responsável */}
-                <View style={styles.box}>
-                    <Text style={styles.boxTitle}>{aluno.responsavel.nome}</Text>
-                    <Text style={[styles.infoText, { marginTop: 8 }]}>
-                        E-mail: {aluno.responsavel.email}
-                    </Text>
-                    <Text style={[styles.infoText, { marginTop: 8 }]}>
-                        Telefone: {aluno.responsavel.telefone}
-                    </Text>
-                </View>
-
-                {/* Indicadores */}
-                <View style={[styles.statsRow]}>
-                    <View style={styles.statBox}>
-                        <Text style={styles.statValue}>{aluno.performance}</Text>
-                        <Text style={styles.statLabel}>Performance Média</Text>
-                    </View>
-                    <View style={styles.statBox}>
-                        <Text style={styles.statValue}>{aluno.conclusao}%</Text>
-                        <Text style={styles.statLabel}>Conclusão de atividades</Text>
-                    </View>
-                </View>
-
-                {/* Gráfico */}
-                <View style={{ marginTop: 24 }}>
-                    <Text style={styles.sectionTitle}>Média por categorias</Text>
-                    <BarChart
-                        data={{
-                            labels: aluno.categorias.map((c) => c.nome),
-                            datasets: [
-                                {
-                                    data: aluno.categorias.map((c) => c.valor),
-                                    colors: aluno.categorias.map((c) => () => c.cor),
-                                },
-                            ],
-                        }}
-                        width={screenWidth}
-                        height={220}
-                        yAxisLabel=""
-                        yAxisSuffix=""
-                        fromZero
-                        withCustomBarColorFromData
-                        flatColor={false}
-                        showValuesOnTopOfBars
-                        chartConfig={{
-                            backgroundColor: '#fff',
-                            backgroundGradientFrom: '#fff',
-                            backgroundGradientTo: '#fff',
-                            decimalPlaces: 0,
-                            color: (opacity = 1) => `rgba(224, 118, 18, ${opacity})`,
-                            labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-                            barPercentage: 0.5,
-                        }}
-                        style={{
-                            borderRadius: 10,
-                            marginVertical: 8,
-                        }}
-                    />
-                </View>
-
-                {/* Detalhamento */}
-                <View style={{ marginTop: 24 }}>
-                    <Text style={styles.sectionTitle}>Detalhamento por atividades</Text>
-
-                    {/* Cabeçalho */}
-                    <View style={styles.tableHeader}>
-                        <Text style={[styles.tableText, styles.colAtividade, styles.bold]}>
-                            Atividade
-                        </Text>
-                        <Text style={[styles.tableText, styles.colCategoria, styles.bold]}>
-                            Categoria
-                        </Text>
-                        <Text style={[styles.tableText, styles.colPontuacao, styles.bold]}>
-                            Pontuação
-                        </Text>
+                    {/* TAB BAR */}
+                    <View style={styles.tabBar}>
+                        <TouchableOpacity onPress={() => setActiveTab('notas')} style={[styles.tabButton, activeTab === 'notas' && styles.tabActive]}>
+                            <Text style={[styles.tabText, activeTab === 'notas' && styles.tabTextActive]}>Notas</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => setActiveTab('atividades')} style={[styles.tabButton, activeTab === 'atividades' && styles.tabActive]}>
+                            <Text style={[styles.tabText, activeTab === 'atividades' && styles.tabTextActive]}>Atividades</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => setActiveTab('relatorios')} style={[styles.tabButton, activeTab === 'relatorios' && styles.tabActive]}>
+                            <Text style={[styles.tabText, activeTab === 'relatorios' && styles.tabTextActive]}>Relatórios</Text>
+                        </TouchableOpacity>
                     </View>
 
-                    {/* Linhas */}
-                    {aluno.atividades.map((a, i) => (
-                        <View key={i} style={styles.activityRow}>
-                            <Text style={[styles.tableText, styles.colAtividade]}>{a.nome}</Text>
-                            <Text style={[styles.tableText, styles.colCategoria]}>{a.categoria}</Text>
-                            <Text style={[styles.tableText, styles.colPontuacao]}>{a.pontuacao}</Text>
+                    {/* Perfil resumido */}
+                    <View style={styles.box}>
+                        <View style={styles.rowBetween}>
+                            <Text style={styles.boxTitle}>{aluno.nome}</Text>
+                            <Text style={styles.tag}>{aluno.tipo}</Text>
                         </View>
-                    ))}
-                </View>
+                        <Text style={[styles.infoText, { marginTop: 8 }]}>Idade: {aluno.idade} anos</Text>
+                    </View>
 
-            </ScrollView>
+                    {activeTab === 'notas' && (
+                        <View>
+                            <View style={styles.metricsContainer}>
+                                <View style={styles.metricBox}>
+                                    <Text style={styles.metricValue}>{overallMean()}</Text>
+                                    <Text style={styles.metricLabel}>Média Geral</Text>
+                                </View>
+                                <View style={styles.metricBox}>
+                                    <Text style={styles.metricValue}>{activitiesCount()}</Text>
+                                    <Text style={styles.metricLabel}>Atividades realizadas</Text>
+                                </View>
+                                <View style={styles.metricBox}>
+                                    <Text style={styles.metricValue}>{correctnessLevel()}</Text>
+                                    <Text style={styles.metricLabel}>Nível de acerto/erro</Text>
+                                </View>
+                            </View>
+
+                            <View style={{ marginTop: 24 }}>
+                                <Text style={styles.sectionTitle}>Média por categoria</Text>
+                                <View style={{ backgroundColor: '#fff', borderRadius: 10, padding: 8 }}>
+                                    {(() => {
+                                        const categoryMeans = meanByCategory();
+                                        return categoryMeans.map((c: any, i: number) => (
+                                            <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: i < categoryMeans.length - 1 ? 0.5 : 0, borderColor: '#EEE' }}>
+                                                <Text style={{ fontWeight: '600' }}>{c.categoria}</Text>
+                                                <Text style={{ color: '#555' }}>{String(c.valor)}</Text>
+                                            </View>
+                                        ));
+                                    })()}
+                                </View>
+                            </View>
+                        </View>
+                    )}
+
+                    {activeTab === 'atividades' && (
+                        <View>
+                            <Text style={styles.sectionTitle}>Atividades realizadas</Text>
+                            <View style={{ backgroundColor: '#fff', borderRadius: 10, padding: 8 }}>
+                                {progressEntries && progressEntries.length > 0 ? (
+                                    progressEntries.map((p: any, idx: number) => (
+                                        <View key={String(p.id ?? idx)} style={{ paddingVertical: 10, borderBottomWidth: idx < progressEntries.length - 1 ? 0.5 : 0, borderColor: '#EEE' }}>
+                                            <Text style={{ fontWeight: '700' }}>{p.atividade?.titulo || p.atividade?.nome || p.titulo || p.nome_atividade || `Atividade ${p.atividade_id ?? ''}`}</Text>
+                                            <Text style={{ color: '#555', marginTop: 4 }}>Nota: {p.pontuacao ?? p.score ?? '-' } • Tempo: {p.tempo_segundos ? `${p.tempo_segundos}s` : '-'}</Text>
+                                            <Text style={{ color: '#777', marginTop: 4 }}>Data: {p.created_at ? new Date(p.created_at).toLocaleString() : '-'}</Text>
+                                            {p.observacoes ? <Text style={{ marginTop: 6, color: '#333' }}>Observação: {p.observacoes}</Text> : null}
+                                        </View>
+                                    ))
+                                ) : (
+                                    <Text style={{ color: '#666' }}>Sem registros de atividades.</Text>
+                                )}
+                            </View>
+                        </View>
+                    )}
+
+                    {activeTab === 'relatorios' && (
+                        <View>
+                            {relatorio?.resumo && (
+                                <View style={styles.resumoContainer}>
+                                    <Text style={styles.resumoTitle}>Resumo IA</Text>
+                                    <Text style={styles.resumoText}>{relatorio.resumo}</Text>
+                                </View>
+                            )}
+
+                            {/* Mostrar diagnóstico e idade */}
+                            <View style={{ marginTop: 12 }}>
+                                <Text style={styles.sectionTitle}>Informações da criança</Text>
+                                <View style={{ backgroundColor: '#fff', borderRadius: 10, padding: 12 }}>
+                                    <Text style={{ fontWeight: '600' }}>Diagnóstico: {aluno.tipo || 'Não especificado'}</Text>
+                                    <Text style={{ color: '#555', marginTop: 6 }}>Idade: {aluno.idade} anos</Text>
+                                </View>
+                            </View>
+                        </View>
+                    )}
+
+                </ScrollView>
             )}
         </SafeAreaView>
     );
@@ -389,6 +449,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         gap: 12,
+        flexWrap: 'wrap',
     },
     statBox: {
         flex: 1,
@@ -405,6 +466,45 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         marginBottom: 24,
     },
+
+    metricsContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+    },
+    metricBox: {
+        width: '48%',
+        borderWidth: 1,
+        borderColor: '#E07612',
+        borderRadius: 12,
+        paddingVertical: 16,
+        paddingHorizontal: 12,
+        marginBottom: 16,
+    },
+    metricValue: { fontSize: 20, fontWeight: 'bold', color: '#000' },
+    metricLabel: { fontSize: 13, color: '#555' },
+
+    tabBar: {
+        flexDirection: 'row',
+        marginTop: 8,
+        marginBottom: 24,
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: '#EEE',
+    },
+    tabButton: {
+        flex: 1,
+        paddingVertical: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    tabActive: {
+        backgroundColor: '#E07612',
+    },
+    tabText: { color: '#666', fontWeight: '600' },
+    tabTextActive: { color: '#fff' },
 
     tableHeader: {
         flexDirection: 'row',

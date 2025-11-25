@@ -42,6 +42,8 @@ const LEVELS: Level[] = [
             { id: 'feliz', label: 'Feliz', emoji: '😊' },
             { id: 'triste', label: 'Triste', emoji: '😢' },
             { id: 'bravo', label: 'Bravo', emoji: '😡' },
+            { id: 'cansado', label: 'Cansado', emoji: '🥱' },
+            { id: 'rir', label: 'Rindo muito', emoji: '🤣' },
         ],
     },
     {
@@ -51,6 +53,7 @@ const LEVELS: Level[] = [
             { id: 'assustado', label: 'Assustado', emoji: '😱' },
             { id: 'chorando', label: 'Chorando', emoji: '😭' },
             { id: 'surpreso', label: 'Surpreso', emoji: '😲' },
+            { id: 'chateado', label: 'Chateado', emoji: '😒' },
         ],
     },
     {
@@ -59,6 +62,7 @@ const LEVELS: Level[] = [
         emotions: [
             { id: 'apaixonado', label: 'Apaixonado', emoji: '😍' },
             { id: 'pensativo', label: 'Pensativo', emoji: '🤔' },
+            { id: 'carente', label: 'Carente', emoji: '🥺' },
         ],
     },
     {
@@ -66,7 +70,8 @@ const LEVELS: Level[] = [
         name: 'Nível 4',
         emotions: [
             { id: 'indiferente', label: 'Indiferente', emoji: '😐' },
-            { id: 'cansado', label: 'Cansado', emoji: '😴' },
+            { id: 'dormindo', label: 'Dormindo', emoji: '😴' },
+            { id: 'emocionado', label: 'Emocionado', emoji: '🥹' },
         ],
     },
     {
@@ -74,6 +79,8 @@ const LEVELS: Level[] = [
         name: 'Nível 5',
         emotions: [
             { id: 'confiante', label: 'Confiante', emoji: '😎' },
+            { id: 'preocupado', label: 'Preocupado', emoji: '😟' },
+            { id: 'ansioso', label: 'Ansioso', emoji: '😰' },
         ],
     },
 ];
@@ -100,12 +107,15 @@ export default function JogoEmocoes() {
     const [criancaId, setCriancaId] = useState<string | null>(null);
     const [modalVisible, setModalVisible] = useState(false);
     const [observacao, setObservacao] = useState('');
+    const [mostrarAjuda, setMostrarAjuda] = useState(false);
     const [animacao] = useState(new Animated.Value(0));
     // Rastrear acertos e erros por nível para calcular média ponderada
     const [acertosPorNivel, setAcertosPorNivel] = useState<number[]>(new Array(5).fill(0));
     const [totalTentativasPorNivel, setTotalTentativasPorNivel] = useState<number[]>(new Array(5).fill(0));
     // Rastrear emoções já usadas em cada nível para garantir ordem aleatória
     const [emoesUsadasPorNivel, setEmoesUsadasPorNivel] = useState<Set<string>[]>(new Array(5).fill(null).map(() => new Set()));
+    // Rastrear tempo de início do jogo
+    const [tempoInicio, setTempoInicio] = useState<number | null>(null);
 
     // Inicializar primeiro nível
     useEffect(() => {
@@ -120,12 +130,14 @@ export default function JogoEmocoes() {
             }
         };
         carregarDados();
+        setTempoInicio(Date.now()); // Registrar início do jogo
         startLevel(0);
     }, []);
 
     // Quando o jogo termina, abrir modal
     useEffect(() => {
         if (gameFinished) {
+            try { (async () => { await (await import('./utils/playSfx')).playCorrect(); })(); } catch (e) {}
             setModalVisible(true);
         }
     }, [gameFinished]);
@@ -133,27 +145,20 @@ export default function JogoEmocoes() {
     function startLevel(levelIndex: number) {
         const level = LEVELS[levelIndex];
         if (!level) return;
-
-        // Resetar emoções usadas quando inicia um novo nível
-        setEmoesUsadasPorNivel(prev => {
-            const novo = [...prev];
-            novo[levelIndex] = new Set();
-            return novo;
-        });
-
-        // Embaralhar emoções do nível e pegar a primeira
-        const emoesEmbaralhadas = shuffle([...level.emotions]);
+    
+        // Embaralha as emoções do nível e escolhe uma aleatória
+        const emoesEmbaralhadas = shuffle(level.emotions);
         const emotion = emoesEmbaralhadas[0];
-        
-        // Marcar como usada
-        setEmoesUsadasPorNivel(prev => {
+    
+        // Marca essa emoção como usada no nível
+        setEmoesUsadasPorNivel((prev) => {
             const novo = [...prev];
-            novo[levelIndex].add(emotion.id);
+            novo[levelIndex] = new Set([emotion.id]);
             return novo;
         });
-
+    
         const opts = buildOptionsForEmotion(levelIndex, emotion);
-
+    
         setCurrentLevelIndex(levelIndex);
         setCurrentEmotion(emotion);
         setOptions(opts);
@@ -208,56 +213,59 @@ export default function JogoEmocoes() {
             });
             setFeedback('Muito bem! Você acertou! 🌟');
             mostrarFeedbackAnimacao(true);
+            // Play per-phase success SFX
+            try { (async () => { await (await import('./utils/playSfx')).playCorrect(); })(); } catch (e) {}
             goToNextLevel();
         } else {
             if (attemptInLevel === 1) {
-                // Primeira tentativa errada -> nova expressão do mesmo nível (aleatória entre as não usadas)
+                // Primeira tentativa errada -> nova expressão do mesmo nível (entre as não usadas)
                 setFeedback('Quase! Vamos tentar outra carinha desse mesmo tipo.');
                 mostrarFeedbackAnimacao(false);
-
+            
                 const currentLevel = LEVELS[currentLevelIndex];
-                
-                // Calcular próxima emoção baseada nas já usadas
-                setEmoesUsadasPorNivel(prev => {
-                    const emoesUsadas = prev[currentLevelIndex] || new Set();
-                    // Filtrar emoções que ainda não foram usadas
-                    const naoUsadas = currentLevel.emotions.filter(
-                        (e) => !emoesUsadas.has(e.id)
+            
+                // Usa o estado atual de emoções usadas
+                const usadas = emoesUsadasPorNivel[currentLevelIndex] || new Set<string>();
+            
+                // Filtra emoções ainda não usadas no nível atual
+                const naoUsadas = currentLevel.emotions.filter((e) => !usadas.has(e.id));
+            
+                let nextEmotion: Emotion;
+            
+                if (naoUsadas.length > 0) {
+                    const embaralhadas = shuffle(naoUsadas);
+                    nextEmotion = embaralhadas[0];
+                } else {
+                    // Se já usou todas, pega qualquer uma diferente da atual
+                    const remaining = currentLevel.emotions.filter(
+                        (e) => e.id !== currentEmotion.id
                     );
-                    
-                    let nextEmotion: Emotion;
-                    
-                    // Se ainda há emoções não usadas, escolher uma aleatória
-                    if (naoUsadas.length > 0) {
-                        const emoesEmbaralhadas = shuffle([...naoUsadas]);
-                        nextEmotion = emoesEmbaralhadas[0];
-                    } else {
-                        // Se todas foram usadas, escolher qualquer uma (exceto a atual)
-                        const remaining = currentLevel.emotions.filter(
-                            (e) => e.id !== currentEmotion.id
-                        );
-                        nextEmotion = remaining.length > 0 ? getRandomEmotion(remaining) : currentEmotion;
-                    }
-                    
-                    // Atualizar estados
-                    const newOptions = buildOptionsForEmotion(currentLevelIndex, nextEmotion);
-                    setCurrentEmotion(nextEmotion);
-                    setOptions(newOptions);
-                    setAttemptInLevel(2);
-                    
-                    // Marcar como usada
+                    nextEmotion = remaining.length > 0 ? getRandomEmotion(remaining) : currentEmotion;
+                }
+            
+                // Atualiza estado de emoções usadas
+                const novoSet = new Set(usadas);
+                novoSet.add(nextEmotion.id);
+            
+                setEmoesUsadasPorNivel((prev) => {
                     const novo = [...prev];
-                    novo[currentLevelIndex] = new Set(novo[currentLevelIndex] || new Set());
-                    novo[currentLevelIndex].add(nextEmotion.id);
-                    
+                    novo[currentLevelIndex] = novoSet;
                     return novo;
                 });
+            
+                // Atualiza emoção e opções
+                const newOptions = buildOptionsForEmotion(currentLevelIndex, nextEmotion);
+                setCurrentEmotion(nextEmotion);
+                setOptions(newOptions);
+                setAttemptInLevel(2);
             } else {
-                // Segunda tentativa errada -> pula para próxima fase
-                setFeedback('Tudo bem, vamos para a próxima fase!');
-                mostrarFeedbackAnimacao(false);
-                goToNextLevel();
+                    // Segunda tentativa errada -> pula para próxima fase
+                    setFeedback('Tudo bem, vamos para a próxima fase!');
+                    mostrarFeedbackAnimacao(false);
+                    try { (async () => { await (await import('./utils/playSfx')).playCorrect(); })(); } catch (e) {}
+                    goToNextLevel();
             }
+            
         }
     }
 
@@ -284,7 +292,7 @@ export default function JogoEmocoes() {
         let somaPesos = 0;
 
         for (let i = 0; i < LEVELS.length; i++) {
-            const peso = i + 1; // Nível 1 = peso 1, nível 5 = peso 5
+            const peso = i + 0.1; // Nível 1 = peso 0.1, nível 5 = peso 0.5
             const acertos = acertosPorNivel[i];
             const tentativas = totalTentativasPorNivel[i];
 
@@ -309,6 +317,9 @@ export default function JogoEmocoes() {
         if (!criancaId) return;
         
         const notaFinal = calcularNotaFinal();
+        // Calcular tempo em segundos
+        const tempoSegundos = tempoInicio ? Math.floor((Date.now() - tempoInicio) / 1000) : undefined;
+        
         try {
             await registrarMinijogo({
                 pontuacao: notaFinal,
@@ -317,6 +328,7 @@ export default function JogoEmocoes() {
                 titulo: 'Jogo das Emoções',
                 descricao: 'Identifique as emoções representadas pelos emojis.',
                 observacoes: observacao || null,
+                tempo_segundos: tempoSegundos,
             });
         } catch (e) {
             console.warn('Erro ao registrar mini-jogo:', e);
@@ -383,7 +395,11 @@ export default function JogoEmocoes() {
                     <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>{transformText('Jogo das Emoções')}</Text>
-                <View style={styles.headerButton} />
+                <TouchableOpacity style={styles.headerButton} onPress={() => setMostrarAjuda(true)}>
+                    <View style={styles.helpButton}>
+                        <Text style={styles.helpButtonText}>?</Text>
+                    </View>
+                </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.content} contentContainerStyle={styles.contentInner}>
@@ -447,6 +463,48 @@ export default function JogoEmocoes() {
             </ScrollView>
 
             {/* Modal de Finalização */}
+            {/* Modal de Ajuda */}
+            <Modal
+                visible={mostrarAjuda}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setMostrarAjuda(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>{transformText('Como Jogar')}</Text>
+                            <TouchableOpacity
+                                onPress={() => setMostrarAjuda(false)}
+                                style={styles.modalCloseButton}
+                            >
+                                <Ionicons name="close" size={24} color="#666666" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.modalBody}>
+                            <Text style={styles.modalText}>
+                                <Text style={styles.modalTextBold}>{transformText('Objetivo:')}</Text> {transformText('Identificar corretamente como a pessoa está se sentindo ao escolher a emoção que melhor representa o que o emoji mostra.')}
+                            </Text>
+
+                            <Text style={styles.modalText}>
+                                <Text style={styles.modalTextBold}>{transformText('Como jogar:')}</Text>
+                            </Text>
+
+                            <Text style={styles.modalText}>• {transformText('Observe o emoji e escolha a emoção que representa como a pessoa está se sentindo.')}</Text>
+                            <Text style={styles.modalText}>• {transformText('Se errar na primeira tentativa, você terá uma segunda tentativa com outra expressão do mesmo nível.')}</Text>
+                            <Text style={styles.modalText}>• {transformText('Ao completar todas as fases, você verá sua nota final e poderá enviar observações.')}</Text>
+                        </View>
+
+                        <TouchableOpacity
+                            style={styles.modalButton}
+                            onPress={() => setMostrarAjuda(false)}
+                        >
+                            <Text style={styles.modalButtonTextPrimary}>{transformText('Entendi!')}</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
             <Modal
                 visible={modalVisible}
                 transparent={true}
@@ -723,6 +781,34 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         gap: 12,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 8,
+    },
+    modalCloseButton: {
+        padding: 6,
+    },
+    modalBody: {
+        marginBottom: 12,
+    },
+    modalTextBold: {
+        fontWeight: 'bold',
+    },
+    helpButton: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: '#FFFFFF',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    helpButtonText: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#F78F3F',
     },
     modalButton: {
         flex: 1,

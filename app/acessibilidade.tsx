@@ -25,7 +25,7 @@ interface AccessibilityOption {
 
 export default function AcessibilidadeScreen() {
   const router = useRouter();
-  const { uppercase, lowSaturation, reduceMotion, setUppercase, setLowSaturation, setReduceMotion, transformText } = useAccessibility();
+  const { uppercase, lowSaturation, muteSfx, setUppercase, setLowSaturation, setMuteSfx, transformText } = useAccessibility();
 
   const [acessibilidadeOptions, setAcessibilidadeOptions] = useState<AccessibilityOption[]>([
     {
@@ -45,12 +45,12 @@ export default function AcessibilidadeScreen() {
       onToggle: (enabled: boolean) => setLowSaturation(enabled),
     },
     {
-      id: 'animacoes_reduzidas',
-      title: transformText('Animações Reduzidas'),
-      description: transformText('Diminui ou remove animações para reduzir distrações e melhorar o foco'),
-      icon: 'pause-circle',
-      enabled: reduceMotion,
-      onToggle: (enabled: boolean) => setReduceMotion(enabled),
+      id: 'remover_efeitos_sonoros',
+      title: transformText('Remover efeitos sonoros'),
+      description: transformText('Desativa os sons de efeitos sonoros (SFX) em todo o aplicativo'),
+      icon: 'volume-mute',
+      enabled: muteSfx,
+      onToggle: (enabled: boolean) => setMuteSfx(enabled),
     }
   ]);
 
@@ -59,10 +59,10 @@ export default function AcessibilidadeScreen() {
     setAcessibilidadeOptions(prev => prev.map(o => {
       if (o.id === 'letras_maiusculas') return { ...o, enabled: uppercase };
       if (o.id === 'baixa_saturacao') return { ...o, enabled: lowSaturation };
-      if (o.id === 'animacoes_reduzidas') return { ...o, enabled: reduceMotion };
+      if (o.id === 'remover_efeitos_sonoros') return { ...o, enabled: muteSfx };
       return o;
     }));
-  }, [uppercase, lowSaturation, reduceMotion]);
+  }, [uppercase, lowSaturation, muteSfx]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>

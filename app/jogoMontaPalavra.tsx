@@ -51,6 +51,8 @@ export default function JogoMontaPalavra() {
     const [atividadeId, setAtividadeId] = useState<number | null>(null);
     const [modalVisible, setModalVisible] = useState(false);
     const [observacao, setObservacao] = useState('');
+    const [mostrarAjuda, setMostrarAjuda] = useState(false);
+    const [tempoInicio, setTempoInicio] = useState<number | null>(null);
 
     const palavraAtual = palavras[faseAtual];
     const palavraCorretaArray = palavraAtual.palavra.split('');
@@ -73,6 +75,7 @@ export default function JogoMontaPalavra() {
                 1
             );
             setAtividadeId(aid);
+            setTempoInicio(Date.now()); // Registrar início do jogo
         })();
     }, []);
 
@@ -99,6 +102,8 @@ export default function JogoMontaPalavra() {
     const mostrarMensagemFeedback = useCallback((correto: boolean) => {
         if (correto) {
             setMensagemFeedback(transformText('Parabéns! Você acertou! 🌟'));
+            // Play SFX when the "Parabéns" feedback appears
+            try { import('./utils/playSfx').then((m) => m.playCorrect()).catch(() => {}); } catch (e) {}
         } else {
             setMensagemFeedback(transformText('Quase lá! Tente novamente! 😊'));
         }
@@ -274,7 +279,7 @@ export default function JogoMontaPalavra() {
                     <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>{transformText('Descubra a figura')}</Text>
-                <TouchableOpacity style={styles.headerButton}>
+                <TouchableOpacity style={styles.headerButton} onPress={() => setMostrarAjuda(true)}>
                     <View style={styles.helpButton}>
                         <Text style={styles.helpButtonText}>?</Text>
                     </View>
@@ -364,6 +369,49 @@ export default function JogoMontaPalavra() {
                 )}
             </View>
             {/* Modal de finalização */}
+            {/* Modal de Ajuda */}
+            <Modal
+                visible={mostrarAjuda}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setMostrarAjuda(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>{transformText('Como Jogar')}</Text>
+                            <TouchableOpacity
+                                onPress={() => setMostrarAjuda(false)}
+                                style={styles.modalCloseButton}
+                            >
+                                <Ionicons name="close" size={24} color="#666666" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.modalBody}>
+                            <Text style={styles.modalText}>
+                                <Text style={styles.modalTextBold}>{transformText('Objetivo:')}</Text> {transformText('Formar a palavra correta a partir das letras embaralhadas.')}
+                            </Text>
+
+                            <Text style={styles.modalText}>
+                                <Text style={styles.modalTextBold}>{transformText('Como jogar:')}</Text>
+                            </Text>
+
+                            <Text style={styles.modalText}>• {transformText('Toque nas letras para formar a palavra (elas aparecem na linha acima).')}</Text>
+                            <Text style={styles.modalText}>• {transformText('Quando a palavra estiver completa, pressione "Continuar" para avaliar.')}</Text>
+                            <Text style={styles.modalText}>• {transformText('A primeira vez que você pressionar "Continuar" apenas mostra o feedback; pressione novamente para avançar quando estiver correto ou tentar de novo quando estiver errado.')}</Text>
+                            <Text style={styles.modalText}>• {transformText('Toque em uma letra selecionada para removê-la e corrigir a palavra.')}</Text>
+                        </View>
+
+                        <TouchableOpacity
+                            style={styles.modalButton}
+                            onPress={() => setMostrarAjuda(false)}
+                        >
+                            <Text style={styles.modalButtonText}>{transformText('Entendi!')}</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
             <Modal visible={modalVisible} animationType="slide" transparent>
                 <View style={styles.modalContainer}>
                     <View style={styles.modalBox}>
@@ -385,12 +433,16 @@ export default function JogoMontaPalavra() {
                                     return;
                                 }
                                 try {
+                                    // Calcular tempo em segundos
+                                    const tempoSegundos = tempoInicio ? Math.floor((Date.now() - tempoInicio) / 1000) : undefined;
+                                    
                                     const res = await registrarProgresso({
                                         crianca_id: Number(criancaId),
                                         atividade_id: Number(atividadeId),
                                         pontuacao: Number(pontuacao),
                                         observacoes: observacao || undefined,
                                         concluida: true,
+                                        tempo_segundos: tempoSegundos,
                                     });
                                     if (res.ok) {
                                         Alert.alert(transformText('Sucesso'), transformText('Progresso registrado.'));
@@ -646,6 +698,46 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         borderRadius: 15,
         padding: 20,
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    modalContent: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 20,
+        padding: 24,
+        width: '85%',
+        maxWidth: 400,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 8,
+    },
+    modalCloseButton: {
+        padding: 6,
+    },
+    modalBody: {
+        marginBottom: 12,
+    },
+    modalTextBold: {
+        fontWeight: 'bold',
+    },
+    modalButton: {
+        backgroundColor: '#F78F3F',
+        borderRadius: 12,
+        paddingVertical: 12,
+        alignItems: 'center',
+        borderWidth: 0,
+    },
+    modalButtonText: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#FFFFFF',
     },
     modalTitle: {
         fontSize: 22,

@@ -137,19 +137,37 @@ export async function getProgressoCrianca(criancaId: number): Promise<any[]> {
   }
 }
 
+export async function getProgressoTurma(turmaId: number): Promise<any[]> {
+  try {
+    const data = await getJson(`/progresso/turma/${turmaId}`);
+    return Array.isArray(data) ? data : [];
+  } catch (e) {
+    console.warn('getProgressoTurma error', e);
+    return [];
+  }
+}
+
 export async function registrarProgresso(payload: {
   crianca_id: number;
   atividade_id: number;
-  pontuacao: number;
+  pontuacao?: number;
+  movimentos?: number;
   observacoes?: string | null;
   concluida?: boolean;
+  tempo_segundos?: number;
 }) {
   try {
-    const res = await postJson('/progresso/registrar', {
-      ...payload,
+    const body: any = {
+      crianca_id: payload.crianca_id,
+      atividade_id: payload.atividade_id,
       concluida: payload.concluida ?? true,
       observacoes: payload.observacoes ?? null,
-    });
+      tempo_segundos: payload.tempo_segundos ?? undefined,
+    };
+    if (typeof payload.pontuacao !== 'undefined') body.pontuacao = payload.pontuacao;
+    if (typeof payload.movimentos !== 'undefined') body.movimentos = payload.movimentos;
+
+    const res = await postJson('/progresso/registrar', body);
 
     const result: {
       ok: boolean;
@@ -177,12 +195,14 @@ export async function registrarProgresso(payload: {
 }
 
 export async function registrarMinijogo(payload: {
-  pontuacao: number;
+  pontuacao?: number;
   categoria: string;
   crianca_id: number;
   titulo: string;
   descricao: string;
   observacoes?: string | null;
+  tempo_segundos?: number;
+  movimentos?: number;
 }) {
   try {
     const res = await postJson('/progresso/registrar-minijogo', {
@@ -192,6 +212,8 @@ export async function registrarMinijogo(payload: {
       titulo: payload.titulo,
       descricao: payload.descricao,
       observacoes: payload.observacoes ?? null,
+      tempo_segundos: payload.tempo_segundos ?? undefined,
+      movimentos: payload.movimentos ?? undefined,
     });
 
     const result: {
