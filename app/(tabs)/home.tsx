@@ -5,7 +5,6 @@ import React, { useEffect, useState } from 'react';
 import {
   Alert,
   FlatList,
-  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -15,13 +14,14 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import DesaturableImage from '../components/DesaturableImage';
+import { useAccessibility } from '../../context/AccessibilityContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
-import { useAccessibility } from '../../context/AccessibilityContext';
 import { getJson } from '../../services/api';
 
 export default function HomeScreen() {
-  const { transformText } = useAccessibility();
+  const { transformText, applyColor } = useAccessibility();
   const [userName, setUserName] = useState('NOME');
   const [searchText, setSearchText] = useState('');
   const router = useRouter();
@@ -126,10 +126,10 @@ export default function HomeScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.welcomeContainer}>
+          <View style={styles.welcomeContainer}>
           <Text style={styles.welcomeText}>
             <Text style={styles.welcomeTextBlack}>{transformText('Bem-vindo ao ')}</Text>
-            <Text style={styles.welcomeTextOrange}>{transformText('Funny')}</Text>
+            <Text style={[styles.welcomeTextOrange, { color: applyColor(Colors.light.primary) }]}>{transformText('Funny')}</Text>
           </Text>
         </View>
         <View style={styles.headerButtons}>
@@ -137,7 +137,7 @@ export default function HomeScreen() {
             style={styles.headerButton}
             onPress={() => router.push('/configuracoes')}
           >
-            <Ionicons name="settings" size={20} color={Colors.light.primary} />
+            <Ionicons name="settings" size={20} color={applyColor(Colors.light.primary)} />
           </TouchableOpacity>
         </View>
       </View>
@@ -147,17 +147,21 @@ export default function HomeScreen() {
         <Text style={styles.selectionTitle}>{transformText('Selecione para atividades:')}</Text>
         <View style={styles.selectionRow}>
           <TouchableOpacity
-            style={styles.selectionButton}
+            style={[styles.selectionButton, { borderColor: applyColor(Colors.light.primary) }]}
             onPress={() => setShowTurmaModal(true)}
           >
-            <Ionicons name="school" size={20} color={Colors.light.primary} />
+            <Ionicons name="school" size={20} color={applyColor(Colors.light.primary)} />
             <Text style={styles.selectionButtonText} numberOfLines={1}>
               {turmaSelecionada ? turmaSelecionada.nome : transformText('Escolher Turma')}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.selectionButton, !turmaSelecionada && styles.selectionButtonDisabled]}
+            style={[
+              styles.selectionButton,
+              !turmaSelecionada && styles.selectionButtonDisabled,
+              { borderColor: turmaSelecionada ? applyColor(Colors.light.primary) : '#ccc' },
+            ]}
             onPress={() => {
               if (!turmaSelecionada) {
                 Alert.alert(transformText('Aviso'), transformText('Selecione uma turma primeiro.'));
@@ -167,7 +171,7 @@ export default function HomeScreen() {
             }}
             disabled={!turmaSelecionada}
           >
-            <Ionicons name="person" size={20} color={turmaSelecionada ? Colors.light.primary : '#ccc'} />
+            <Ionicons name="person" size={20} color={turmaSelecionada ? applyColor(Colors.light.primary) : '#ccc'} />
             <Text style={[styles.selectionButtonText, !turmaSelecionada && { color: '#ccc' }]} numberOfLines={1}>
               {criancaSelecionada ? criancaSelecionada.nome : transformText('Escolher Criança')}
             </Text>
@@ -185,7 +189,7 @@ export default function HomeScreen() {
           {/* Primeira linha */}
           <View style={styles.gridRow}>
             <TouchableOpacity style={[styles.mainCard, styles.mathematicsCard, isSelectionDisabled && styles.disabledCard]} onPress={() => router.push('/jogosMatematica')} disabled={isSelectionDisabled}>
-            <Image
+            <DesaturableImage
                 source={isSelectionDisabled ? require('../../assets/images/mathdisabled.png') : require('../../assets/images/math.png')}
                 style={styles.cardImage}
                 resizeMode="cover"
@@ -193,7 +197,7 @@ export default function HomeScreen() {
               <Text style={styles.cardTitle}>{transformText('Matemática')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.mainCard, styles.portugueseCard, isSelectionDisabled && styles.disabledCard]} onPress={() => router.push('/jogosPortugues')} disabled={isSelectionDisabled}>
-              <Image 
+              <DesaturableImage 
                 source={isSelectionDisabled ? require('../../assets/images/portdisabled.png') : require('../../assets/images/port.png')} 
                 style={styles.cardImage}
                 resizeMode="cover"
@@ -205,7 +209,7 @@ export default function HomeScreen() {
           {/* Segunda linha */}
           <View style={styles.gridRow}>
             <TouchableOpacity style={[styles.mainCard, styles.logicCard, isSelectionDisabled && styles.disabledCard]} onPress={() => router.push('/jogosLogica')} disabled={isSelectionDisabled}>
-              <Image 
+              <DesaturableImage 
                 source={isSelectionDisabled ? require('../../assets/images/logicdisabled.png') : require('../../assets/images/logic.png')} 
                 style={styles.cardImage}
                 resizeMode="cover"
@@ -213,7 +217,7 @@ export default function HomeScreen() {
               <Text style={styles.cardTitle}>{transformText('Lógica')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.mainCard, styles.dailyLifeCard, isSelectionDisabled && styles.disabledCard]} onPress={() => router.push('/jogosCotidiano')} disabled={isSelectionDisabled}>
-              <Image 
+              <DesaturableImage 
                 source={isSelectionDisabled ? require('../../assets/images/dailydisabled.png') : require('../../assets/images/daily.png')} 
                 style={styles.cardImage}
                 resizeMode="cover"
@@ -245,7 +249,7 @@ export default function HomeScreen() {
               )}
             />
             <TouchableOpacity
-              style={styles.modalCloseButton}
+              style={[styles.modalCloseButton, { backgroundColor: applyColor(Colors.light.primary) }]}
               onPress={() => setShowTurmaModal(false)}
             >
               <Text style={styles.modalCloseText}>{transformText('Fechar')}</Text>
@@ -283,7 +287,7 @@ export default function HomeScreen() {
               />
             )}
             <TouchableOpacity
-              style={styles.modalCloseButton}
+              style={[styles.modalCloseButton, { backgroundColor: applyColor(Colors.light.primary) }]}
               onPress={() => setShowCriancaModal(false)}
             >
               <Text style={styles.modalCloseText}>{transformText('Fechar')}</Text>

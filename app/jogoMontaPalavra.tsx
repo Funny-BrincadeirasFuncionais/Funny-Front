@@ -35,7 +35,7 @@ const palavras: Palavra[] = [
 
 export default function JogoMontaPalavra() {
     const router = useRouter();
-    const { transformText } = useAccessibility();
+    const { transformText, applyColor } = useAccessibility();
     const [faseAtual, setFaseAtual] = useState(0);
     const [letrasEmbaralhadas, setLetrasEmbaralhadas] = useState<string[]>([]);
     const [letrasSelecionadas, setLetrasSelecionadas] = useState<string[]>([]);
@@ -234,8 +234,8 @@ export default function JogoMontaPalavra() {
 
     return (
             <KeyboardSafeView>
-                <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-            <StatusBar barStyle="light-content" backgroundColor="#F78F3F" />
+                <SafeAreaView style={[styles.container, { backgroundColor: applyColor(Colors.light.primary) }]} edges={['top', 'bottom']}>
+            <StatusBar barStyle="light-content" backgroundColor={applyColor(Colors.light.primary)} />
             
             {/* Background Blob Shapes */}
             <View style={styles.backgroundShapes}>
@@ -243,13 +243,13 @@ export default function JogoMontaPalavra() {
                     {/* Blob 1 - Top Right */}
                     <Path
                         d="M280,30 Q340,10 370,60 T360,140 Q330,170 280,150 T240,90 Q230,50 280,30 Z"
-                        fill="#E07612"
+                        fill={applyColor(Colors.light.primaryDark)}
                         opacity={0.7}
                     />
                     {/* Blob 2 - Bottom Left */}
                     <Path
                         d="M-20,680 Q30,660 50,700 T40,760 Q10,790 -20,770 T-50,720 Q-60,680 -20,680 Z"
-                        fill="#E07612"
+                        fill={applyColor(Colors.light.primaryDark)}
                         opacity={0.65}
                     />
                     {/* Blob 3 - Middle Left */}
@@ -281,7 +281,7 @@ export default function JogoMontaPalavra() {
                 <Text style={styles.headerTitle}>{transformText('Descubra a figura')}</Text>
                 <TouchableOpacity style={styles.headerButton} onPress={() => setMostrarAjuda(true)}>
                     <View style={styles.helpButton}>
-                        <Text style={styles.helpButtonText}>?</Text>
+                        <Text style={[styles.helpButtonText, { color: applyColor(Colors.light.primary) }]}>?</Text>
                     </View>
                 </TouchableOpacity>
             </View>
@@ -357,7 +357,7 @@ export default function JogoMontaPalavra() {
                         onPress={continuar}
                         activeOpacity={0.8}
                     >
-                        <Text style={styles.continuarButtonText}>{transformText('Continuar')}</Text>
+                        <Text style={[styles.continuarButtonText, { color: applyColor(Colors.light.primary) }]}>{transformText('Continuar')}</Text>
                     </TouchableOpacity>
                 </View>
 

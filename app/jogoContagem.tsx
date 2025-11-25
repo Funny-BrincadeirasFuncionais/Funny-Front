@@ -168,7 +168,7 @@ export default function JogoContagem() {
 
   return (
     <KeyboardSafeView>
-      <SafeAreaView style={styles.container} edges={['top','bottom']}>
+      <SafeAreaView style={[styles.container, { backgroundColor: applyColor(Colors.light.primary) }]} edges={['top','bottom']}>
   <StatusBar barStyle="light-content" backgroundColor={applyColor(Colors.light.primary)} />
 
       {/* Background blobs */}
@@ -187,7 +187,7 @@ export default function JogoContagem() {
   <Text style={styles.headerTitle}>{transformText('Desafio de Contagem')}</Text>
         <TouchableOpacity style={styles.headerButton} onPress={() => setMostrarAjuda(true)}>
           <View style={styles.helpButton}>
-            <Text style={styles.helpButtonText}>?</Text>
+            <Text style={[styles.helpButtonText, { color: applyColor(Colors.light.primary) }]}>?</Text>
           </View>
         </TouchableOpacity>
       </View>

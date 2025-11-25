@@ -15,7 +15,7 @@ import { useAccessibility } from '../context/AccessibilityContext';
 
 export default function JogosCotidianoScreen() {
   const router = useRouter();
-  const { transformText } = useAccessibility();
+  const { transformText, applyColor } = useAccessibility();
 
   const jogos = [
     {
@@ -28,14 +28,14 @@ export default function JogosCotidianoScreen() {
   ];
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.light.background} />
+    <SafeAreaView style={[styles.container, { backgroundColor: applyColor(Colors.light.background) }]} edges={['top', 'bottom']}>
+      <StatusBar barStyle="dark-content" backgroundColor={applyColor(Colors.light.background)} />
 
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={Colors.light.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={applyColor(Colors.light.textPrimary)} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{transformText('Jogos de Cotidiano')}</Text>
+        <Text style={[styles.headerTitle, { color: applyColor(Colors.light.textPrimary) }]}>{transformText('Jogos de Cotidiano')}</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -53,13 +53,13 @@ export default function JogosCotidianoScreen() {
             }}
           >
             <View style={styles.gameIconContainer}>
-              <Ionicons name={jogo.icone as any} size={48} color={Colors.light.primary} />
+              <Ionicons name={jogo.icone as any} size={48} color={applyColor(Colors.light.primary)} />
             </View>
             <View style={styles.gameInfo}>
-              <Text style={styles.gameName}>{transformText(jogo.nome)}</Text>
-              <Text style={styles.gameDescription}>{transformText(jogo.descricao)}</Text>
+              <Text style={[styles.gameName, { color: applyColor(Colors.light.textPrimary) }]}>{transformText(jogo.nome)}</Text>
+              <Text style={[styles.gameDescription, { color: applyColor(Colors.light.textSecondary) }]}>{transformText(jogo.descricao)}</Text>
             </View>
-            <Ionicons name="chevron-forward" size={24} color={Colors.light.textSecondary} />
+            <Ionicons name="chevron-forward" size={24} color={applyColor(Colors.light.textSecondary)} />
           </TouchableOpacity>
         ))}
       </ScrollView>
