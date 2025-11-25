@@ -2,7 +2,7 @@
   "expo": {
     "name": "funny-frontend",
     "slug": "funny-frontend",
-    "owner": "Funny-jogos"
+    "owner": "Funny-jogos",
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "funnyfrontend",
@@ -51,7 +51,6 @@
       "eas": {
         "projectId": "ca5a55bc-dd64-4438-9907-5a383aaca213"
       }
-    },
-    "owner": "yasslopes-org"
+    }
   }
 }

@@ -49,7 +49,7 @@ export default function JogosLogicaScreen() {
   const router = useRouter();
 
 
-  const { transformText } = useAccessibility();
+  const { transformText, applyColor } = useAccessibility();
 
 
 
@@ -85,13 +85,14 @@ export default function JogosLogicaScreen() {
 
 
 
+
   return (
 
 
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: applyColor(Colors.light.background) }]} edges={['top', 'bottom']}> 
 
 
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.light.background} />
+      <StatusBar barStyle="dark-content" backgroundColor={applyColor(Colors.light.background)} />
 
 
 
@@ -163,7 +164,7 @@ export default function JogosLogicaScreen() {
             <View style={styles.gameIconContainer}>
 
 
-              <Ionicons name={jogo.icone as any} size={48} color={Colors.light.primary} />
+              <Ionicons name={jogo.icone as any} size={48} color={applyColor(Colors.light.primary)} />
 
 
             </View>
@@ -172,16 +173,16 @@ export default function JogosLogicaScreen() {
             <View style={styles.gameInfo}>
 
 
-              <Text style={styles.gameName}>{transformText(jogo.nome)}</Text>
+              <Text style={[styles.gameName, { color: applyColor(Colors.light.textPrimary) }]}>{transformText(jogo.nome)}</Text>
 
 
-              <Text style={styles.gameDescription}>{transformText(jogo.descricao)}</Text>
+              <Text style={[styles.gameDescription, { color: applyColor(Colors.light.textSecondary) }]}>{transformText(jogo.descricao)}</Text>
 
 
             </View>
 
 
-            <Ionicons name="chevron-forward" size={24} color={Colors.light.textSecondary} />
+            <Ionicons name="chevron-forward" size={24} color={applyColor(Colors.light.textSecondary)} />
 
 
           </TouchableOpacity>

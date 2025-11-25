@@ -1,6 +1,8 @@
 import { useRouter } from 'expo-router';
 import React, { useRef, useState } from 'react';
-import { Dimensions, FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import DesaturableImage from './components/DesaturableImage';
+import { useAccessibility } from '../context/AccessibilityContext';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 const LogoFunny = require('../assets/images/logo.png');
 
@@ -45,17 +47,22 @@ export default function Onboarding() {
     router.replace('/login');
   };
 
+  const { applyColor } = useAccessibility();
+
   const renderItem = ({ item }: any) => (
     <View style={[styles.slide, { width }]}>
       {/* Imagem do slide */}
-      <Image source={item.image} style={styles.image} resizeMode="contain" />
+      <DesaturableImage source={item.image} style={styles.image} resizeMode="contain" />
 
       {/* Dots logo abaixo da imagem */}
       <View style={styles.dotsContainer}>
         {slides.map((_, index) => (
           <View
             key={index}
-            style={[styles.dot, currentIndex === index && styles.dotActive]}
+            style={[
+              styles.dot,
+              currentIndex === index && { backgroundColor: applyColor('#E07612') },
+            ]}
           />
         ))}
       </View>
@@ -70,11 +77,11 @@ export default function Onboarding() {
     <SafeAreaView style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       {/* Logo fixa no topo */}
       <View style={styles.logoContainer}>
-        <Image source={LogoFunny} style={styles.logo} resizeMode="contain" />
+        <DesaturableImage source={LogoFunny} style={styles.logo} resizeMode="contain" />
       </View>
 
       {/* Background atrás dos slides */}
-      <Image
+      <DesaturableImage
         source={require('../assets/images/background.png')} // sua imagem de background
         style={styles.backgroundImage}
         resizeMode="cover"
@@ -99,10 +106,10 @@ export default function Onboarding() {
 
       {/* Botões fixos no final */}
       <View style={[styles.buttonsContainer, { marginBottom: insets.bottom + -24 }]}>
-        <Pressable style={styles.skipButton} onPress={handleSkip}>
+        <Pressable style={[styles.skipButton, { borderColor: applyColor('#E07612') }]} onPress={handleSkip}>
           <Text style={styles.skipText}>Pular</Text>
         </Pressable>
-        <Pressable style={styles.nextButton} onPress={handleNext}>
+        <Pressable style={[styles.nextButton, { backgroundColor: applyColor('#E07612') }]} onPress={handleNext}>
           <Text style={styles.nextText}>
             {currentIndex === slides.length - 1 ? 'Começar' : 'Próximo'}
           </Text>
