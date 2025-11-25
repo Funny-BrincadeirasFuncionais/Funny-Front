@@ -2,6 +2,7 @@
   "expo": {
     "name": "funny-frontend",
     "slug": "funny-frontend",
+    "owner": "Funny-jogos"
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "funnyfrontend",
