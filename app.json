@@ -2,7 +2,7 @@
   "expo": {
     "name": "funny-frontend",
     "slug": "funny-frontend",
-    "owner": "Funny-jogos",
+    "owner": "yasslopes-org",
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "funnyfrontend",
@@ -25,13 +25,11 @@
       "output": "static"
     },
     "icon": "./assets/images/icon_funny.png",
-
     "splash": {
       "image": "./assets/images/funny_original.png",
       "resizeMode": "cover",
       "backgroundColor": "#ffffff"
     },
-    
     "plugins": [
       "expo-router",
       "expo-font",
@@ -51,6 +49,7 @@
       "eas": {
         "projectId": "ca5a55bc-dd64-4438-9907-5a383aaca213"
       }
-    }
+    },
+    "owner": "yasslopes-org"
   }
 }
