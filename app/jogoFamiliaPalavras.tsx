@@ -164,9 +164,6 @@ export default function JogoFamiliaPalavras() {
   const [faseAcertada, setFaseAcertada] = useState<boolean[]>(
     new Array(familiasPalavras.length).fill(false),
   );
-  const [errosPorFase, setErrosPorFase] = useState<number[]>(
-    new Array(familiasPalavras.length).fill(0),
-  );
   const [mostrarAjuda, setMostrarAjuda] = useState(false);
   const [atividadeId, setAtividadeId] = useState<number | null>(null);
   const [observacao, setObservacao] = useState('');
@@ -231,24 +228,26 @@ export default function JogoFamiliaPalavras() {
     }
   }, [faseAtual, familiaAtual, animacao]);
 
-  const animarFeedback = useCallback(
-    (apos?: () => void) => {
-      Animated.sequence([
-        Animated.timing(animacao, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.delay(1500),
-        Animated.timing(animacao, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]).start(() => apos && apos());
-    },
-    [animacao],
-  );
+  // anima o toast de feedback e depois some
+  const animarFeedback = useCallback(() => {
+    animacao.setValue(0);
+    Animated.sequence([
+      Animated.timing(animacao, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.delay(1500),
+      Animated.timing(animacao, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setMostrarFeedback(false);
+      setMensagemFeedback('');
+    });
+  }, [animacao]);
 
   const verificarFamilia = useCallback(
     (palavras: PalavraItem[]) => {
@@ -256,23 +255,6 @@ export default function JogoFamiliaPalavras() {
       const palavrasCorretasNaFamilia = palavras.filter(p => p.pertenceFamilia).length;
       const palavrasErradasNaFamilia = palavras.filter(p => !p.pertenceFamilia).length;
       const jaAcertouEstaFase = faseAcertada[faseAtual];
-
-      // atualizar erros (somente enquanto não acertou a fase)
-      if (!jaAcertouEstaFase) {
-        setErrosPorFase(prev => {
-          const novo = [...prev];
-          const errosAtuais = palavrasErradasNaFamilia;
-          const errosAnteriores = novo[faseAtual] || 0;
-
-          if (errosAtuais > errosAnteriores) {
-            const diff = errosAtuais - errosAnteriores;
-            novo[faseAtual] = errosAtuais;
-            setErros(prevErros => prevErros + diff);
-          }
-
-          return novo;
-        });
-      }
 
       // nenhuma palavra selecionada: limpa feedback
       if (palavras.length === 0) {
@@ -310,7 +292,7 @@ export default function JogoFamiliaPalavras() {
           setMensagemFeedback('Ainda faltam palavras! Continue! 💪');
         }
         setMostrarFeedback(true);
-        animarFeedback(() => setMostrarFeedback(false));
+        animarFeedback();
       }
     },
     [familiaAtual, faseAtual, faseAcertada, animarFeedback],
@@ -320,14 +302,14 @@ export default function JogoFamiliaPalavras() {
     verificarFamilia(palavrasNaFamilia);
   }, [palavrasNaFamilia, verificarFamilia]);
 
+  // ✅ Nota começa em 10 e cada erro tira 0,5
   const calcularNotaFinal = useCallback(() => {
-    const pontosPorAcerto = 2;
-    const penalidadePorErro = 0.2;
+    const penalidadePorErro = 0.5;
 
-    let nota = acertos * pontosPorAcerto - erros * penalidadePorErro;
+    let nota = 10 - erros * penalidadePorErro;
     nota = Math.max(0, Math.min(10, nota));
     return Math.round(nota * 10) / 10;
-  }, [acertos, erros]);
+  }, [erros]);
 
   const finalizarJogo = useCallback(async () => {
     const nota = calcularNotaFinal();
@@ -357,7 +339,10 @@ export default function JogoFamiliaPalavras() {
           if (atividadeIdFrom) setAtividadeId(atividadeIdFrom);
         } else {
           const r: any = res;
-          console.warn('Falha ao registrar mini-jogo automático:', r?.data?.error ?? r?.text ?? r?.error);
+          console.warn(
+            'Falha ao registrar mini-jogo automático:',
+            r?.data?.error ?? r?.text ?? r?.error,
+          );
         }
       } catch (e) {
         console.warn('Falha ao registrar mini-jogo automático:', e);
@@ -383,19 +368,26 @@ export default function JogoFamiliaPalavras() {
     });
   }, [finalizarJogo]);
 
+  // ✅ Conta erro quando a criança coloca palavra errada no quadro
   const selecionarPalavra = (palavra: PalavraItem) => {
-    // aqui NÃO mexemos mais em familiaCompleta / feedback
     setPalavrasSelecionadas(prev => {
       const novo = new Set(prev);
 
       if (novo.has(palavra.id)) {
+        // se já estava selecionada, remove da família
         novo.delete(palavra.id);
         setPalavrasNaFamilia(prevFamilia =>
           prevFamilia.filter(p => p.id !== palavra.id),
         );
       } else {
+        // se não estava, adiciona à família
         novo.add(palavra.id);
         setPalavrasNaFamilia(prevFamilia => [...prevFamilia, palavra]);
+
+        // se a palavra NÃO pertence à família, conta um erro
+        if (!palavra.pertenceFamilia) {
+          setErros(prevErros => prevErros + 1);
+        }
       }
 
       return novo;
@@ -533,27 +525,6 @@ export default function JogoFamiliaPalavras() {
           </View>
         </View>
 
-        {mostrarFeedback && (
-          <Animated.View
-            style={[
-              styles.feedbackContainer,
-              {
-                transform: [{ scale: scaleAnim }],
-                opacity: animacao,
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.feedbackText,
-                familiaCompleta ? styles.feedbackCorreto : styles.feedbackIncorreto,
-              ]}
-            >
-              {mensagemFeedback}
-            </Text>
-          </Animated.View>
-        )}
-
         <View style={styles.palavrasDisponiveisContainer}>
           <Text style={styles.palavrasLabel}>
             {transformText('Palavras Disponíveis:')}
@@ -603,6 +574,29 @@ export default function JogoFamiliaPalavras() {
           </Text>
         </View>
       </ScrollView>
+
+      {/* Toast de feedback fixo no TOPO, por cima de tudo */}
+      {mostrarFeedback && mensagemFeedback !== '' && (
+        <Animated.View
+          style={[
+            styles.feedbackToast,
+            {
+              opacity: animacao,
+              transform: [{ scale: scaleAnim }],
+            },
+          ]}
+          pointerEvents="none"
+        >
+          <Text
+            style={[
+              styles.feedbackText,
+              familiaCompleta ? styles.feedbackCorreto : styles.feedbackIncorreto,
+            ]}
+          >
+            {mensagemFeedback}
+          </Text>
+        </Animated.View>
+      )}
 
       {/* Modal Ajuda */}
       <Modal
@@ -809,33 +803,40 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   palavraFamiliaTexto: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#FFFFFF',
     fontFamily: 'Lexend_700Bold',
   },
-  feedbackContainer: {
-    marginBottom: 20,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+
+  // Toast fixo NO TOPO
+  feedbackToast: {
+    position: 'absolute',
+    top: 70,               // logo abaixo do header / status bar
+    left: 24,
+    right: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     borderRadius: 16,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E0E0E0',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 10,
+    zIndex: 50,            // garante que fica acima do conteúdo
   },
   feedbackText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
     fontFamily: 'Lexend_600SemiBold',
   },
   feedbackCorreto: { color: '#4CAF50' },
   feedbackIncorreto: { color: '#FF9800' },
+
   palavrasDisponiveisContainer: { flex: 1, marginBottom: 16 },
   palavrasLabel: {
     fontSize: 16,
@@ -852,8 +853,8 @@ const styles = StyleSheet.create({
   palavraCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     margin: 4,
     borderWidth: 2,
     borderColor: '#E0E0E0',
@@ -866,13 +867,16 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   palavraCardSelecionada: { opacity: 0.5, borderColor: '#F78F3F' },
+
+  // 👇 fonte menor nas palavras que o aluno precisa selecionar
   palavraTexto: {
-    fontSize: 18,
+    fontSize: 14, // era 18, agora menor
     fontWeight: 'bold',
     color: '#333333',
     fontFamily: 'Lexend_700Bold',
   },
   palavraTextoSelecionada: { color: '#999999' },
+
   progressoContainer: { alignItems: 'center', paddingVertical: 12 },
   progressoTexto: {
     fontSize: 16,
