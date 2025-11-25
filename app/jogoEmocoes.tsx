@@ -97,7 +97,7 @@ function shuffle<T>(array: T[]): T[] {
 
 export default function JogoEmocoes() {
     const router = useRouter();
-    const { transformText } = useAccessibility();
+    const { transformText, applyColor } = useAccessibility();
     const [currentLevelIndex, setCurrentLevelIndex] = useState(0); // 0..4
     const [currentEmotion, setCurrentEmotion] = useState<Emotion | null>(null);
     const [options, setOptions] = useState<Emotion[]>([]);
@@ -364,8 +364,8 @@ export default function JogoEmocoes() {
     }
 
     return (
-        <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-            <StatusBar barStyle="light-content" backgroundColor="#F78F3F" />
+        <SafeAreaView style={[styles.container, { backgroundColor: applyColor(Colors.light.primary) }]} edges={['top', 'bottom']}>
+            <StatusBar barStyle="light-content" backgroundColor={applyColor(Colors.light.primary)} />
 
             {/* Background Blob Shapes */}
             <View style={styles.backgroundShapes}>
@@ -378,12 +378,12 @@ export default function JogoEmocoes() {
                 >
                     <Path
                         d="M280,30 Q340,10 370,60 T360,140 Q330,170 280,150 T240,90 Q230,50 280,30 Z"
-                        fill="#E07612"
+                        fill={applyColor(Colors.light.primaryDark)}
                         opacity={0.7}
                     />
                     <Path
                         d="M-20,680 Q30,660 50,700 T40,760 Q10,790 -20,770 T-50,720 Q-60,680 -20,680 Z"
-                        fill="#E07612"
+                        fill={applyColor(Colors.light.primaryDark)}
                         opacity={0.65}
                     />
                 </Svg>
@@ -397,7 +397,7 @@ export default function JogoEmocoes() {
                 <Text style={styles.headerTitle}>{transformText('Jogo das Emoções')}</Text>
                 <TouchableOpacity style={styles.headerButton} onPress={() => setMostrarAjuda(true)}>
                     <View style={styles.helpButton}>
-                        <Text style={styles.helpButtonText}>?</Text>
+                        <Text style={[styles.helpButtonText, { color: applyColor(Colors.light.primary) }]}>?</Text>
                     </View>
                 </TouchableOpacity>
             </View>

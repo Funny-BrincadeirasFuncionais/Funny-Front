@@ -32,7 +32,7 @@ interface Card {
 
 export default function JogoMemoria() {
   const router = useRouter();
-  const { transformText } = useAccessibility();
+  const { transformText, applyColor } = useAccessibility();
   const [cards, setCards] = useState<Card[]>([]);
   const [flippedCards, setFlippedCards] = useState<{ symbol: string; index: number }[]>([]);
   const [matchedPairs, setMatchedPairs] = useState(0);
@@ -227,14 +227,14 @@ export default function JogoMemoria() {
 
   return (
     <KeyboardSafeView>
-      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <StatusBar barStyle="light-content" backgroundColor="#F78F3F" />
+      <SafeAreaView style={[styles.container, { backgroundColor: applyColor(Colors.light.primary) }]} edges={['top', 'bottom']}>
+      <StatusBar barStyle="light-content" backgroundColor={applyColor(Colors.light.primary)} />
 
       {/* Fundo decorativo simples */}
       <View style={styles.backgroundShapes}>
         <Svg width="100%" height="100%" viewBox="0 0 400 800" preserveAspectRatio="none">
-          <Path d="M0,700 Q200,600 400,750 L400,800 L0,800 Z" fill="#E07612" opacity={0.7} />
-          <Path d="M0,100 Q150,50 400,120 L400,0 L0,0 Z" fill="#E07612" opacity={0.65} />
+          <Path d="M0,700 Q200,600 400,750 L400,800 L0,800 Z" fill={applyColor(Colors.light.primaryDark)} opacity={0.7} />
+          <Path d="M0,100 Q150,50 400,120 L400,0 L0,0 Z" fill={applyColor(Colors.light.primaryDark)} opacity={0.65} />
         </Svg>
       </View>
 
@@ -250,7 +250,7 @@ export default function JogoMemoria() {
           </TouchableOpacity>
           <TouchableOpacity style={styles.headerButton} onPress={() => setMostrarAjuda(true)}>
             <View style={styles.helpButton}>
-              <Text style={styles.helpButtonText}>?</Text>
+              <Text style={[styles.helpButtonText, { color: applyColor(Colors.light.primary) }]}>?</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -282,7 +282,7 @@ export default function JogoMemoria() {
 
       <View style={styles.footer}>
         <TouchableOpacity onPress={initGame} style={styles.fullButton}>
-          <Text style={styles.buttonText}>{transformText('Reiniciar')}</Text>
+          <Text style={[styles.buttonText, { color: applyColor(Colors.light.primary) }]}>{transformText('Reiniciar')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -312,7 +312,7 @@ export default function JogoMemoria() {
       <Modal visible={modalVisible} animationType="slide" transparent>
         <View style={styles.modalContainer}>
           <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>{transformText('🎉 Parabéns!')}</Text>
+            <Text style={[styles.modalTitle, { color: applyColor(Colors.light.primary) }]}>{transformText('🎉 Parabéns!')}</Text>
             <Text style={styles.modalText}>
               {transformText('Você completou o jogo em')} {moves} {transformText('tentativas!')}
             </Text>
