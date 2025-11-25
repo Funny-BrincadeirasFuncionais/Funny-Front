@@ -12,7 +12,6 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { BarChart } from 'react-native-chart-kit';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function RelatorioAlunoScreen() {
@@ -487,7 +486,8 @@ const styles = StyleSheet.create({
 
     tabBar: {
         flexDirection: 'row',
-        marginTop: 16,
+        marginTop: 8,
+        marginBottom: 24,
         backgroundColor: '#fff',
         borderRadius: 12,
         overflow: 'hidden',

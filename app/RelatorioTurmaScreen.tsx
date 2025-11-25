@@ -6,15 +6,13 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
-  Pressable,
-  FlatList,
+  View
 } from 'react-native';
-import { BarChart } from 'react-native-chart-kit';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function RelatorioTurmaScreen() {
@@ -398,7 +396,7 @@ export default function RelatorioTurmaScreen() {
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{turma.nome}</Text>
-        <TouchableOpacity onPress={carregarRelatorio} style={{ padding: 8 }}>
+        <TouchableOpacity onPress={carregarRelatorio} style={{ padding: 0, margin: 0 }}>
           <Ionicons name="refresh" size={20} color="#E07612" />
         </TouchableOpacity>
         <View style={styles.headerSpacer} />
@@ -470,7 +468,7 @@ export default function RelatorioTurmaScreen() {
             {/* Distribuição de Diagnósticos (estilo lista) */}
             <View style={{ marginTop: 16 }}>
               <Text style={styles.sectionTitle}>Distribuição de Diagnósticos</Text>
-              <View style={{ backgroundColor: '#fff', borderRadius: 10, padding: 8 }}>
+              <View style={{ backgroundColor: '#fff', borderRadius: 10, padding: 8, borderWidth: 1, borderColor: '#EEE'}}>
                 {turma.diagnosticos && turma.diagnosticos.length > 0 ? (
                   turma.diagnosticos.map((d: any, i: number) => (
                     <View key={String(i)} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: i < turma.diagnosticos.length - 1 ? 0.5 : 0, borderColor: '#EEE' }}>
@@ -489,7 +487,7 @@ export default function RelatorioTurmaScreen() {
             {/* Distribuição de Pontuações por Criança (estilo lista) */}
             <View style={{ marginTop: 24 }}>
               <Text style={styles.sectionTitle}>Distribuição de Pontuações por Criança</Text>
-              <View style={{ backgroundColor: '#fff', borderRadius: 10, padding: 8 }}>
+              <View style={{ backgroundColor: '#fff', borderRadius: 10, padding: 8, borderWidth: 1, borderColor: '#EEE'}}>
                 {perChildTotals && perChildTotals.length > 0 ? (
                   perChildTotals.map((c: any, idx: number) => (
                     <View key={String(c.id ?? idx)} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: idx < perChildTotals.length - 1 ? 0.5 : 0, borderColor: '#EEE' }}>
@@ -594,7 +592,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingVertical: 15,
+    paddingVertical: 16,
     backgroundColor: 'white',
   },
   backButton: { padding: 8 },
@@ -722,7 +720,8 @@ const styles = StyleSheet.create({
   tagText: { fontSize: 12, fontWeight: 'bold' },
   tabBar: {
     flexDirection: 'row',
-    marginTop: 16,
+    marginTop: 8,
+    marginBottom: 24,
     backgroundColor: '#fff',
     borderRadius: 12,
     overflow: 'hidden',
